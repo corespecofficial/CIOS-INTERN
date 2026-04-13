@@ -23,10 +23,10 @@ export function MarketingHeader() {
       position: "sticky", top: 0, zIndex: 50, borderBottom: "1px solid rgba(255,255,255,0.06)",
       background: "rgba(10,14,26,0.85)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
     }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 32px", height: 64 }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-          <img src={LOGO} alt="CIOS" width={40} height={40} style={{ borderRadius: 12 }} />
-          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, background: "linear-gradient(135deg, #fff, #1E88E5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>CIOS Platform</span>
+      <div className="cios-mh-row" style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", height: 56, flexWrap: "nowrap", gap: 8 }}>
+        <Link href="/" className="cios-mh-brand" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", flexShrink: 0, flexWrap: "nowrap", whiteSpace: "nowrap" }}>
+          <img src={LOGO} alt="CIOS" width={32} height={32} style={{ borderRadius: 10, flexShrink: 0 }} />
+          <span className="cios-mh-title" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 17, background: "linear-gradient(135deg, #fff, #1E88E5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", whiteSpace: "nowrap" }}>CIOS Platform</span>
         </Link>
 
         {/* Desktop nav */}
@@ -67,9 +67,16 @@ export function MarketingHeader() {
       )}
 
       <style>{`
-        @media (max-width: 880px) {
+        /* Force the brand and outer row never to wrap, regardless of any global flex-wrap rules */
+        .cios-mh-row, .cios-mh-brand { flex-wrap: nowrap !important; }
+        .cios-mh-title { white-space: nowrap !important; }
+        /* Switch to hamburger earlier so 7 nav links never crowd the brand */
+        @media (max-width: 1024px) {
           .cios-desktop-nav { display: none !important; }
-          .cios-mobile-menu { display: block !important; }
+          .cios-mobile-menu { display: flex !important; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 8px; }
+        }
+        @media (max-width: 380px) {
+          .cios-mh-title { font-size: 15px !important; }
         }
       `}</style>
     </nav>

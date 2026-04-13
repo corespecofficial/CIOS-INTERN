@@ -27,8 +27,14 @@ export function SettingsClient({ me }: { me: Me }) {
         <p style={{ fontSize: 13, color: "#8892A4", margin: "2px 0 0 0" }}>Everything saves to the database and syncs across your devices.</p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 16, alignItems: "flex-start" }}>
-        <style>{`@media (max-width: 820px) { div[data-settings-grid] { grid-template-columns: 1fr !important; } aside[data-settings-nav] { position: static !important; } }`}</style>
+      <div className="cios-settings-root" style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 16, alignItems: "flex-start" }}>
+        <style>{`
+          @media (max-width: 820px) {
+            .cios-settings-root { grid-template-columns: 1fr !important; }
+            aside[data-settings-nav] { position: static !important; display: flex; flex-wrap: wrap; gap: 4px; padding: 6px; }
+            aside[data-settings-nav] button { flex: 1 1 auto; min-width: 100px; }
+          }
+        `}</style>
         <aside data-settings-nav style={{ position: "sticky", top: 20, background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: 6 }}>
           {(["account","privacy","notifications","appearance","security","data"] as Tab[]).map((t) => (
             <button key={t} onClick={() => setTab(t)} style={{

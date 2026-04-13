@@ -10,11 +10,13 @@ import { BottomNav } from "@/components/layout/bottom-nav";
 import { AICopilot } from "@/components/ai-copilot/ai-copilot";
 import { AnnouncementTakeover } from "@/components/announcement-takeover";
 import { CommandPalette } from "@/components/command-palette";
+import { DailyMotivationPopup } from "@/components/daily-motivation-popup";
 import { useAppStore } from "@/store/use-app-store";
 import { claimDailyLogin } from "@/app/actions/daily-login";
 
-// AI Copilot only appears on these strategic pages (plus root "/").
-const AI_COPILOT_ROUTES = ["/dashboard"];
+// AI Copilot is no longer shown inside the app — it lives on the public landing
+// for inquiries/support. Inside the portal users can use AI Hub directly.
+const AI_COPILOT_ROUTES: string[] = [];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -84,6 +86,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Cmd+K / Ctrl+K command palette */}
       <CommandPalette />
+
+      {/* Once-per-day morning motivational popup */}
+      <DailyMotivationPopup />
 
       <style>{`
         @media (max-width: 768px) {

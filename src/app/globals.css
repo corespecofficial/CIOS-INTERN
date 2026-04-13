@@ -654,6 +654,47 @@ body {
 }
 
 /* ============================================
+   MOBILE KEYBOARD + SAFE-AREA + OVERFLOW HARDENING
+   Prevents the keyboard from breaking layouts,
+   preserves the bottom-nav above the home indicator,
+   and stops accidental horizontal scroll.
+   ============================================ */
+
+html, body {
+  /* iOS Safari address-bar safe height */
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* Bottom-nav clears the iPhone home indicator */
+.bottom-nav-mobile {
+  padding-bottom: env(safe-area-inset-bottom, 0) !important;
+  height: calc(64px + env(safe-area-inset-bottom, 0)) !important;
+}
+
+/* Inputs/textareas in scrollable containers stay visible above the keyboard */
+input, textarea, [contenteditable="true"] {
+  scroll-margin-bottom: 120px;
+  scroll-margin-top: 60px;
+}
+
+/* iOS Safari prevents zoom-on-focus when font-size >= 16px */
+@media (max-width: 768px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]),
+  textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+/* Universal "no-overflow" guard for cards / sections */
+section, article, main, .cios-card, [data-card] {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* ============================================
    GLOBAL MOBILE OPTIMIZATION — <= 768px
    Broad safety-net for inline-styled pages.
    ============================================ */

@@ -122,7 +122,12 @@ export function ProfileClient({ profile, editable }: { profile: PublicProfile; e
       </div>
 
       {/* Two column */}
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)", gap: 16, padding: "0 24px" }}>
+      <style>{`
+        @media (max-width: 820px) {
+          .cios-profile-grid { grid-template-columns: 1fr !important; padding: 0 14px !important; }
+        }
+      `}</style>
+      <div className="cios-profile-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)", gap: 16, padding: "0 24px" }}>
         <style>{`@media (max-width: 820px) { div[data-profile-grid] { grid-template-columns: 1fr !important; } }`}</style>
         <div data-profile-grid style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <Section title="About">
