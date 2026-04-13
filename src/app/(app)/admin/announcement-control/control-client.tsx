@@ -23,7 +23,7 @@ export function ControlClient({ announcements, permissions }: { announcements: A
       allowedAudiences: patch.allowed_audiences,
       maxPriority: patch.max_priority,
     });
-    if (!res.ok) return toast.error(res.error);
+    if (!res.ok) { toast.error(res.error); return; }
     setPerms((prev) => prev.map((p) => p.role === role ? { ...p, ...patch } : p));
     toast.success("Updated");
   });
