@@ -28,7 +28,7 @@ const LOGO_32  = "https://res.cloudinary.com/detsk6uql/image/upload/w_32,h_32,c_
 const LOGO_16  = "https://res.cloudinary.com/detsk6uql/image/upload/w_16,h_16,c_fill,g_auto,r_max,f_png,q_auto/v1775646964/Adobe_Express_-_file_lydnbc.png";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.netlify.app"),
   title: { default: "CIOS — Trained African talent for verified companies", template: "%s · CIOS" },
   description:
     "CIOS is the platform behind the COSPRONOS Internship Program — where trained African interns get hired by verified companies worldwide.",

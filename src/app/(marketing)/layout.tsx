@@ -1,7 +1,7 @@
 import { MarketingHeader } from "@/components/marketing/header";
 import { MarketingFooter } from "@/components/marketing/footer";
 
-const SITE = process.env.NEXT_PUBLIC_APP_URL || "https://cios.cospronos.com";
+const SITE = process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.netlify.app";
 
 const jsonLd = {
   "@context": "https://schema.org",

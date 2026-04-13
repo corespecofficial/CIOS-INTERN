@@ -114,7 +114,7 @@ export async function inviteUser(
     // Build absolute URL pointing to our branded sign-up page
     const baseUrl =
       process.env.NEXT_PUBLIC_APP_URL ||
-      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+      (process.env.URL ? process.env.URL : (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://cios-intern.netlify.app"));
 
     await client.invitations.createInvitation({
       emailAddress: email,

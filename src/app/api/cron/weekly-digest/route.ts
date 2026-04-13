@@ -72,7 +72,7 @@ export async function GET(req: Request) {
           </tr>
         </table>
         <p style="color:#B0BEC5;margin:0 0 18px;">Total XP: <strong style="color:#FFC107;">${(u.xp || 0).toLocaleString()}</strong></p>
-        <a href="${process.env.NEXT_PUBLIC_APP_URL || ""}/dashboard" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#1E88E5,#1565C0);color:#fff;border-radius:10px;font-weight:700;text-decoration:none;">Open dashboard →</a>
+        <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.netlify.app"}/dashboard" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#1E88E5,#1565C0);color:#fff;border-radius:10px;font-weight:700;text-decoration:none;">Open dashboard →</a>
       `, { preheader: `Your week: ${xpEarned} XP, ${tasksDone} tasks, ${u.streak || 0}-day streak` });
 
       const r = await sendEmail({ to: u.email, subject: `📊 Your weekly CIOS report — ${xpEarned} XP earned`, html });

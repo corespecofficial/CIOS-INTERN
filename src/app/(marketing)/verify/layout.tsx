@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-const SITE = process.env.NEXT_PUBLIC_APP_URL || "https://cios.cospronos.com";
+const SITE = process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.netlify.app";
 
 export const metadata: Metadata = {
   title: "Verify Certificate · CIOS",

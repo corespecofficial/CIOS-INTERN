@@ -112,7 +112,7 @@ export async function submitRecruiterRequest(input: RecruiterRequestInput): Prom
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 
-function appUrl() { return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"; }
+function appUrl() { return process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.netlify.app"; }
 function escapeHtml(s: string) { return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] || c)); }
 
 /* ─── Super admin management ─── */
