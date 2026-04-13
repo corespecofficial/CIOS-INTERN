@@ -1,0 +1,265 @@
+"use client";
+/* eslint-disable @next/next/no-img-element */
+
+import { useState } from "react";
+import toast from "react-hot-toast";
+
+const tabs = ["All", "Free", "Paid", "In Progress"];
+
+const courses = [
+  {
+    title: "AI & Machine Learning Basics",
+    description: "Learn the fundamentals of artificial intelligence and machine learning algorithms.",
+    emoji: "\u{1F916}",
+    gradient: "linear-gradient(135deg, #7B1FA2, #AB47BC)",
+    price: "Free",
+    rating: 4.8,
+    students: 342,
+    duration: "8 weeks",
+    progress: 65,
+    category: "Free",
+    inProgress: true,
+  },
+  {
+    title: "Advanced React & Next.js",
+    description: "Master modern React patterns, server components, and Next.js app router.",
+    emoji: "\u269B",
+    gradient: "linear-gradient(135deg, #1565C0, #00BCD4)",
+    price: "\u20A615,000",
+    rating: 4.9,
+    students: 218,
+    duration: "10 weeks",
+    progress: 30,
+    category: "Paid",
+    inProgress: true,
+  },
+  {
+    title: "UI/UX Design Masterclass",
+    description: "Design beautiful interfaces and user experiences from scratch.",
+    emoji: "\u{1F3A8}",
+    gradient: "linear-gradient(135deg, #E91E63, #F06292)",
+    price: "\u20A612,000",
+    rating: 4.7,
+    students: 189,
+    duration: "6 weeks",
+    progress: 0,
+    category: "Paid",
+    inProgress: false,
+  },
+  {
+    title: "Python for Data Science",
+    description: "Analyze data, build models, and create visualizations with Python.",
+    emoji: "\u{1F40D}",
+    gradient: "linear-gradient(135deg, #388E3C, #66BB6A)",
+    price: "Free",
+    rating: 4.6,
+    students: 456,
+    duration: "12 weeks",
+    progress: 0,
+    category: "Free",
+    inProgress: false,
+  },
+  {
+    title: "Digital Marketing & SEO",
+    description: "Master digital marketing strategies, SEO, and social media growth.",
+    emoji: "\u{1F4CA}",
+    gradient: "linear-gradient(135deg, #E65100, #FF7043)",
+    price: "\u20A68,000",
+    rating: 4.5,
+    students: 275,
+    duration: "4 weeks",
+    progress: 0,
+    category: "Paid",
+    inProgress: false,
+  },
+  {
+    title: "Cloud Computing with AWS",
+    description: "Deploy and manage scalable applications on Amazon Web Services.",
+    emoji: "\u2601\uFE0F",
+    gradient: "linear-gradient(135deg, #7B1FA2, #E91E63)",
+    price: "\u20A620,000",
+    rating: 4.8,
+    students: 134,
+    duration: "8 weeks",
+    progress: 0,
+    category: "Paid",
+    inProgress: false,
+  },
+];
+
+export default function CoursesPage() {
+  const [activeTab, setActiveTab] = useState("All");
+
+  const filtered = courses.filter((c) => {
+    if (activeTab === "All") return true;
+    if (activeTab === "Free") return c.category === "Free";
+    if (activeTab === "Paid") return c.category === "Paid";
+    if (activeTab === "In Progress") return c.inProgress;
+    return true;
+  });
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#0A0E1A", color: "#E8EDF5", padding: "32px" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>Courses</h1>
+        <span style={{ fontSize: 14, color: "#8892A4" }}>6 courses available</span>
+      </div>
+
+      {/* Filter Tabs */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
+        {tabs.map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              padding: "8px 20px",
+              borderRadius: 999,
+              fontSize: 14,
+              fontWeight: 500,
+              border: "none",
+              cursor: "pointer",
+              background: activeTab === tab ? "#1E88E5" : "#111827",
+              color: activeTab === tab ? "#fff" : "#8892A4",
+              transition: "all 0.2s",
+            }}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {/* Course Cards Grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+        {filtered.map((course) => (
+          <div
+            key={course.title}
+            style={{
+              background: "#111827",
+              borderRadius: 16,
+              overflow: "hidden",
+              border: "1px solid rgba(255,255,255,0.07)",
+            }}
+          >
+            {/* Gradient Thumbnail */}
+            <div
+              style={{
+                height: 160,
+                background: course.gradient,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                position: "relative",
+              }}
+            >
+              <span style={{ fontSize: 60, lineHeight: 1 }}>{course.emoji}</span>
+              {/* Price Tag */}
+              {course.price === "Free" ? (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 12,
+                    right: 12,
+                    background: "rgba(102,187,106,0.85)",
+                    color: "#fff",
+                    padding: "4px 12px",
+                    borderRadius: 999,
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  Free
+                </span>
+              ) : (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 12,
+                    right: 12,
+                    background: "rgba(0,0,0,0.5)",
+                    backdropFilter: "blur(8px)",
+                    color: "#FFC107",
+                    padding: "4px 12px",
+                    borderRadius: 999,
+                    fontSize: 12,
+                    fontWeight: 600,
+                  }}
+                >
+                  {course.price}
+                </span>
+              )}
+            </div>
+
+            {/* Card Body */}
+            <div style={{ padding: 20 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 6px 0" }}>{course.title}</h3>
+              <p
+                style={{
+                  fontSize: 13,
+                  color: "#8892A4",
+                  margin: "0 0 12px 0",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {course.description}
+              </p>
+
+              {/* Stats Row */}
+              <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 13, color: "#8892A4", marginBottom: 14 }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ color: "#FFC107" }}>{"\u2B50"}</span> {course.rating}
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  {"\uD83D\uDC65"} {course.students}
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  {"\u23F1"} {course.duration}
+                </span>
+              </div>
+
+              {/* Progress Bar */}
+              {course.progress > 0 && (
+                <div style={{ marginBottom: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                    <span style={{ color: "#8892A4" }}>Progress</span>
+                    <span style={{ color: "#1E88E5", fontWeight: 500 }}>{course.progress}%</span>
+                  </div>
+                  <div style={{ width: "100%", height: 6, background: "#1A2332", borderRadius: 999, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        width: `${course.progress}%`,
+                        height: "100%",
+                        background: "linear-gradient(90deg, #1E88E5, #FFC107)",
+                        borderRadius: 999,
+                        transition: "width 1s ease",
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Action */}
+              {course.progress > 0 ? (
+                <span
+                  onClick={() => toast.success(`Resuming "${course.title}"...`)}
+                  style={{ fontSize: 14, fontWeight: 600, color: "#1E88E5", cursor: "pointer" }}
+                >
+                  Continue Learning &rarr;
+                </span>
+              ) : (
+                <span
+                  onClick={() => toast.success(`Enrolled in "${course.title}"! 🎓`)}
+                  style={{ fontSize: 14, fontWeight: 600, color: "#1E88E5", cursor: "pointer" }}
+                >
+                  Enroll Now &rarr;
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

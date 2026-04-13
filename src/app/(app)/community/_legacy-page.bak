@@ -1,0 +1,213 @@
+"use client";
+/* eslint-disable @next/next/no-img-element */
+
+import { useState } from "react";
+
+const categories = ["All", "Design", "Development", "AI/ML", "Marketing"];
+
+const posts = [
+  {
+    id: 1,
+    author: "Joshua Agbo",
+    initials: "JA",
+    color: "#1E88E5",
+    role: "CEO",
+    time: "2 hours ago",
+    title: "Welcome to Week 8 \u2014 Prompt Engineering Focus",
+    content:
+      "This week we dive deep into prompt engineering. You'll learn how to craft effective prompts for various AI models, understand token optimization, and build real-world applications. Make sure to complete the pre-reading materials before Monday's live session.",
+    upvotes: 47,
+    comments: 12,
+  },
+  {
+    id: 2,
+    author: "Chidinma Okafor",
+    initials: "CO",
+    color: "#AB47BC",
+    role: "Instructor",
+    time: "5 hours ago",
+    title: "UI/UX Design Resources Collection",
+    content:
+      "I've compiled a comprehensive list of design resources including Figma templates, icon libraries, color palette generators, and typography guides. These are the tools I use daily in production projects. Check the pinned link in the Design channel.",
+    upvotes: 34,
+    comments: 8,
+  },
+  {
+    id: 3,
+    author: "Grace Ekeoma",
+    initials: "GE",
+    color: "#66BB6A",
+    role: "Senior Intern",
+    time: "8 hours ago",
+    title: "My AI Learning Journey So Far",
+    content:
+      "Three months into the CIOS internship and I've gone from zero AI knowledge to building my own chatbot. The structured learning path, weekly challenges, and peer reviews have been incredibly valuable. Here's what I've learned and tips for new interns.",
+    upvotes: 28,
+    comments: 15,
+  },
+];
+
+export default function CommunityPage() {
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [votedPosts, setVotedPosts] = useState<number[]>([]);
+  const [savedPosts, setSavedPosts] = useState<number[]>([]);
+
+  const toggleVote = (id: number) => {
+    setVotedPosts((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+  };
+
+  const toggleSave = (id: number) => {
+    setSavedPosts((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#0A0E1A", color: "#E8EDF5", padding: "32px" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+        <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>Community</h1>
+        <button
+          style={{
+            padding: "10px 22px",
+            borderRadius: 10,
+            background: "#1E88E5",
+            color: "#fff",
+            fontSize: 14,
+            fontWeight: 600,
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          Create Post
+        </button>
+      </div>
+
+      {/* Category Chips */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 28 }}>
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setActiveCategory(cat)}
+            style={{
+              padding: "8px 18px",
+              borderRadius: 999,
+              fontSize: 13,
+              fontWeight: 500,
+              border: "none",
+              cursor: "pointer",
+              background: activeCategory === cat ? "#1E88E5" : "#1A2332",
+              color: activeCategory === cat ? "#fff" : "#8892A4",
+              transition: "all 0.2s",
+            }}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Post Cards */}
+      <div>
+        {posts.map((post) => (
+          <div
+            key={post.id}
+            style={{
+              background: "#111827",
+              borderRadius: 16,
+              padding: 20,
+              marginBottom: 14,
+              border: "1px solid rgba(255,255,255,0.07)",
+            }}
+          >
+            {/* Author Row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+              <div
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: "50%",
+                  background: post.color,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: "#fff",
+                  flexShrink: 0,
+                }}
+              >
+                {post.initials}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 15, fontWeight: 600 }}>{post.author}</span>
+                  <span
+                    style={{
+                      padding: "2px 10px",
+                      borderRadius: 999,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      background: "rgba(30,136,229,0.15)",
+                      color: "#1E88E5",
+                    }}
+                  >
+                    {post.role}
+                  </span>
+                </div>
+                <p style={{ fontSize: 12, color: "#8892A4", margin: "2px 0 0 0" }}>{post.time}</p>
+              </div>
+            </div>
+
+            {/* Post Content */}
+            <h3 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 8px 0" }}>{post.title}</h3>
+            <p style={{ fontSize: 14, color: "#8892A4", margin: "0 0 16px 0", lineHeight: 1.6, display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+              {post.content}
+            </p>
+
+            {/* Action Bar */}
+            <div style={{ display: "flex", alignItems: "center", gap: 20, fontSize: 13, color: "#8892A4" }}>
+              <button
+                onClick={() => toggleVote(post.id)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: votedPosts.includes(post.id) ? "#1E88E5" : "#8892A4",
+                  fontSize: 13,
+                  fontWeight: 500,
+                }}
+              >
+                <span style={{ fontSize: 16 }}>{"\u25B2"}</span>
+                {post.upvotes + (votedPosts.includes(post.id) ? 1 : 0)}
+              </button>
+              <span style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                {"\uD83D\uDCAC"} {post.comments}
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                {"\uD83D\uDD17"} Share
+              </span>
+              <button
+                onClick={() => toggleSave(post.id)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: savedPosts.includes(post.id) ? "#FFC107" : "#8892A4",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  marginLeft: "auto",
+                }}
+              >
+                {"\uD83D\uDD16"} Save
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

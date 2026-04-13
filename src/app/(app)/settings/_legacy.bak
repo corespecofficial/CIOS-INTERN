@@ -1,0 +1,248 @@
+"use client";
+/* eslint-disable @next/next/no-img-element */
+
+import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
+import { useAppStore } from "@/store/use-app-store";
+import { useCurrentUser } from "@/lib/use-current-user";
+
+const notificationSettings = [
+  { id: "task", label: "Task Reminders", description: "Get notified when tasks are due soon" },
+  { id: "class", label: "Class Notifications", description: "Alerts for upcoming live classes" },
+  { id: "fine", label: "Fine Alerts", description: "Immediate alerts when fines are issued" },
+  { id: "community", label: "Community", description: "When someone mentions you in a discussion" },
+];
+
+function Toggle({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
+  return (
+    <button
+      onClick={onToggle}
+      style={{
+        position: "relative",
+        width: 44,
+        height: 24,
+        borderRadius: 12,
+        border: "none",
+        cursor: "pointer",
+        transition: "background 0.2s",
+        background: enabled ? "#1E88E5" : "rgba(255,255,255,0.12)",
+        flexShrink: 0,
+      }}
+    >
+      <span
+        style={{
+          position: "absolute",
+          top: 2,
+          left: enabled ? 22 : 2,
+          width: 20,
+          height: 20,
+          borderRadius: "50%",
+          background: "#fff",
+          transition: "left 0.2s",
+        }}
+      />
+    </button>
+  );
+}
+
+export default function SettingsPage() {
+  const user = useCurrentUser();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [bio, setBio] = useState("");
+
+  // Sync Clerk user data into form state once loaded
+  useEffect(() => {
+    if (user.isLoaded && user.name) {
+      setName(user.name);
+      setEmail(user.email || "");
+    }
+  }, [user.isLoaded, user.name, user.email]);
+  const activeTheme = useAppStore((s) => s.theme);
+  const setTheme = useAppStore((s) => s.setTheme);
+  const setActiveTheme = (t: "dark" | "light") => { setTheme(t); toast.success(`Switched to ${t} mode`); };
+  const [toggles, setToggles] = useState<Record<string, boolean>>({
+    task: true,
+    class: true,
+    fine: true,
+    community: false,
+  });
+
+  const handleToggle = (id: string) => {
+    setToggles((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "10px 14px",
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.1)",
+    background: "#0A0E1A",
+    color: "#E8EDF5",
+    fontSize: 14,
+    outline: "none",
+    boxSizing: "border-box",
+  };
+
+  const labelStyle: React.CSSProperties = {
+    fontSize: 12,
+    fontWeight: 500,
+    color: "#8892A4",
+    marginBottom: 6,
+    display: "block",
+  };
+
+  const sectionCard: React.CSSProperties = {
+    background: "#111827",
+    border: "1px solid rgba(255,255,255,0.07)",
+    borderRadius: 16,
+    padding: 24,
+  };
+
+  const ghostBtn: React.CSSProperties = {
+    width: "100%",
+    padding: "10px 16px",
+    borderRadius: 10,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "transparent",
+    color: "#E8EDF5",
+    fontSize: 13,
+    fontWeight: 500,
+    cursor: "pointer",
+    textAlign: "left" as const,
+  };
+
+  return (
+    <div style={{ maxWidth: 960, margin: "0 auto" }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700, color: "#E8EDF5", margin: "0 0 24px 0" }}>Settings</h1>
+
+      <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 20 }}>
+        {/* Left Column: Profile */}
+        <div style={sectionCard}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+            <span style={{ fontSize: 20 }}>👤</span>
+            <h2 style={{ fontSize: 18, fontWeight: 600, color: "#E8EDF5", margin: 0 }}>Profile</h2>
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>Full Name</label>
+            <input style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>Email</label>
+            <input style={inputStyle} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+
+          <div style={{ marginBottom: 14 }}>
+            <label style={labelStyle}>Phone</label>
+            <input style={inputStyle} value={phone} onChange={(e) => setPhone(e.target.value)} />
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <label style={labelStyle}>Bio</label>
+            <textarea
+              style={{ ...inputStyle, minHeight: 80, resize: "vertical", fontFamily: "inherit" }}
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="Tell us about yourself..."
+            />
+          </div>
+
+          <button
+            onClick={() => {
+              const t = toast.loading("Saving changes...");
+              setTimeout(() => toast.success("Profile updated successfully!", { id: t }), 800);
+            }}
+            style={{
+              background: "#1E88E5",
+              color: "#fff",
+              border: "none",
+              padding: "10px 24px",
+              borderRadius: 10,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Save Changes
+          </button>
+        </div>
+
+        {/* Right Column: Theme + Notifications + Security */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Appearance */}
+          <div style={sectionCard}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <span style={{ fontSize: 20 }}>🎨</span>
+              <h2 style={{ fontSize: 18, fontWeight: 600, color: "#E8EDF5", margin: 0 }}>Appearance</h2>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <button
+                onClick={() => setActiveTheme("dark")}
+                style={{
+                  padding: 16,
+                  borderRadius: 12,
+                  border: activeTheme === "dark" ? "2px solid #1E88E5" : "2px solid rgba(255,255,255,0.07)",
+                  background: activeTheme === "dark" ? "rgba(30,136,229,0.1)" : "transparent",
+                  cursor: "pointer",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ fontSize: 26, marginBottom: 6 }}>🌙</div>
+                <span style={{ fontSize: 13, fontWeight: 500, color: "#E8EDF5" }}>Dark</span>
+              </button>
+              <button
+                onClick={() => setActiveTheme("light")}
+                style={{
+                  padding: 16,
+                  borderRadius: 12,
+                  border: activeTheme === "light" ? "2px solid #1E88E5" : "2px solid rgba(255,255,255,0.07)",
+                  background: activeTheme === "light" ? "rgba(30,136,229,0.1)" : "transparent",
+                  cursor: "pointer",
+                  textAlign: "center",
+                }}
+              >
+                <div style={{ fontSize: 26, marginBottom: 6 }}>☀️</div>
+                <span style={{ fontSize: 13, fontWeight: 500, color: "#E8EDF5" }}>Light</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Notifications */}
+          <div style={sectionCard}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <span style={{ fontSize: 20 }}>🔔</span>
+              <h2 style={{ fontSize: 18, fontWeight: 600, color: "#E8EDF5", margin: 0 }}>Notifications</h2>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {notificationSettings.map((s) => (
+                <div key={s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 500, color: "#E8EDF5", margin: 0 }}>{s.label}</p>
+                    <p style={{ fontSize: 12, color: "#8892A4", margin: "2px 0 0 0" }}>{s.description}</p>
+                  </div>
+                  <Toggle enabled={toggles[s.id]} onToggle={() => handleToggle(s.id)} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Security */}
+          <div style={sectionCard}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+              <span style={{ fontSize: 20 }}>🔒</span>
+              <h2 style={{ fontSize: 18, fontWeight: 600, color: "#E8EDF5", margin: 0 }}>Security</h2>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <button style={ghostBtn}>Change Password</button>
+              <button style={ghostBtn}>Enable 2FA</button>
+              <button style={ghostBtn}>Active Sessions</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

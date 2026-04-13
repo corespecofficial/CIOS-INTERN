@@ -1,0 +1,26 @@
+{
+  "name": "CIOS · COSPRONOS Media",
+  "short_name": "CIOS",
+  "description": "The AI-powered internship operating system by COSPRONOS Media × Corespec Engineering.",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0A0E1A",
+  "theme_color": "#0A0E1A",
+  "lang": "en",
+  "categories": ["education", "productivity", "social"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Dashboard", "url": "/dashboard", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Messages", "url": "/messages" },
+    { "name": "Tasks", "url": "/tasks" },
+    { "name": "Productivity Hub", "url": "/productivity" }
+  ],
+  "prefer_related_applications": false
+}

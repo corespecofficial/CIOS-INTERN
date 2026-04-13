@@ -1,0 +1,69 @@
+{
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "share": "مشاركة",
+    "loading": "جارٍ التحميل…",
+    "search": "بحث",
+    "back": "رجوع",
+    "next": "التالي",
+    "submit": "إرسال",
+    "yes": "نعم",
+    "no": "لا"
+  },
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "profile": "الملف الشخصي",
+    "notifications": "الإشعارات",
+    "settings": "الإعدادات",
+    "classroom": "الفصل",
+    "courses": "الدورات",
+    "tasks": "المهام",
+    "messages": "الرسائل",
+    "community": "المجتمع",
+    "wallet": "المحفظة",
+    "rewards": "مركز المكافآت",
+    "leaderboard": "المتصدرون",
+    "badges": "الشارات",
+    "achievements": "الإنجازات",
+    "missions": "المهمات",
+    "streaks": "السلاسل",
+    "productivity": "مركز الإنتاجية",
+    "planner": "المخطط",
+    "alarms": "المنبهات والساعة",
+    "reminders": "التذكيرات",
+    "focusMode": "وضع التركيز",
+    "notes": "الملاحظات",
+    "performance": "الأداء",
+    "announcements": "الإعلانات",
+    "aiHub": "مركز الذكاء الاصطناعي",
+    "documents": "المستندات",
+    "opportunities": "الفرص",
+    "certificates": "الشهادات",
+    "myAnalytics": "إحصائياتي",
+    "help": "المساعدة والدعم"
+  },
+  "header": {
+    "search": "ابحث عن صفحات وإجراءات وأشخاص…",
+    "switchTheme": "تغيير السمة",
+    "viewAll": "عرض الكل"
+  },
+  "dashboard": {
+    "greeting_morning": "صباح الخير، {name}!",
+    "greeting_afternoon": "مساء الخير، {name}!",
+    "greeting_evening": "مساء الخير، {name}!",
+    "streakMessage": "أنت في سلسلة منذ {days} يومًا! استمر في التقدم.",
+    "promotionLadder": "سلم الترقية",
+    "currentRank": "رتبتك الحالية",
+    "totalXp": "إجمالي النقاط",
+    "dayStreak": "سلسلة الأيام",
+    "performance": "الأداء"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "language": "اللغة",
+    "languageDescription": "اختر لغة الواجهة. سيتم تطبيق التغيير بعد التحديث."
+  }
+}

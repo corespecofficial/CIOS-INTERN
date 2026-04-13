@@ -1,0 +1,382 @@
+"use client";
+/* eslint-disable @next/next/no-img-element */
+
+import { useState } from "react";
+import toast from "react-hot-toast";
+
+const COLORS = {
+  blue: "#1E88E5",
+  gold: "#FFC107",
+  green: "#66BB6A",
+  red: "#EF5350",
+  purple: "#AB47BC",
+  orange: "#FF7043",
+  bg: "#0A0E1A",
+  card: "#111827",
+  text: "#E8EDF5",
+  dim: "#8892A4",
+  border: "rgba(255,255,255,0.07)",
+};
+
+const LOGO =
+  "https://res.cloudinary.com/detsk6uql/image/upload/v1775646964/Adobe_Express_-_file_lydnbc.png";
+
+type DocCategory = "Certificate" | "CV" | "Report" | "Receipt" | "ID Card";
+
+interface Doc {
+  id: number;
+  title: string;
+  type: DocCategory;
+  format: string;
+  size: string;
+  date: string;
+  color: string;
+}
+
+const DOCS: Doc[] = [
+  { id: 1, title: "AI Fundamentals Certificate", type: "Certificate", format: "PDF", size: "2.4 MB", date: "Apr 2, 2026", color: COLORS.gold },
+  { id: 2, title: "CIOS Intern CV", type: "CV", format: "PDF", size: "1.1 MB", date: "Updated Apr 10, 2026", color: COLORS.blue },
+  { id: 3, title: "Q1 Performance Report", type: "Report", format: "PDF", size: "3.8 MB", date: "Mar 31, 2026", color: COLORS.purple },
+  { id: 4, title: "Weekly Stipend Receipt", type: "Receipt", format: "PDF", size: "124 KB", date: "Apr 8, 2026", color: COLORS.green },
+  { id: 5, title: "Intern ID Card", type: "ID Card", format: "PDF", size: "856 KB", date: "Oct 2025", color: COLORS.orange },
+  { id: 6, title: "Brand Identity Project Certificate", type: "Certificate", format: "PDF", size: "2.1 MB", date: "Mar 15, 2026", color: COLORS.gold },
+  { id: 7, title: "Fine Payment Receipt", type: "Receipt", format: "PDF", size: "98 KB", date: "Apr 1, 2026", color: COLORS.green },
+  { id: 8, title: "Design Track Completion", type: "Certificate", format: "PDF", size: "2.6 MB", date: "Feb 20, 2026", color: COLORS.gold },
+];
+
+const TABS = ["All", "Certificates", "CVs", "Reports", "Receipts", "ID Cards"] as const;
+
+const tabToType: Record<string, DocCategory | null> = {
+  All: null,
+  Certificates: "Certificate",
+  CVs: "CV",
+  Reports: "Report",
+  Receipts: "Receipt",
+  "ID Cards": "ID Card",
+};
+
+export default function DocumentsPage() {
+  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("All");
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const filtered = DOCS.filter((d) => {
+    const f = tabToType[activeTab];
+    return f === null ? true : d.type === f;
+  });
+
+  const stats = [
+    { label: "Certificates", value: 3, icon: "🏆", color: COLORS.gold },
+    { label: "CVs Generated", value: 2, icon: "📋", color: COLORS.blue },
+    { label: "Reports", value: 8, icon: "📊", color: COLORS.purple },
+    { label: "Receipts", value: 12, icon: "🧾", color: COLORS.green },
+  ];
+
+  return (
+    <div style={{ background: COLORS.bg, minHeight: "100vh", color: COLORS.text, padding: "24px" }}>
+      {/* Banner */}
+      <div
+        style={{
+          position: "relative",
+          borderRadius: 20,
+          padding: "28px 32px",
+          background: `linear-gradient(135deg, ${COLORS.blue}33 0%, ${COLORS.gold}22 100%)`,
+          border: `1px solid ${COLORS.border}`,
+          overflow: "hidden",
+          display: "flex",
+          alignItems: "center",
+          gap: 20,
+          marginBottom: 24,
+        }}
+      >
+        <img src={LOGO} alt="CIOS" style={{ width: 80, height: 80, objectFit: "contain", flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <span
+            style={{
+              display: "inline-block",
+              padding: "4px 12px",
+              borderRadius: 999,
+              background: `${COLORS.blue}33`,
+              color: COLORS.blue,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: 1.2,
+              marginBottom: 10,
+            }}
+          >
+            DOCUMENTS
+          </span>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800 }}>My Documents</h1>
+          <p style={{ margin: "4px 0 0", color: COLORS.dim, fontSize: 14 }}>
+            Certificates, reports, CV, and official files
+          </p>
+        </div>
+        <button
+          onClick={() => setModalOpen(true)}
+          style={{
+            padding: "10px 18px",
+            borderRadius: 10,
+            background: COLORS.blue,
+            color: "#fff",
+            border: "none",
+            fontWeight: 700,
+            cursor: "pointer",
+            fontSize: 14,
+          }}
+        >
+          + Generate Document
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: 16,
+          marginBottom: 24,
+        }}
+      >
+        {stats.map((s) => (
+          <div
+            key={s.label}
+            style={{
+              background: COLORS.card,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 14,
+              padding: 18,
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+            }}
+          >
+            <div
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: 12,
+                background: `${s.color}22`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 22,
+              }}
+            >
+              {s.icon}
+            </div>
+            <div>
+              <div style={{ fontSize: 24, fontWeight: 800 }}>{s.value}</div>
+              <div style={{ fontSize: 12, color: COLORS.dim }}>{s.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
+        {TABS.map((t) => {
+          const active = activeTab === t;
+          return (
+            <button
+              key={t}
+              onClick={() => setActiveTab(t)}
+              style={{
+                padding: "8px 16px",
+                borderRadius: 999,
+                border: `1px solid ${active ? COLORS.blue : COLORS.border}`,
+                background: active ? `${COLORS.blue}22` : "transparent",
+                color: active ? COLORS.blue : COLORS.dim,
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: "pointer",
+              }}
+            >
+              {t}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+          gap: 16,
+        }}
+      >
+        {filtered.map((d) => (
+          <div
+            key={d.id}
+            style={{
+              background: COLORS.card,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 14,
+              padding: 18,
+              display: "flex",
+              flexDirection: "column",
+              gap: 12,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  background: `${d.color}22`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 24,
+                }}
+              >
+                📄
+              </div>
+              <span
+                style={{
+                  marginLeft: "auto",
+                  padding: "3px 10px",
+                  borderRadius: 999,
+                  background: `${d.color}22`,
+                  color: d.color,
+                  fontSize: 11,
+                  fontWeight: 700,
+                }}
+              >
+                {d.type}
+              </span>
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{d.title}</div>
+              <div style={{ fontSize: 12, color: COLORS.dim }}>
+                {d.format} · {d.size} · {d.date}
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
+              <button
+                onClick={() => toast.success(`Downloading ${d.title}`)}
+                style={{
+                  flex: 1,
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  background: COLORS.blue,
+                  color: "#fff",
+                  border: "none",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                Download
+              </button>
+              <button
+                onClick={() => toast(`Previewing ${d.title}`, { icon: "👁️" })}
+                style={{
+                  flex: 1,
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  background: "transparent",
+                  color: COLORS.text,
+                  border: `1px solid ${COLORS.border}`,
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                Preview
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {filtered.length === 0 && (
+        <div style={{ textAlign: "center", padding: 40, color: COLORS.dim }}>
+          No documents in this category.
+        </div>
+      )}
+
+      {/* Modal */}
+      {modalOpen && (
+        <div
+          onClick={() => setModalOpen(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+            padding: 20,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: COLORS.card,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 16,
+              padding: 24,
+              maxWidth: 440,
+              width: "100%",
+            }}
+          >
+            <h3 style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 800 }}>Generate Document</h3>
+            <p style={{ margin: "0 0 18px", color: COLORS.dim, fontSize: 13 }}>
+              Choose a document to generate.
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {[
+                { label: "Generate CV", color: COLORS.blue, icon: "📋" },
+                { label: "Generate Performance Report", color: COLORS.purple, icon: "📊" },
+                { label: "Request New Certificate", color: COLORS.gold, icon: "🏆" },
+              ].map((o) => (
+                <button
+                  key={o.label}
+                  onClick={() => {
+                    toast.success(`${o.label} requested`);
+                    setModalOpen(false);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "12px 14px",
+                    borderRadius: 10,
+                    background: `${o.color}15`,
+                    border: `1px solid ${o.color}44`,
+                    color: COLORS.text,
+                    fontWeight: 600,
+                    fontSize: 14,
+                    cursor: "pointer",
+                    textAlign: "left",
+                  }}
+                >
+                  <span style={{ fontSize: 20 }}>{o.icon}</span>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setModalOpen(false)}
+              style={{
+                marginTop: 16,
+                width: "100%",
+                padding: 10,
+                borderRadius: 8,
+                background: "transparent",
+                border: `1px solid ${COLORS.border}`,
+                color: COLORS.dim,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

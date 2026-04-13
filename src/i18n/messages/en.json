@@ -1,0 +1,69 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "share": "Share",
+    "loading": "Loading…",
+    "search": "Search",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "profile": "Profile",
+    "notifications": "Notifications",
+    "settings": "Settings",
+    "classroom": "Classroom",
+    "courses": "Courses",
+    "tasks": "Tasks",
+    "messages": "Messages",
+    "community": "Community",
+    "wallet": "Wallet",
+    "rewards": "Rewards Hub",
+    "leaderboard": "Leaderboard",
+    "badges": "Badges",
+    "achievements": "Achievements",
+    "missions": "Missions",
+    "streaks": "Streaks",
+    "productivity": "Productivity Hub",
+    "planner": "Planner",
+    "alarms": "Alarms & Clock",
+    "reminders": "Reminders",
+    "focusMode": "Focus mode",
+    "notes": "Notes",
+    "performance": "Performance",
+    "announcements": "Announcements",
+    "aiHub": "AI Hub",
+    "documents": "Documents",
+    "opportunities": "Opportunities",
+    "certificates": "Certificates",
+    "myAnalytics": "My Analytics",
+    "help": "Help & Support"
+  },
+  "header": {
+    "search": "Search pages, actions, people…",
+    "switchTheme": "Switch theme",
+    "viewAll": "View all"
+  },
+  "dashboard": {
+    "greeting_morning": "Good Morning, {name}!",
+    "greeting_afternoon": "Good Afternoon, {name}!",
+    "greeting_evening": "Good Evening, {name}!",
+    "streakMessage": "You are on a {days}-day streak! Keep pushing forward.",
+    "promotionLadder": "Promotion Ladder",
+    "currentRank": "Current Rank",
+    "totalXp": "Total XP",
+    "dayStreak": "Day Streak",
+    "performance": "Performance"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "languageDescription": "Choose your interface language. The change applies after a refresh."
+  }
+}

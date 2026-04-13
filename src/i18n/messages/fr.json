@@ -1,0 +1,69 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "share": "Partager",
+    "loading": "Chargement…",
+    "search": "Rechercher",
+    "back": "Retour",
+    "next": "Suivant",
+    "submit": "Envoyer",
+    "yes": "Oui",
+    "no": "Non"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "profile": "Profil",
+    "notifications": "Notifications",
+    "settings": "Paramètres",
+    "classroom": "Salle de classe",
+    "courses": "Cours",
+    "tasks": "Tâches",
+    "messages": "Messages",
+    "community": "Communauté",
+    "wallet": "Portefeuille",
+    "rewards": "Récompenses",
+    "leaderboard": "Classement",
+    "badges": "Badges",
+    "achievements": "Réalisations",
+    "missions": "Missions",
+    "streaks": "Séries",
+    "productivity": "Productivité",
+    "planner": "Planificateur",
+    "alarms": "Alarmes & Horloge",
+    "reminders": "Rappels",
+    "focusMode": "Mode focus",
+    "notes": "Notes",
+    "performance": "Performance",
+    "announcements": "Annonces",
+    "aiHub": "Centre IA",
+    "documents": "Documents",
+    "opportunities": "Opportunités",
+    "certificates": "Certificats",
+    "myAnalytics": "Mes statistiques",
+    "help": "Aide & Support"
+  },
+  "header": {
+    "search": "Rechercher pages, actions, personnes…",
+    "switchTheme": "Changer de thème",
+    "viewAll": "Voir tout"
+  },
+  "dashboard": {
+    "greeting_morning": "Bonjour, {name} !",
+    "greeting_afternoon": "Bon après-midi, {name} !",
+    "greeting_evening": "Bonsoir, {name} !",
+    "streakMessage": "Tu es sur une série de {days} jours ! Continue comme ça.",
+    "promotionLadder": "Échelle de promotion",
+    "currentRank": "Rang actuel",
+    "totalXp": "XP total",
+    "dayStreak": "Série de jours",
+    "performance": "Performance"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "language": "Langue",
+    "languageDescription": "Choisis la langue de l'interface. Le changement s'applique après actualisation."
+  }
+}

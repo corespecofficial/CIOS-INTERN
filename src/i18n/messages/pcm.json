@@ -1,0 +1,69 @@
+{
+  "common": {
+    "save": "Save am",
+    "cancel": "Cancel",
+    "delete": "Delete am",
+    "edit": "Edit",
+    "share": "Share",
+    "loading": "E dey load…",
+    "search": "Find",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Send",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "nav": {
+    "dashboard": "Home",
+    "profile": "Profile",
+    "notifications": "Tori",
+    "settings": "Settings",
+    "classroom": "Class",
+    "courses": "Courses",
+    "tasks": "Work to do",
+    "messages": "Messages",
+    "community": "Community",
+    "wallet": "Pocket",
+    "rewards": "Reward Place",
+    "leaderboard": "Top List",
+    "badges": "Badges",
+    "achievements": "Wetin you don do",
+    "missions": "Missions",
+    "streaks": "Daily Run",
+    "productivity": "Work Place",
+    "planner": "Planner",
+    "alarms": "Alarms & Clock",
+    "reminders": "Reminders",
+    "focusMode": "Focus Mode",
+    "notes": "Notes",
+    "performance": "How you dey perform",
+    "announcements": "Announcements",
+    "aiHub": "AI Place",
+    "documents": "Documents",
+    "opportunities": "Opportunities",
+    "certificates": "Certificates",
+    "myAnalytics": "My Numbers",
+    "help": "Help & Support"
+  },
+  "header": {
+    "search": "Find pages, things, people…",
+    "switchTheme": "Change theme",
+    "viewAll": "See all"
+  },
+  "dashboard": {
+    "greeting_morning": "Morning, {name}!",
+    "greeting_afternoon": "Afternoon, {name}!",
+    "greeting_evening": "Evening, {name}!",
+    "streakMessage": "You don dey on {days}-day streak! No stop.",
+    "promotionLadder": "Promotion Ladder",
+    "currentRank": "Your Rank now",
+    "totalXp": "Total XP",
+    "dayStreak": "Daily Streak",
+    "performance": "Performance"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "languageDescription": "Pick the language wey you wan use. E go change after refresh."
+  }
+}

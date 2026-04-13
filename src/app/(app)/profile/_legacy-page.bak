@@ -1,0 +1,256 @@
+"use client";
+/* eslint-disable @next/next/no-img-element */
+
+import { useState } from "react";
+import { useCurrentUser } from "@/lib/use-current-user";
+import { getRoleLabel } from "@/store/use-app-store";
+
+const skills = [
+  { name: "React", color: "#1E88E5" },
+  { name: "Next.js", color: "#E8EDF5" },
+  { name: "TypeScript", color: "#1E88E5" },
+  { name: "Tailwind", color: "#66BB6A" },
+  { name: "Python", color: "#FFC107" },
+  { name: "Node.js", color: "#66BB6A" },
+  { name: "Figma", color: "#AB47BC" },
+  { name: "AI/ML", color: "#FF7043" },
+  { name: "REST APIs", color: "#EF5350" },
+  { name: "Git", color: "#FF7043" },
+  { name: "MongoDB", color: "#66BB6A" },
+  { name: "PostgreSQL", color: "#1E88E5" },
+];
+
+const achievements = [
+  { title: "Streak Master", icon: "🔥", color: "#FF7043", bg: "rgba(255,112,67,0.15)" },
+  { title: "Code Warrior", icon: "⚔️", color: "#EF5350", bg: "rgba(239,83,80,0.15)" },
+  { title: "Team Player", icon: "🤝", color: "#1E88E5", bg: "rgba(30,136,229,0.15)" },
+  { title: "Quick Learner", icon: "🧠", color: "#AB47BC", bg: "rgba(171,71,188,0.15)" },
+];
+
+export default function ProfilePage() {
+  const user = useCurrentUser();
+  return (
+    <div style={{ minHeight: "100vh", background: "#0A0E1A", color: "#E8EDF5" }}>
+      {/* Cover Banner */}
+      <div
+        style={{
+          height: 180,
+          borderRadius: "16px 16px 0 0",
+          background: "linear-gradient(135deg, #1E88E5 0%, #1565C0 50%, #FFC107 100%)",
+          position: "relative",
+        }}
+      >
+        <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.15)", borderRadius: "16px 16px 0 0" }} />
+      </div>
+
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 24px 32px 24px" }}>
+        {/* Avatar + Info Row */}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 20, flexWrap: "wrap" }}>
+          {/* Avatar */}
+          <div style={{ position: "relative", marginTop: -50 }}>
+            {user.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={user.name || "User"}
+                style={{
+                  width: 100,
+                  height: 100,
+                  borderRadius: "50%",
+                  border: "3px solid #1E88E5",
+                  objectFit: "cover",
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 100,
+                  height: 100,
+                  borderRadius: "50%",
+                  border: "3px solid #1E88E5",
+                  background: "linear-gradient(135deg, #1E88E5, #AB47BC)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 32,
+                  fontWeight: 700,
+                  color: "#fff",
+                  fontFamily: "'Space Grotesk', sans-serif",
+                }}
+              >
+                {user.initials}
+              </div>
+            )}
+            <div
+              style={{
+                position: "absolute",
+                bottom: 0,
+                right: -4,
+                background: "#FFC107",
+                color: "#000",
+                fontSize: 10,
+                fontWeight: 700,
+                padding: "2px 8px",
+                borderRadius: 20,
+              }}
+            >
+              Lv.12
+            </div>
+          </div>
+
+          {/* Name & Info */}
+          <div style={{ flex: 1, minWidth: 200, paddingTop: 8 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>{user.name || "Loading..."}</h1>
+            <p style={{ color: "#8892A4", fontSize: 14, margin: "4px 0 0 0" }}>
+              {getRoleLabel(user.role)} · COSPRONOS × Corespec
+            </p>
+            <p style={{ color: "#5A6478", fontSize: 13, margin: "4px 0 0 0" }}>
+              {user.email || "—"}
+            </p>
+          </div>
+
+          {/* Buttons */}
+          <div style={{ display: "flex", gap: 10, paddingTop: 8 }}>
+            <button
+              style={{
+                background: "#1E88E5",
+                color: "#fff",
+                border: "none",
+                padding: "10px 18px",
+                borderRadius: 12,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              ✏️ Edit Profile
+            </button>
+            <button
+              style={{
+                background: "#111827",
+                color: "#E8EDF5",
+                border: "1px solid rgba(255,255,255,0.12)",
+                padding: "10px 18px",
+                borderRadius: 12,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+              }}
+            >
+              📄 Download CV
+            </button>
+          </div>
+        </div>
+
+        {/* Stats Row */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginTop: 24 }}>
+          {[
+            { emoji: "⭐", value: "12,450", label: "XP Earned", color: "#FFC107" },
+            { emoji: "🎯", value: "87", label: "Tasks Done", color: "#66BB6A" },
+            { emoji: "🔥", value: "24", label: "Day Streak", color: "#FF7043" },
+            { emoji: "🏆", value: "#3", label: "Rank", color: "#AB47BC" },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              style={{
+                background: "#111827",
+                borderRadius: 14,
+                padding: 18,
+                border: "1px solid rgba(255,255,255,0.07)",
+                textAlign: "center",
+              }}
+            >
+              <div style={{ fontSize: 22, marginBottom: 6 }}>{stat.emoji}</div>
+              <p style={{ fontSize: 22, fontWeight: 700, color: stat.color, margin: 0 }}>{stat.value}</p>
+              <p style={{ fontSize: 12, color: "#8892A4", margin: "4px 0 0 0" }}>{stat.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Skills + Achievements: 2-column layout */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 24 }}>
+          {/* Skills */}
+          <div
+            style={{
+              background: "#111827",
+              borderRadius: 16,
+              padding: 22,
+              border: "1px solid rgba(255,255,255,0.07)",
+            }}
+          >
+            <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 14px 0", display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 18 }}>💻</span> Skills
+            </h2>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {skills.map((skill) => (
+                <span
+                  key={skill.name}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: 20,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: skill.color,
+                    background: `${skill.color}15`,
+                  }}
+                >
+                  {skill.name}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Achievements */}
+          <div
+            style={{
+              background: "#111827",
+              borderRadius: 16,
+              padding: 22,
+              border: "1px solid rgba(255,255,255,0.07)",
+            }}
+          >
+            <h2 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 14px 0", display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 18 }}>🏅</span> Achievements
+            </h2>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {achievements.map((badge) => (
+                <div
+                  key={badge.title}
+                  style={{
+                    textAlign: "center",
+                    padding: 16,
+                    borderRadius: 14,
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.07)",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: "50%",
+                      background: badge.bg,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 24,
+                      margin: "0 auto 8px auto",
+                    }}
+                  >
+                    {badge.icon}
+                  </div>
+                  <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>{badge.title}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

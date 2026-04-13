@@ -1,0 +1,1144 @@
+"use client";
+/* eslint-disable @next/next/no-img-element */
+
+import { useEffect, useMemo, useState } from "react";
+import toast from "react-hot-toast";
+import {
+  useProductivityStore,
+  type ProdTask,
+  type ProdEvent,
+  type ProdAlarm,
+  type Priority,
+  type Category,
+  type Recurrence,
+  type EventKind,
+} from "@/lib/use-productivity-store";
+import {
+  useAlarmEngine,
+  ensureNotificationPermission,
+  onActiveAlarm,
+  computeReminder,
+  playRingtone,
+} from "@/lib/alarm-engine";
+
+/* ── Constants ── */
+
+const PRIORITY_META: Record<Priority, { color: string; label: string }> = {
+  urgent: { color: "#EF5350", label: "Urgent" },
+  high: { color: "#FF7043", label: "High" },
+  medium: { color: "#FFC107", label: "Medium" },
+  low: { color: "#8892A4", label: "Low" },
+};
+
+const CATEGORY_META: Record<Category, { icon: string; label: string; color: string }> = {
+  class: { icon: "📚", label: "Class", color: "#1E88E5" },
+  assignment: { icon: "📝", label: "Assignment", color: "#AB47BC" },
+  personal: { icon: "🌱", label: "Personal", color: "#66BB6A" },
+  finance: { icon: "💰", label: "Finance", color: "#FFC107" },
+  community: { icon: "👥", label: "Community", color: "#26C6DA" },
+  admin: { icon: "🛡️", label: "Admin", color: "#EF5350" },
+};
+
+const KIND_META: Record<EventKind, { color: string; label: string; icon: string }> = {
+  class: { color: "#1E88E5", label: "Class", icon: "📚" },
+  deadline: { color: "#FFC107", label: "Deadline", icon: "⏳" },
+  meeting: { color: "#AB47BC", label: "Meeting", icon: "🤝" },
+  event: { color: "#22C55E", label: "Event", icon: "🎉" },
+  payment: { color: "#EF5350", label: "Payment", icon: "💳" },
+  reward: { color: "#FFD700", label: "Reward", icon: "🏆" },
+  competition: { color: "#FF7043", label: "Competition", icon: "⚔️" },
+};
+
+type CalView = "day" | "week" | "month" | "agenda";
+
+/* ── Page ── */
+
+export default function ProductivityHubPage() {
+  useAlarmEngine();
+  const store = useProductivityStore();
+  const [activeAlarm, setActiveAlarm] = useState<ProdAlarm | null>(null);
+  const [notifPerm, setNotifPerm] = useState<string>("default");
+  const [calView, setCalView] = useState<CalView>("month");
+  const [calDate, setCalDate] = useState(new Date());
+  const [taskFilter, setTaskFilter] = useState<"all" | "today" | "overdue" | "done">("today");
+  const [editingTask, setEditingTask] = useState<ProdTask | null>(null);
+  const [editingEvent, setEditingEvent] = useState<ProdEvent | null>(null);
+  const [creatingAlarm, setCreatingAlarm] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setNotifPerm(Notification.permission);
+    }
+    const unsub = onActiveAlarm((al) => setActiveAlarm(al));
+    return unsub;
+  }, []);
+
+  /* AI auto-generation examples — seed suggestions on first load */
+  useEffect(() => {
+    if (store.tasks.length === 0) {
+      store.autoGenerateFromSeed({
+        type: "class", source: "seed:welcome-class",
+        title: "Attend AI Fundamentals onboarding class",
+        dueDate: new Date(Date.now() + 86400000).toISOString(),
+      });
+      store.autoGenerateFromSeed({
+        type: "report", source: "seed:weekly-report",
+        title: "Submit your first weekly report",
+        dueDate: new Date(Date.now() + 6 * 86400000).toISOString(),
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const today = new Date();
+
+  const filteredTasks = useMemo(() => {
+    const sorted = [...store.tasks].sort((a, b) => a.order - b.order);
+    if (taskFilter === "all") return sorted;
+    if (taskFilter === "done") return sorted.filter((t) => t.completed);
+    if (taskFilter === "today") {
+      const ymd = today.toDateString();
+      return sorted.filter(
+        (t) => !t.completed && t.dueDate && new Date(t.dueDate).toDateString() === ymd
+      ).concat(sorted.filter((t) => !t.completed && !t.dueDate));
+    }
+    if (taskFilter === "overdue") {
+      return sorted.filter((t) => !t.completed && t.dueDate && new Date(t.dueDate).getTime() < Date.now());
+    }
+    return sorted;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.tasks, taskFilter]);
+
+  const activeTasksCount = store.tasks.filter((t) => !t.completed).length;
+  const overdueCount = store.tasks.filter(
+    (t) => !t.completed && t.dueDate && new Date(t.dueDate).getTime() < Date.now()
+  ).length;
+  const todayCompletedCount = store.stats.completionLog.find(
+    (l) => l.date === today.toISOString().slice(0, 10)
+  )?.count || 0;
+
+  const aiSuggestions = useMemo(() => buildAiSuggestions(store.tasks), [store.tasks]);
+
+  async function handleEnableNotifications() {
+    const perm = await ensureNotificationPermission();
+    setNotifPerm(perm);
+    if (perm === "granted") toast.success("Notifications enabled");
+    else toast.error("Notifications blocked — check browser settings");
+  }
+
+  return (
+    <div style={{ fontFamily: "'Inter', 'Nunito', sans-serif", minHeight: "100vh", color: "#E8EDF5" }}>
+      {/* Header */}
+      <div style={{
+        background: "linear-gradient(135deg, rgba(30,136,229,0.15), rgba(171,71,188,0.08))",
+        border: "1px solid rgba(30,136,229,0.2)",
+        borderRadius: 18, padding: "20px 24px", marginBottom: 18,
+        display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ fontSize: 36 }}>⚡</div>
+          <div>
+            <div style={{ display: "inline-block", padding: "3px 10px", background: "rgba(30,136,229,0.18)", color: "#1E88E5", fontSize: 10, fontWeight: 700, borderRadius: 20, letterSpacing: 0.5, marginBottom: 4 }}>
+              PRODUCTIVITY HUB
+            </div>
+            <h1 style={{ fontSize: 22, fontWeight: 800, margin: "2px 0" }}>Plan, Execute, Ring, Repeat</h1>
+            <p style={{ fontSize: 13, color: "#8892A4", margin: 0 }}>
+              {activeTasksCount} open · {overdueCount} overdue · {todayCompletedCount} done today · 🔥 {store.stats.streak}-day streak
+            </p>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {notifPerm !== "granted" && (
+            <button onClick={handleEnableNotifications} style={btnPrimary}>🔔 Enable Alerts</button>
+          )}
+          <VolumeSlider />
+        </div>
+      </div>
+
+      {/* Quick-nav to full-page modules */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
+        <a href="/planner"    style={navPill}>📆 Planner</a>
+        <a href="/calendar"   style={navPill}>🗓️ Calendar</a>
+        <a href="/tasks"      style={navPill}>✅ Tasks</a>
+        <a href="/alarms"     style={navPill}>⏰ Alarms & Clock</a>
+        <a href="/reminders"  style={navPill}>🔔 Reminders</a>
+        <a href="/focus-mode" style={navPill}>🎯 Focus mode</a>
+      </div>
+
+      {/* Stat strip */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 18 }}>
+        <Stat label="Total XP" value={store.stats.xp.toLocaleString()} icon="⭐" color="#1E88E5" />
+        <Stat label="Streak" value={`${store.stats.streak}d`} icon="🔥" color="#FF7043" />
+        <Stat label="Performance" value={`${store.stats.performance}%`} icon="📈" color="#66BB6A" />
+        <Stat label="Active Alarms" value={store.alarms.filter((a) => a.active).length.toString()} icon="⏰" color="#AB47BC" />
+      </div>
+
+      {/* AI Assistant */}
+      {aiSuggestions.length > 0 && (
+        <div style={{
+          background: "linear-gradient(135deg, rgba(171,71,188,0.12), rgba(30,136,229,0.08))",
+          border: "1px solid rgba(171,71,188,0.25)", borderRadius: 14, padding: 16, marginBottom: 18,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #AB47BC, #1E88E5)", display: "flex", alignItems: "center", justifyContent: "center" }}>🤖</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#AB47BC", letterSpacing: 0.5, textTransform: "uppercase" }}>AI Productivity Assistant</div>
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 20, color: "#E8EDF5", fontSize: 13, lineHeight: 1.8 }}>
+            {aiSuggestions.map((s, i) => <li key={i}>{s}</li>)}
+          </ul>
+        </div>
+      )}
+
+      {/* Main grid: calendar | tasks | reminders */}
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(320px, 1.2fr) minmax(360px, 1.4fr) minmax(280px, 1fr)", gap: 14, alignItems: "flex-start" }}>
+        {/* LEFT: Calendar */}
+        <CalendarPanel
+          view={calView}
+          onView={setCalView}
+          viewDate={calDate}
+          onDate={setCalDate}
+          events={store.events}
+          tasks={store.tasks}
+          onNewEvent={() => setEditingEvent(emptyEvent())}
+        />
+
+        {/* CENTER: Task board */}
+        <TaskBoard
+          tasks={filteredTasks}
+          allTasks={store.tasks}
+          filter={taskFilter}
+          onFilter={setTaskFilter}
+          onEdit={setEditingTask}
+          onNew={() => setEditingTask(emptyTask())}
+        />
+
+        {/* RIGHT: Reminders + Alarms */}
+        <RightRail
+          alarms={store.alarms}
+          reminders={store.reminders}
+          events={store.events}
+          tasks={store.tasks}
+          onNewAlarm={() => setCreatingAlarm(true)}
+        />
+      </div>
+
+      {/* Modals */}
+      {editingTask && (
+        <TaskModal
+          task={editingTask}
+          onClose={() => setEditingTask(null)}
+        />
+      )}
+      {editingEvent && (
+        <EventModal
+          event={editingEvent}
+          onClose={() => setEditingEvent(null)}
+        />
+      )}
+      {creatingAlarm && <AlarmModal onClose={() => setCreatingAlarm(false)} />}
+      {activeAlarm && (
+        <RingingAlarmModal alarm={activeAlarm} onClose={() => setActiveAlarm(null)} />
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* SUB-COMPONENTS                                                   */
+/* ═══════════════════════════════════════════════════════════════ */
+
+function Stat({ label, value, icon, color }: { label: string; value: string; icon: string; color: string }) {
+  return (
+    <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderLeft: `3px solid ${color}`, borderRadius: 14, padding: "14px 18px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+        <span style={{ fontSize: 10, color: "#8892A4", fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</span>
+        <span style={{ fontSize: 16 }}>{icon}</span>
+      </div>
+      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
+    </div>
+  );
+}
+
+function VolumeSlider() {
+  const vol = useProductivityStore((s) => s.globalVolume);
+  const setVol = useProductivityStore((s) => s.setGlobalVolume);
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "6px 12px" }}>
+      <span style={{ fontSize: 14 }}>🔊</span>
+      <input
+        type="range" min={0} max={1} step={0.05} value={vol}
+        onChange={(e) => setVol(parseFloat(e.target.value))}
+        onMouseUp={() => playRingtone("chime", vol, 300)}
+        style={{ width: 80 }}
+      />
+      <span style={{ fontSize: 11, color: "#8892A4", width: 28, textAlign: "right" }}>{Math.round(vol * 100)}%</span>
+    </div>
+  );
+}
+
+/* ── Calendar panel ── */
+
+function CalendarPanel({
+  view, onView, viewDate, onDate, events, tasks, onNewEvent,
+}: {
+  view: CalView; onView: (v: CalView) => void;
+  viewDate: Date; onDate: (d: Date) => void;
+  events: ProdEvent[]; tasks: ProdTask[]; onNewEvent: () => void;
+}) {
+  const allItems = useMemo(() => {
+    const items: { id: string; title: string; date: string; color: string; icon: string; type: string }[] = [];
+    for (const e of events) {
+      items.push({ id: e.id, title: e.title, date: e.start, color: KIND_META[e.kind].color, icon: KIND_META[e.kind].icon, type: KIND_META[e.kind].label });
+    }
+    for (const t of tasks) {
+      if (!t.dueDate) continue;
+      items.push({ id: t.id, title: t.title, date: t.dueDate, color: PRIORITY_META[t.priority].color, icon: CATEGORY_META[t.category].icon, type: "Task" });
+    }
+    return items;
+  }, [events, tasks]);
+
+  return (
+    <div style={panel}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <h3 style={panelTitle}>📅 Calendar</h3>
+        <button onClick={onNewEvent} style={btnPrimarySm}>+ Event</button>
+      </div>
+      <div style={{ display: "flex", gap: 4, background: "#0A0E1A", padding: 4, borderRadius: 10, marginBottom: 12 }}>
+        {(["day", "week", "month", "agenda"] as CalView[]).map((v) => (
+          <button key={v} onClick={() => onView(v)}
+            style={{
+              flex: 1, padding: "6px 8px", borderRadius: 8, fontSize: 11, fontWeight: 600,
+              border: "none", cursor: "pointer",
+              background: view === v ? "#1E88E5" : "transparent",
+              color: view === v ? "#fff" : "#8892A4",
+              textTransform: "capitalize",
+            }}>{v}</button>
+        ))}
+      </div>
+
+      {view === "month" && <MonthView date={viewDate} onDate={onDate} items={allItems} />}
+      {view === "week" && <WeekView date={viewDate} onDate={onDate} items={allItems} />}
+      {view === "day" && <DayView date={viewDate} onDate={onDate} items={allItems} />}
+      {view === "agenda" && <AgendaView items={allItems} />}
+    </div>
+  );
+}
+
+function MonthView({ date, onDate, items }: { date: Date; onDate: (d: Date) => void; items: { id: string; title: string; date: string; color: string; icon: string }[] }) {
+  const y = date.getFullYear(); const m = date.getMonth();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const startDay = new Date(y, m, 1).getDay();
+  const cells: (number | null)[] = Array(startDay).fill(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7) cells.push(null);
+
+  const byDay: Record<number, typeof items> = {};
+  for (const it of items) {
+    const d = new Date(it.date);
+    if (d.getFullYear() !== y || d.getMonth() !== m) continue;
+    (byDay[d.getDate()] ||= []).push(it);
+  }
+  const today = new Date();
+  const isToday = (d: number) => d === today.getDate() && m === today.getMonth() && y === today.getFullYear();
+
+  return (
+    <>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <button onClick={() => onDate(new Date(y, m - 1, 1))} style={navBtn}>‹</button>
+        <div style={{ fontSize: 14, fontWeight: 700 }}>
+          {date.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+        </div>
+        <button onClick={() => onDate(new Date(y, m + 1, 1))} style={navBtn}>›</button>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, fontSize: 10, color: "#8892A4", marginBottom: 4 }}>
+        {["S","M","T","W","T","F","S"].map((d, i) => <div key={i} style={{ textAlign: "center", padding: 4 }}>{d}</div>)}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+        {cells.map((d, i) => {
+          const evs = d ? byDay[d] || [] : [];
+          return (
+            <div key={i} style={{
+              aspectRatio: "1/1", padding: 4, borderRadius: 6, border: "1px solid rgba(255,255,255,0.04)",
+              background: d && isToday(d) ? "rgba(30,136,229,0.15)" : "transparent",
+              display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start",
+            }}>
+              {d && (
+                <>
+                  <div style={{ fontSize: 11, fontWeight: isToday(d) ? 700 : 500, color: isToday(d) ? "#1E88E5" : "#E8EDF5" }}>{d}</div>
+                  <div style={{ display: "flex", gap: 2, marginTop: 3, flexWrap: "wrap", justifyContent: "center" }}>
+                    {evs.slice(0, 3).map((e) => (
+                      <span key={e.id} title={e.title} style={{ width: 4, height: 4, borderRadius: "50%", background: e.color }} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function WeekView({ date, onDate, items }: { date: Date; onDate: (d: Date) => void; items: { id: string; title: string; date: string; color: string; icon: string }[] }) {
+  const start = new Date(date); start.setDate(date.getDate() - date.getDay());
+  const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return d; });
+  const today = new Date().toDateString();
+  return (
+    <>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <button onClick={() => { const d = new Date(date); d.setDate(d.getDate() - 7); onDate(d); }} style={navBtn}>‹</button>
+        <div style={{ fontSize: 13, fontWeight: 700 }}>
+          Week of {start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+        </div>
+        <button onClick={() => { const d = new Date(date); d.setDate(d.getDate() + 7); onDate(d); }} style={navBtn}>›</button>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 360, overflowY: "auto" }}>
+        {days.map((d) => {
+          const key = d.toDateString();
+          const evs = items.filter((it) => new Date(it.date).toDateString() === key);
+          return (
+            <div key={key} style={{ padding: 8, borderRadius: 8, background: key === today ? "rgba(30,136,229,0.1)" : "#0A0E1A", border: "1px solid rgba(255,255,255,0.04)" }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: key === today ? "#1E88E5" : "#8892A4", marginBottom: 4 }}>
+                {d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+              </div>
+              {evs.length === 0 && <div style={{ fontSize: 11, color: "#5A6478" }}>—</div>}
+              {evs.map((e) => (
+                <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "3px 0", fontSize: 11 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: e.color }} />
+                  <span>{e.icon}</span>
+                  <span style={{ color: "#E8EDF5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{e.title}</span>
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function DayView({ date, onDate, items }: { date: Date; onDate: (d: Date) => void; items: { id: string; title: string; date: string; color: string; icon: string }[] }) {
+  const key = date.toDateString();
+  const evs = items.filter((it) => new Date(it.date).toDateString() === key).sort((a, b) => a.date.localeCompare(b.date));
+  return (
+    <>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <button onClick={() => { const d = new Date(date); d.setDate(d.getDate() - 1); onDate(d); }} style={navBtn}>‹</button>
+        <div style={{ fontSize: 13, fontWeight: 700 }}>
+          {date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+        </div>
+        <button onClick={() => { const d = new Date(date); d.setDate(d.getDate() + 1); onDate(d); }} style={navBtn}>›</button>
+      </div>
+      <div style={{ maxHeight: 400, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+        {Array.from({ length: 24 }, (_, h) => {
+          const hourEvs = evs.filter((e) => new Date(e.date).getHours() === h);
+          return (
+            <div key={h} style={{ display: "flex", gap: 8, padding: "4px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+              <div style={{ width: 40, fontSize: 10, color: "#5A6478", fontWeight: 600 }}>
+                {h.toString().padStart(2, "0")}:00
+              </div>
+              <div style={{ flex: 1 }}>
+                {hourEvs.map((e) => (
+                  <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 8px", borderRadius: 6, background: `${e.color}22`, borderLeft: `2px solid ${e.color}`, marginBottom: 2, fontSize: 11 }}>
+                    <span>{e.icon}</span>
+                    <span>{e.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+function AgendaView({ items }: { items: { id: string; title: string; date: string; color: string; icon: string; type: string }[] }) {
+  const upcoming = items
+    .filter((it) => new Date(it.date).getTime() >= Date.now() - 3600000)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, 20);
+  if (upcoming.length === 0) return <div style={{ fontSize: 12, color: "#8892A4", padding: 20, textAlign: "center" }}>No upcoming items. Create an event or task with a due date.</div>;
+  return (
+    <div style={{ maxHeight: 400, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+      {upcoming.map((it) => (
+        <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: 10, borderRadius: 8, background: "#0A0E1A", borderLeft: `3px solid ${it.color}` }}>
+          <div style={{ fontSize: 20 }}>{it.icon}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#E8EDF5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.title}</div>
+            <div style={{ fontSize: 10, color: "#8892A4" }}>
+              {new Date(it.date).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} · {it.type}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Task board ── */
+
+function TaskBoard({
+  tasks, allTasks, filter, onFilter, onEdit, onNew,
+}: {
+  tasks: ProdTask[]; allTasks: ProdTask[];
+  filter: "all" | "today" | "overdue" | "done";
+  onFilter: (f: "all" | "today" | "overdue" | "done") => void;
+  onEdit: (t: ProdTask) => void; onNew: () => void;
+}) {
+  const toggleTask = useProductivityStore((s) => s.toggleTask);
+  const deleteTask = useProductivityStore((s) => s.deleteTask);
+  const reorderTasks = useProductivityStore((s) => s.reorderTasks);
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  function onDrop(targetId: string) {
+    if (!dragId || dragId === targetId) return;
+    const ids = tasks.map((t) => t.id);
+    const from = ids.indexOf(dragId); const to = ids.indexOf(targetId);
+    if (from < 0 || to < 0) return;
+    const next = [...ids];
+    next.splice(from, 1); next.splice(to, 0, dragId);
+    reorderTasks(next);
+    setDragId(null);
+  }
+
+  function handleToggle(t: ProdTask) {
+    const becoming = !t.completed;
+    toggleTask(t.id);
+    if (becoming) {
+      toast.success(`✓ +${t.xpReward} XP · "${t.title}"`, { duration: 2200 });
+      playRingtone("chime", 0.4, 400);
+      // Success animation pulse on dashboard happens via state update
+    }
+  }
+
+  function handleDelete(t: ProdTask) {
+    if (!confirm(`Delete "${t.title}"?`)) return;
+    deleteTask(t.id);
+    toast.success("Task deleted");
+  }
+
+  const counts = {
+    all: allTasks.length,
+    today: allTasks.filter((t) => !t.completed && (!t.dueDate || new Date(t.dueDate).toDateString() === new Date().toDateString())).length,
+    overdue: allTasks.filter((t) => !t.completed && t.dueDate && new Date(t.dueDate).getTime() < Date.now()).length,
+    done: allTasks.filter((t) => t.completed).length,
+  };
+
+  const doneTotal = allTasks.filter((t) => t.completed).length;
+  const pct = allTasks.length > 0 ? Math.round((doneTotal / allTasks.length) * 100) : 0;
+
+  return (
+    <div style={panel}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <h3 style={panelTitle}>✅ Tasks</h3>
+        <button onClick={onNew} style={btnPrimarySm}>+ Task</button>
+      </div>
+
+      {/* Progress */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#8892A4", marginBottom: 4 }}>
+          <span>Overall progress</span><span>{doneTotal}/{allTasks.length} · {pct}%</span>
+        </div>
+        <div style={{ height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 4, overflow: "hidden" }}>
+          <div style={{ width: `${pct}%`, height: "100%", background: "linear-gradient(90deg, #1E88E5, #66BB6A)", transition: "width 0.5s" }} />
+        </div>
+      </div>
+
+      {/* Filter tabs */}
+      <div style={{ display: "flex", gap: 4, background: "#0A0E1A", padding: 4, borderRadius: 10, marginBottom: 12 }}>
+        {(["today","all","overdue","done"] as const).map((f) => (
+          <button key={f} onClick={() => onFilter(f)}
+            style={{
+              flex: 1, padding: "6px 8px", borderRadius: 8, fontSize: 11, fontWeight: 600,
+              border: "none", cursor: "pointer",
+              background: filter === f ? "#1E88E5" : "transparent",
+              color: filter === f ? "#fff" : "#8892A4",
+              textTransform: "capitalize",
+            }}>
+            {f} ({counts[f]})
+          </button>
+        ))}
+      </div>
+
+      {/* Task list */}
+      <div style={{ maxHeight: 520, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+        {tasks.length === 0 && (
+          <div style={{ padding: 24, textAlign: "center", color: "#8892A4", fontSize: 13 }}>
+            <div style={{ fontSize: 40, marginBottom: 8 }}>🌤️</div>
+            Nothing here. Click <b>+ Task</b> to add one.
+          </div>
+        )}
+        {tasks.map((t) => {
+          const pri = PRIORITY_META[t.priority]; const cat = CATEGORY_META[t.category];
+          const overdue = !t.completed && t.dueDate && new Date(t.dueDate).getTime() < Date.now();
+          return (
+            <div
+              key={t.id}
+              draggable
+              onDragStart={() => setDragId(t.id)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => onDrop(t.id)}
+              style={{
+                background: "#0A0E1A", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10,
+                padding: 12, display: "flex", gap: 10, alignItems: "flex-start",
+                borderLeft: `3px solid ${pri.color}`,
+                opacity: t.completed ? 0.55 : 1,
+                cursor: "grab",
+                transition: "all 0.2s",
+              }}
+            >
+              <button onClick={() => handleToggle(t)}
+                style={{
+                  width: 22, height: 22, borderRadius: 6, flexShrink: 0, cursor: "pointer",
+                  border: t.completed ? "none" : "2px solid #8892A4",
+                  background: t.completed ? "#66BB6A" : "transparent",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  marginTop: 2,
+                }}>
+                {t.completed && <svg width="12" height="12" viewBox="0 0 14 14"><path d="M2.5 7L5.5 10L11.5 4" stroke="#fff" strokeWidth="2" fill="none" /></svg>}
+              </button>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", marginBottom: 4 }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: "#E8EDF5", textDecoration: t.completed ? "line-through" : "none" }}>
+                    {t.title}
+                  </span>
+                  <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: `${pri.color}25`, color: pri.color, textTransform: "uppercase" }}>{pri.label}</span>
+                  <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4, background: `${cat.color}20`, color: cat.color }}>{cat.icon} {cat.label}</span>
+                  {t.recurrence !== "none" && <span style={{ fontSize: 9, color: "#AB47BC" }}>↻ {t.recurrence}</span>}
+                  {t.autoGenerated && <span style={{ fontSize: 9, color: "#26C6DA" }}>🤖 auto</span>}
+                </div>
+                {t.notes && <div style={{ fontSize: 11, color: "#8892A4", marginBottom: 4 }}>{t.notes.slice(0, 80)}{t.notes.length > 80 && "…"}</div>}
+                <div style={{ display: "flex", gap: 10, fontSize: 10, color: overdue ? "#EF5350" : "#8892A4", alignItems: "center" }}>
+                  {t.dueDate && <span>📅 {new Date(t.dueDate).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}{overdue ? " · OVERDUE" : ""}</span>}
+                  <span style={{ color: "#66BB6A" }}>+{t.xpReward} XP</span>
+                  {t.attachments.length > 0 && <span>📎 {t.attachments.length}</span>}
+                </div>
+                {t.progress > 0 && t.progress < 100 && (
+                  <div style={{ height: 3, background: "rgba(255,255,255,0.05)", borderRadius: 2, marginTop: 6, overflow: "hidden" }}>
+                    <div style={{ width: `${t.progress}%`, height: "100%", background: pri.color }} />
+                  </div>
+                )}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <button onClick={() => onEdit(t)} style={iconBtn} title="Edit">✎</button>
+                <button onClick={() => handleDelete(t)} style={{ ...iconBtn, color: "#EF5350" }} title="Delete">✕</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── Right rail: alarms & reminders ── */
+
+function RightRail({
+  alarms, reminders, events, tasks, onNewAlarm,
+}: {
+  alarms: ProdAlarm[]; reminders: { id: string; refId: string; refType: "task" | "event"; label: string; fireAt: string; fired: boolean }[];
+  events: ProdEvent[]; tasks: ProdTask[]; onNewAlarm: () => void;
+}) {
+  const updateAlarm = useProductivityStore((s) => s.updateAlarm);
+  const deleteAlarm = useProductivityStore((s) => s.deleteAlarm);
+  const deleteReminder = useProductivityStore((s) => s.deleteReminder);
+
+  const upcomingAlarms = [...alarms].sort((a, b) => a.fireAt.localeCompare(b.fireAt));
+  const upcomingReminders = [...reminders]
+    .filter((r) => !r.fired)
+    .sort((a, b) => a.fireAt.localeCompare(b.fireAt))
+    .slice(0, 8);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={panel}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <h3 style={panelTitle}>⏰ Alarms</h3>
+          <button onClick={onNewAlarm} style={btnPrimarySm}>+ Alarm</button>
+        </div>
+        {upcomingAlarms.length === 0 && (
+          <div style={{ fontSize: 12, color: "#8892A4", textAlign: "center", padding: 16 }}>No alarms set.</div>
+        )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 300, overflowY: "auto" }}>
+          {upcomingAlarms.map((a) => {
+            const d = new Date(a.fireAt);
+            const snoozed = a.snoozedUntil && new Date(a.snoozedUntil).getTime() > Date.now();
+            return (
+              <div key={a.id} style={{
+                background: "#0A0E1A", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, padding: 10,
+                opacity: a.active ? 1 : 0.5,
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#E8EDF5" }}>{a.label}</span>
+                  <label style={{ position: "relative", display: "inline-block", width: 28, height: 16 }}>
+                    <input type="checkbox" checked={a.active} onChange={(e) => updateAlarm(a.id, { active: e.target.checked, fired: false })} style={{ opacity: 0, width: 0, height: 0 }} />
+                    <span style={{
+                      position: "absolute", cursor: "pointer", inset: 0, borderRadius: 12,
+                      background: a.active ? "#66BB6A" : "#3a4050",
+                      transition: "0.2s",
+                    }}>
+                      <span style={{
+                        position: "absolute", height: 12, width: 12, left: a.active ? 14 : 2, top: 2,
+                        background: "#fff", borderRadius: "50%", transition: "0.2s",
+                      }} />
+                    </span>
+                  </label>
+                </div>
+                <div style={{ fontSize: 10, color: "#8892A4" }}>
+                  {snoozed ? `💤 snoozed until ${new Date(a.snoozedUntil!).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` :
+                    `⏰ ${d.toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })}`}
+                  {a.repeatDaily && " · daily"} · 🔊 {a.ringtone}
+                </div>
+                <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                  <button onClick={() => playRingtone(a.ringtone, a.volume, 1500)} style={miniBtn}>Preview</button>
+                  <button onClick={() => { if (confirm("Delete alarm?")) deleteAlarm(a.id); }} style={{ ...miniBtn, color: "#EF5350" }}>Delete</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={panel}>
+        <h3 style={panelTitle}>🔔 Reminders</h3>
+        {upcomingReminders.length === 0 && (
+          <div style={{ fontSize: 12, color: "#8892A4", textAlign: "center", padding: 16 }}>No pending reminders. Add one from a task or event.</div>
+        )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 240, overflowY: "auto" }}>
+          {upcomingReminders.map((r) => {
+            const ref = r.refType === "task"
+              ? tasks.find((t) => t.id === r.refId)
+              : events.find((e) => e.id === r.refId);
+            return (
+              <div key={r.id} style={{ background: "#0A0E1A", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, padding: 10 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "#E8EDF5" }}>{r.label}</div>
+                <div style={{ fontSize: 10, color: "#8892A4", marginTop: 2 }}>
+                  ⏱️ {new Date(r.fireAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                </div>
+                {ref && <div style={{ fontSize: 10, color: "#5A6478", marginTop: 2 }}>↪ {r.refType}: {ref.title}</div>}
+                <button onClick={() => deleteReminder(r.id)} style={{ ...miniBtn, marginTop: 6, color: "#EF5350" }}>Cancel</button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* MODALS                                                           */
+/* ═══════════════════════════════════════════════════════════════ */
+
+function ModalShell({ title, children, onClose, width = 520 }: { title: string; children: React.ReactNode; onClose: () => void; width?: number }) {
+  return (
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 200,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+    }}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: "#111827", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16,
+        padding: 24, width: "100%", maxWidth: width, maxHeight: "90vh", overflowY: "auto",
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>{title}</h2>
+          <button onClick={onClose} style={{ ...iconBtn, fontSize: 18 }}>×</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function TaskModal({ task, onClose }: { task: ProdTask; onClose: () => void }) {
+  const isNew = !task.id;
+  const addTask = useProductivityStore((s) => s.addTask);
+  const updateTask = useProductivityStore((s) => s.updateTask);
+  const addReminder = useProductivityStore((s) => s.addReminder);
+  const [t, setT] = useState<ProdTask>(task);
+  const [reminderMins, setReminderMins] = useState<number>(0);
+
+  function save() {
+    if (!t.title.trim()) { toast.error("Title required"); return; }
+    let id = t.id;
+    if (isNew) {
+      id = addTask({
+        title: t.title, notes: t.notes, priority: t.priority, category: t.category,
+        dueDate: t.dueDate, completed: false, completedAt: null, progress: t.progress,
+        recurrence: t.recurrence, attachments: t.attachments, xpReward: t.xpReward,
+      });
+    } else {
+      updateTask(t.id, t);
+    }
+    if (reminderMins > 0 && t.dueDate) {
+      addReminder(computeReminder(id, "task", `Task soon: ${t.title}`, t.dueDate, reminderMins));
+      toast.success(`Reminder set ${reminderMins}m before`);
+    }
+    toast.success(isNew ? "Task created" : "Task updated");
+    onClose();
+  }
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    files.forEach((f) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setT((prev) => ({ ...prev, attachments: [...prev.attachments, { name: f.name, url: reader.result as string }] }));
+      };
+      reader.readAsDataURL(f);
+    });
+  }
+
+  return (
+    <ModalShell title={isNew ? "New Task" : "Edit Task"} onClose={onClose}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <Field label="Title">
+          <input value={t.title} onChange={(e) => setT({ ...t, title: e.target.value })} style={input} placeholder="What needs to be done?" />
+        </Field>
+        <Field label="Notes">
+          <textarea value={t.notes} onChange={(e) => setT({ ...t, notes: e.target.value })} style={{ ...input, minHeight: 80, resize: "vertical" }} placeholder="Optional details, links, context…" />
+        </Field>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Priority">
+            <select value={t.priority} onChange={(e) => setT({ ...t, priority: e.target.value as Priority })} style={input}>
+              {(Object.keys(PRIORITY_META) as Priority[]).map((p) => <option key={p} value={p}>{PRIORITY_META[p].label}</option>)}
+            </select>
+          </Field>
+          <Field label="Category">
+            <select value={t.category} onChange={(e) => setT({ ...t, category: e.target.value as Category })} style={input}>
+              {(Object.keys(CATEGORY_META) as Category[]).map((c) => <option key={c} value={c}>{CATEGORY_META[c].icon} {CATEGORY_META[c].label}</option>)}
+            </select>
+          </Field>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Due date & time">
+            <input type="datetime-local"
+              value={t.dueDate ? toInputDT(t.dueDate) : ""}
+              onChange={(e) => setT({ ...t, dueDate: e.target.value ? new Date(e.target.value).toISOString() : null })}
+              style={input} />
+          </Field>
+          <Field label="Recurrence">
+            <select value={t.recurrence} onChange={(e) => setT({ ...t, recurrence: e.target.value as Recurrence })} style={input}>
+              <option value="none">None</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </Field>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label={`Progress (${t.progress}%)`}>
+            <input type="range" min={0} max={100} value={t.progress} onChange={(e) => setT({ ...t, progress: parseInt(e.target.value) })} />
+          </Field>
+          <Field label="XP reward">
+            <input type="number" min={0} value={t.xpReward} onChange={(e) => setT({ ...t, xpReward: parseInt(e.target.value) || 0 })} style={input} />
+          </Field>
+        </div>
+        <Field label="Attachments">
+          <input type="file" multiple onChange={handleFile} style={{ color: "#E8EDF5", fontSize: 12 }} />
+          {t.attachments.length > 0 && (
+            <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {t.attachments.map((a, i) => (
+                <span key={i} style={{ fontSize: 11, padding: "4px 8px", background: "rgba(30,136,229,0.15)", color: "#1E88E5", borderRadius: 6, display: "flex", gap: 6, alignItems: "center" }}>
+                  📎 {a.name}
+                  <button onClick={() => setT({ ...t, attachments: t.attachments.filter((_, j) => j !== i) })} style={{ background: "none", border: "none", color: "#EF5350", cursor: "pointer" }}>×</button>
+                </span>
+              ))}
+            </div>
+          )}
+        </Field>
+        {t.dueDate && (
+          <Field label="Set reminder before">
+            <select value={reminderMins} onChange={(e) => setReminderMins(parseInt(e.target.value))} style={input}>
+              <option value={0}>None</option>
+              <option value={5}>5 minutes before</option>
+              <option value={15}>15 minutes before</option>
+              <option value={60}>1 hour before</option>
+              <option value={1440}>1 day before</option>
+            </select>
+          </Field>
+        )}
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 10 }}>
+          <button onClick={onClose} style={btnGhost}>Cancel</button>
+          <button onClick={save} style={btnPrimary}>{isNew ? "Create Task" : "Save Changes"}</button>
+        </div>
+      </div>
+    </ModalShell>
+  );
+}
+
+function EventModal({ event, onClose }: { event: ProdEvent; onClose: () => void }) {
+  const isNew = !event.id;
+  const addEvent = useProductivityStore((s) => s.addEvent);
+  const updateEvent = useProductivityStore((s) => s.updateEvent);
+  const addReminder = useProductivityStore((s) => s.addReminder);
+  const [e, setE] = useState<ProdEvent>(event);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [reminderMins, setReminderMins] = useState<number>(15);
+
+  function save() {
+    if (!e.title.trim()) { toast.error("Title required"); return; }
+    if (!e.start) { toast.error("Start date required"); return; }
+    let id = e.id;
+    if (isNew) {
+      id = addEvent({
+        title: e.title, description: e.description, start: e.start, end: e.end,
+        location: e.location, meetingUrl: e.meetingUrl, kind: e.kind,
+        recurrence: e.recurrence, invitees: e.invitees,
+      });
+    } else {
+      updateEvent(e.id, e);
+    }
+    if (reminderMins > 0) {
+      addReminder(computeReminder(id, "event", `Event soon: ${e.title}`, e.start, reminderMins));
+    }
+    toast.success(isNew ? "Event created" : "Event updated");
+    onClose();
+  }
+
+  return (
+    <ModalShell title={isNew ? "New Event" : "Edit Event"} onClose={onClose}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <Field label="Title"><input value={e.title} onChange={(ev) => setE({ ...e, title: ev.target.value })} style={input} /></Field>
+        <Field label="Description"><textarea value={e.description} onChange={(ev) => setE({ ...e, description: ev.target.value })} style={{ ...input, minHeight: 60 }} /></Field>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Start"><input type="datetime-local" value={e.start ? toInputDT(e.start) : ""} onChange={(ev) => setE({ ...e, start: ev.target.value ? new Date(ev.target.value).toISOString() : "" })} style={input} /></Field>
+          <Field label="End"><input type="datetime-local" value={e.end ? toInputDT(e.end) : ""} onChange={(ev) => setE({ ...e, end: ev.target.value ? new Date(ev.target.value).toISOString() : "" })} style={input} /></Field>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Kind">
+            <select value={e.kind} onChange={(ev) => setE({ ...e, kind: ev.target.value as EventKind })} style={input}>
+              {(Object.keys(KIND_META) as EventKind[]).map((k) => <option key={k} value={k}>{KIND_META[k].icon} {KIND_META[k].label}</option>)}
+            </select>
+          </Field>
+          <Field label="Recurrence">
+            <select value={e.recurrence} onChange={(ev) => setE({ ...e, recurrence: ev.target.value as Recurrence })} style={input}>
+              <option value="none">None</option><option value="daily">Daily</option>
+              <option value="weekly">Weekly</option><option value="monthly">Monthly</option>
+            </select>
+          </Field>
+        </div>
+        <Field label="Location"><input value={e.location} onChange={(ev) => setE({ ...e, location: ev.target.value })} style={input} placeholder="Main Hall, Lagos" /></Field>
+        <Field label="Online meeting link"><input value={e.meetingUrl} onChange={(ev) => setE({ ...e, meetingUrl: ev.target.value })} style={input} placeholder="https://zoom.us/…" /></Field>
+        <Field label="Invite users">
+          <div style={{ display: "flex", gap: 6 }}>
+            <input value={inviteEmail} onChange={(ev) => setInviteEmail(ev.target.value)} style={input} placeholder="email@domain.com" />
+            <button onClick={() => {
+              if (!inviteEmail.includes("@")) { toast.error("Invalid email"); return; }
+              setE({ ...e, invitees: [...e.invitees, inviteEmail] });
+              setInviteEmail("");
+            }} style={btnPrimarySm}>Add</button>
+          </div>
+          {e.invitees.length > 0 && (
+            <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {e.invitees.map((em, i) => (
+                <span key={i} style={{ fontSize: 11, padding: "4px 8px", background: "rgba(171,71,188,0.15)", color: "#AB47BC", borderRadius: 6 }}>
+                  {em} <button onClick={() => setE({ ...e, invitees: e.invitees.filter((_, j) => j !== i) })} style={{ background: "none", border: "none", color: "#EF5350", cursor: "pointer" }}>×</button>
+                </span>
+              ))}
+            </div>
+          )}
+        </Field>
+        <Field label="Reminder before">
+          <select value={reminderMins} onChange={(ev) => setReminderMins(parseInt(ev.target.value))} style={input}>
+            <option value={0}>None</option>
+            <option value={5}>5 minutes before</option>
+            <option value={15}>15 minutes before</option>
+            <option value={60}>1 hour before</option>
+            <option value={1440}>1 day before</option>
+          </select>
+        </Field>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button onClick={onClose} style={btnGhost}>Cancel</button>
+          <button onClick={save} style={btnPrimary}>{isNew ? "Create Event" : "Save"}</button>
+        </div>
+      </div>
+    </ModalShell>
+  );
+}
+
+function AlarmModal({ onClose }: { onClose: () => void }) {
+  const addAlarm = useProductivityStore((s) => s.addAlarm);
+  const [label, setLabel] = useState("Wake up");
+  const [when, setWhen] = useState(() => {
+    const d = new Date(); d.setMinutes(d.getMinutes() + 1); return toInputDT(d.toISOString());
+  });
+  const [ringtone, setRingtone] = useState<ProdAlarm["ringtone"]>("chime");
+  const [volume, setVolume] = useState(0.7);
+  const [repeatDaily, setRepeatDaily] = useState(false);
+
+  function save() {
+    if (!label.trim()) { toast.error("Label required"); return; }
+    if (!when) { toast.error("Time required"); return; }
+    addAlarm({
+      label,
+      fireAt: new Date(when).toISOString(),
+      ringtone, volume, repeatDaily,
+    });
+    toast.success(`⏰ Alarm set for ${new Date(when).toLocaleString("en-US", { hour: "numeric", minute: "2-digit" })}`);
+    onClose();
+  }
+
+  return (
+    <ModalShell title="New Alarm" onClose={onClose} width={460}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <Field label="Label"><input value={label} onChange={(e) => setLabel(e.target.value)} style={input} /></Field>
+        <Field label="Rings at"><input type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} style={input} /></Field>
+        <Field label="Ringtone">
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {(["chime", "beep", "bell", "digital"] as const).map((r) => (
+              <button key={r} onClick={() => { setRingtone(r); playRingtone(r, volume, 900); }}
+                style={{
+                  padding: "8px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  border: ringtone === r ? "2px solid #1E88E5" : "1px solid rgba(255,255,255,0.1)",
+                  background: ringtone === r ? "rgba(30,136,229,0.15)" : "transparent",
+                  color: "#E8EDF5", textTransform: "capitalize",
+                }}>🔊 {r}</button>
+            ))}
+          </div>
+        </Field>
+        <Field label={`Volume (${Math.round(volume * 100)}%)`}>
+          <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => setVolume(parseFloat(e.target.value))} />
+        </Field>
+        <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13, color: "#E8EDF5", cursor: "pointer" }}>
+          <input type="checkbox" checked={repeatDaily} onChange={(e) => setRepeatDaily(e.target.checked)} />
+          Repeat daily
+        </label>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button onClick={onClose} style={btnGhost}>Cancel</button>
+          <button onClick={save} style={btnPrimary}>Set Alarm</button>
+        </div>
+      </div>
+    </ModalShell>
+  );
+}
+
+function RingingAlarmModal({ alarm, onClose }: { alarm: ProdAlarm; onClose: () => void }) {
+  const snooze = useProductivityStore((s) => s.snoozeAlarm);
+  const dismiss = useProductivityStore((s) => s.dismissAlarm);
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 300,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+      animation: "alarmPulse 1s ease-in-out infinite alternate",
+    }}>
+      <style>{`@keyframes alarmPulse { from { background: rgba(239,83,80,0.4);} to { background: rgba(0,0,0,0.85);} }`}</style>
+      <div style={{
+        background: "linear-gradient(135deg, #1E88E5, #AB47BC)",
+        borderRadius: 20, padding: 32, textAlign: "center", maxWidth: 360, width: "100%",
+      }}>
+        <div style={{ fontSize: 64, marginBottom: 12, animation: "shake 0.4s infinite" }}>⏰</div>
+        <style>{`@keyframes shake { 0%,100%{transform:rotate(-8deg);} 50%{transform:rotate(8deg);} }`}</style>
+        <h2 style={{ fontSize: 24, fontWeight: 800, color: "#fff", margin: "0 0 6px 0" }}>{alarm.label}</h2>
+        <div style={{ fontSize: 14, color: "rgba(255,255,255,0.85)", marginBottom: 24 }}>
+          Ringing since {new Date(alarm.fireAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <button onClick={() => { snooze(alarm.id, 5); onClose(); toast("Snoozed 5 min", { icon: "💤" }); }}
+            style={{ ...btnPrimary, background: "rgba(255,255,255,0.2)", padding: "12px" }}>💤 Snooze 5 min</button>
+          <button onClick={() => { snooze(alarm.id, 10); onClose(); toast("Snoozed 10 min", { icon: "💤" }); }}
+            style={{ ...btnPrimary, background: "rgba(255,255,255,0.2)", padding: "12px" }}>💤 Snooze 10 min</button>
+          <button onClick={() => { dismiss(alarm.id); onClose(); toast.success("Dismissed"); }}
+            style={{ ...btnPrimary, background: "#EF5350", padding: "12px", fontSize: 15 }}>✕ Dismiss</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* UTILS                                                            */
+/* ═══════════════════════════════════════════════════════════════ */
+
+function emptyTask(): ProdTask {
+  return {
+    id: "", title: "", notes: "", priority: "medium", category: "personal",
+    dueDate: null, completed: false, completedAt: null, progress: 0,
+    recurrence: "none", attachments: [], order: 0, createdAt: "",
+    xpReward: 20,
+  };
+}
+
+function emptyEvent(): ProdEvent {
+  const start = new Date(); start.setHours(start.getHours() + 1, 0, 0, 0);
+  const end = new Date(start); end.setHours(end.getHours() + 1);
+  return {
+    id: "", title: "", description: "", start: start.toISOString(), end: end.toISOString(),
+    location: "", meetingUrl: "", kind: "meeting", recurrence: "none",
+    invitees: [], rsvp: {}, attended: [], createdAt: "",
+  };
+}
+
+function toInputDT(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function buildAiSuggestions(tasks: ProdTask[]): string[] {
+  const out: string[] = [];
+  const open = tasks.filter((t) => !t.completed);
+  const urgent = open.filter((t) => t.priority === "urgent");
+  const overdue = open.filter((t) => t.dueDate && new Date(t.dueDate).getTime() < Date.now());
+  const today = open.filter((t) => t.dueDate && new Date(t.dueDate).toDateString() === new Date().toDateString());
+
+  if (overdue.length) out.push(`⚠️ You have ${overdue.length} overdue task(s). Start with "${overdue[0].title}" — tap ✎ and push the due date, or knock it out now.`);
+  if (urgent.length) out.push(`⚡ "${urgent[0].title}" is marked URGENT. Block 25 min of deep focus right now, silence notifications.`);
+  if (today.length >= 5) out.push(`🧠 You have ${today.length} tasks due today — consider moving the lowest-priority ones to tomorrow so you can ship the important ones.`);
+  if (today.length === 0 && open.length > 0) out.push(`📆 Nothing is due today. Good moment to pull one task forward — momentum compounds.`);
+  if (open.length === 0) out.push(`🎉 Inbox zero. Queue up tomorrow's top 3, set alarms, and rest.`);
+  if (out.length < 2) out.push(`💡 Tip: convert large goals into 25-min task blocks. Click ✎ on any task and set Progress as you work.`);
+  return out.slice(0, 4);
+}
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* STYLES                                                           */
+/* ═══════════════════════════════════════════════════════════════ */
+
+const panel: React.CSSProperties = {
+  background: "#111827", border: "1px solid rgba(255,255,255,0.07)",
+  borderRadius: 14, padding: 16,
+};
+const panelTitle: React.CSSProperties = { fontSize: 15, fontWeight: 700, color: "#E8EDF5", margin: 0 };
+
+const btnPrimary: React.CSSProperties = {
+  background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff",
+  border: "none", borderRadius: 10, padding: "8px 14px",
+  fontSize: 12, fontWeight: 700, cursor: "pointer",
+};
+const btnPrimarySm: React.CSSProperties = { ...btnPrimary, padding: "6px 10px", fontSize: 11 };
+const navPill: React.CSSProperties = { padding: "8px 14px", background: "#111827", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, fontSize: 12, fontWeight: 600, color: "#E8EDF5", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 };
+const btnGhost: React.CSSProperties = {
+  background: "transparent", color: "#E8EDF5",
+  border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
+  padding: "8px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+};
+const iconBtn: React.CSSProperties = {
+  background: "transparent", color: "#8892A4", border: "1px solid rgba(255,255,255,0.07)",
+  width: 26, height: 26, borderRadius: 6, cursor: "pointer", fontSize: 12, padding: 0,
+};
+const miniBtn: React.CSSProperties = {
+  background: "transparent", color: "#8892A4", border: "1px solid rgba(255,255,255,0.07)",
+  borderRadius: 6, padding: "3px 8px", fontSize: 10, fontWeight: 600, cursor: "pointer",
+};
+const navBtn: React.CSSProperties = {
+  background: "rgba(255,255,255,0.05)", color: "#E8EDF5", border: "none",
+  width: 28, height: 28, borderRadius: 8, fontSize: 16, cursor: "pointer",
+};
+const input: React.CSSProperties = {
+  width: "100%", background: "#0A0E1A", border: "1px solid rgba(255,255,255,0.1)",
+  borderRadius: 8, padding: "8px 10px", fontSize: 13, color: "#E8EDF5", outline: "none",
+  fontFamily: "inherit",
+};
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "#8892A4", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</div>
+      {children}
+    </div>
+  );
+}

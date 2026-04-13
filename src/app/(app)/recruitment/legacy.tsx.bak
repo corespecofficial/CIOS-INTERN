@@ -1,0 +1,308 @@
+"use client";
+/* eslint-disable @next/next/no-img-element */
+
+import { useState } from "react";
+import toast, { Toaster } from "react-hot-toast";
+
+const COLORS = {
+  blue: "#1E88E5",
+  gold: "#FFC107",
+  green: "#66BB6A",
+  red: "#EF5350",
+  purple: "#AB47BC",
+  orange: "#FF7043",
+  bg: "#0A0E1A",
+  card: "#111827",
+  text: "#E8EDF5",
+  dim: "#8892A4",
+  border: "rgba(255,255,255,0.07)",
+};
+
+const LOGO =
+  "https://res.cloudinary.com/detsk6uql/image/upload/v1775646964/Adobe_Express_-_file_lydnbc.png";
+
+const TABS = ["Jobs", "Freelance Gigs", "Internships", "My Applications"];
+
+const JOBS = [
+  { role: "Frontend Developer", company: "Zinox Labs", location: "Lagos, Remote", salary: "₦600-900K", posted: "Posted 2d", tags: ["React", "TypeScript"], color: COLORS.blue },
+  { role: "Content Marketer", company: "Paystack", location: "Hybrid", salary: "₦500-700K", posted: "Posted 3d", tags: ["SEO", "Copy"], color: COLORS.gold },
+  { role: "AI Engineer", company: "Datacenter Africa", location: "Remote", salary: "₦1-1.5M", posted: "Posted 5d", tags: ["Python", "LLMs"], color: COLORS.purple },
+  { role: "Graphic Designer", company: "Cowrywise", location: "Lagos", salary: "₦400-600K", posted: "Posted 1w", tags: ["Figma", "Brand"], color: COLORS.green },
+  { role: "Product Manager", company: "Flutterwave", location: "Remote", salary: "₦1.2-1.8M", posted: "Posted 1w", tags: ["Strategy", "Agile"], color: COLORS.orange },
+];
+
+const INTERVIEWS = [
+  { company: "Zinox Labs", role: "Frontend Developer", date: "Apr 15, 2026", time: "10:00 AM" },
+  { company: "Paystack", role: "Content Marketer", date: "Apr 18, 2026", time: "2:30 PM" },
+];
+
+export default function RecruitmentPage() {
+  const [tab, setTab] = useState("Jobs");
+
+  const apply = (company: string) => toast.success(`Application sent to ${company}!`);
+  const save = (role: string) => toast.success(`Saved ${role} to favorites`);
+
+  const statCard = (label: string, value: string, color: string) => (
+    <div style={{
+      background: COLORS.card,
+      border: `1px solid ${COLORS.border}`,
+      borderRadius: 14,
+      padding: 18,
+      flex: 1,
+      minWidth: 180,
+    }}>
+      <div style={{ color: COLORS.dim, fontSize: 12, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>{label}</div>
+      <div style={{ color, fontSize: 28, fontWeight: 800 }}>{value}</div>
+    </div>
+  );
+
+  const companyCircle = (name: string, color: string, size = 44) => (
+    <div style={{
+      width: size, height: size, borderRadius: "50%",
+      background: `linear-gradient(135deg, ${color}, ${color}88)`,
+      color: "#fff",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontWeight: 700, fontSize: size / 2.4,
+      flexShrink: 0,
+    }}>{name[0]}</div>
+  );
+
+  return (
+    <div style={{ background: COLORS.bg, minHeight: "100vh", color: COLORS.text, padding: 28, fontFamily: "Inter, system-ui, sans-serif" }}>
+      <Toaster position="top-right" toastOptions={{ style: { background: COLORS.card, color: COLORS.text, border: `1px solid ${COLORS.border}` } }} />
+
+      {/* Banner */}
+      <div style={{
+        position: "relative",
+        overflow: "hidden",
+        borderRadius: 20,
+        padding: "32px 36px",
+        background: `linear-gradient(135deg, ${COLORS.orange}33 0%, ${COLORS.gold}33 100%)`,
+        border: `1px solid ${COLORS.border}`,
+        marginBottom: 24,
+        display: "flex",
+        alignItems: "center",
+        gap: 24,
+      }}>
+        <img src={LOGO} alt="CIOS" style={{ width: 96, height: 96, objectFit: "contain", animation: "float 3s ease-in-out infinite" }} />
+        <div style={{ flex: 1 }}>
+          <span style={{
+            display: "inline-block",
+            background: COLORS.orange,
+            color: "#fff",
+            padding: "4px 12px",
+            borderRadius: 999,
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 1.5,
+            marginBottom: 10,
+          }}>RECRUITMENT</span>
+          <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800 }}>Opportunities</h1>
+          <p style={{ margin: "6px 0 0", color: COLORS.dim, fontSize: 15 }}>Jobs, gigs, and career opportunities for CIOS alumni</p>
+        </div>
+        <style>{`@keyframes float { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-8px);} }`}</style>
+      </div>
+
+      {/* Tabs */}
+      <div style={{
+        display: "flex",
+        gap: 6,
+        background: COLORS.card,
+        border: `1px solid ${COLORS.border}`,
+        padding: 6,
+        borderRadius: 12,
+        marginBottom: 20,
+        width: "fit-content",
+      }}>
+        {TABS.map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            style={{
+              background: tab === t ? COLORS.orange : "transparent",
+              color: tab === t ? "#fff" : COLORS.dim,
+              border: "none",
+              padding: "8px 16px",
+              borderRadius: 8,
+              fontWeight: 600,
+              cursor: "pointer",
+              fontSize: 13,
+            }}
+          >{t}</button>
+        ))}
+      </div>
+
+      {/* Stats */}
+      <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 24 }}>
+        {statCard("Open Positions", "47", COLORS.blue)}
+        {statCard("Gigs Available", "23", COLORS.gold)}
+        {statCard("Your Applications", "4", COLORS.green)}
+        {statCard("Interviews Scheduled", "2", COLORS.purple)}
+      </div>
+
+      {/* Featured */}
+      <div style={{
+        background: `linear-gradient(135deg, ${COLORS.blue}22, ${COLORS.purple}22)`,
+        border: `1px solid ${COLORS.blue}55`,
+        borderRadius: 18,
+        padding: 24,
+        marginBottom: 24,
+        display: "flex",
+        gap: 20,
+        alignItems: "center",
+        flexWrap: "wrap",
+      }}>
+        {companyCircle("TechNaija Ventures", COLORS.blue, 64)}
+        <div style={{ flex: 1, minWidth: 260 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <span style={{ color: COLORS.dim, fontSize: 13, fontWeight: 600 }}>TechNaija Ventures</span>
+            <span style={{
+              background: COLORS.gold, color: "#000",
+              padding: "2px 8px", borderRadius: 999,
+              fontSize: 10, fontWeight: 700, letterSpacing: 1,
+            }}>FEATURED</span>
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Senior UI/UX Designer</div>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+            <span style={{ color: COLORS.dim, fontSize: 13 }}>📍 Lagos</span>
+            <span style={{
+              background: `${COLORS.green}22`, color: COLORS.green,
+              padding: "2px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+            }}>Remote</span>
+            <span style={{ color: COLORS.gold, fontSize: 13, fontWeight: 600 }}>₦800K-1.2M</span>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {["Design", "Figma", "UX Research"].map((tag) => (
+              <span key={tag} style={{
+                background: `${COLORS.blue}22`, color: COLORS.blue,
+                padding: "4px 10px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+              }}>{tag}</span>
+            ))}
+          </div>
+        </div>
+        <button
+          onClick={() => apply("TechNaija Ventures")}
+          style={{
+            background: COLORS.blue, color: "#fff",
+            border: "none", padding: "14px 28px",
+            borderRadius: 12, fontWeight: 700, fontSize: 15,
+            cursor: "pointer",
+          }}
+        >Apply Now</button>
+      </div>
+
+      {/* Main grid: listings + sidebar */}
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 20 }}>
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Latest Listings</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {JOBS.map((j) => (
+              <div key={j.role} style={{
+                background: COLORS.card,
+                border: `1px solid ${COLORS.border}`,
+                borderRadius: 14,
+                padding: 18,
+                display: "flex",
+                gap: 14,
+                alignItems: "center",
+              }}>
+                {companyCircle(j.company, j.color)}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2 }}>{j.role}</div>
+                  <div style={{ color: COLORS.dim, fontSize: 13, marginBottom: 6 }}>
+                    {j.company} • {j.location} • <span style={{ color: COLORS.gold }}>{j.salary}</span> • {j.posted}
+                  </div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {j.tags.map((t) => (
+                      <span key={t} style={{
+                        background: `${j.color}22`, color: j.color,
+                        padding: "2px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                      }}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  onClick={() => save(j.role)}
+                  title="Save"
+                  style={{
+                    background: "transparent",
+                    border: `1px solid ${COLORS.border}`,
+                    color: COLORS.dim,
+                    width: 38, height: 38,
+                    borderRadius: 10,
+                    cursor: "pointer",
+                    fontSize: 16,
+                  }}
+                >🔖</button>
+                <button
+                  onClick={() => apply(j.company)}
+                  style={{
+                    background: j.color, color: "#fff",
+                    border: "none", padding: "10px 18px",
+                    borderRadius: 10, fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >Apply</button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 14 }}>Upcoming Interviews</h2>
+          <div style={{
+            background: COLORS.card,
+            border: `1px solid ${COLORS.border}`,
+            borderRadius: 14,
+            padding: 16,
+            marginBottom: 16,
+          }}>
+            {INTERVIEWS.map((i, idx) => (
+              <div key={idx} style={{
+                padding: "12px 0",
+                borderBottom: idx < INTERVIEWS.length - 1 ? `1px solid ${COLORS.border}` : "none",
+              }}>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>{i.company}</div>
+                <div style={{ color: COLORS.dim, fontSize: 13, marginBottom: 6 }}>{i.role}</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <span style={{
+                    background: `${COLORS.purple}22`, color: COLORS.purple,
+                    padding: "3px 10px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                  }}>{i.date}</span>
+                  <span style={{
+                    background: `${COLORS.blue}22`, color: COLORS.blue,
+                    padding: "3px 10px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                  }}>{i.time}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Recruiter CTA */}
+          <div style={{
+            background: `linear-gradient(135deg, ${COLORS.orange}33, ${COLORS.gold}33)`,
+            border: `1px solid ${COLORS.orange}55`,
+            borderRadius: 14,
+            padding: 20,
+            textAlign: "center",
+          }}>
+            <div style={{ fontSize: 28, marginBottom: 6 }}>💼</div>
+            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>Are you a recruiter?</div>
+            <div style={{ color: COLORS.dim, fontSize: 13, marginBottom: 12 }}>
+              Post a job and reach talented CIOS alumni
+            </div>
+            <button
+              onClick={() => toast.success("Recruiter portal opening...")}
+              style={{
+                background: COLORS.orange, color: "#fff",
+                border: "none", padding: "10px 18px",
+                borderRadius: 10, fontWeight: 700,
+                cursor: "pointer", width: "100%",
+              }}
+            >Post a Job</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
