@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import toast from "react-hot-toast";
-import { saveDocument, renameDocument, deleteDocument, generateCV } from "@/app/actions/documents";
+import { saveDocument, renameDocument, deleteDocument } from "@/app/actions/documents";
 
 interface Doc {
   id: string; name: string; kind: string; mime: string | null; size_bytes: number;
@@ -85,18 +85,21 @@ export function DocumentsClient({ initial }: { initial: Array<Record<string, unk
   };
 
   const onGenerateCV = () => start(async () => {
-    const res = await generateCV();
-    if (!res.ok) return toast.error(res.error);
-    toast.success("CV generated");
-    const content = res.data!.content;
-    const newDoc: Doc = {
-      id: res.data!.id, name: `CV-${new Date().toISOString().slice(0, 10)}.txt`, kind: "cv",
-      mime: "text/plain", size_bytes: content.length,
-      url: `data:text/plain;charset=utf-8,${encodeURIComponent(content)}`,
-      thumbnail_url: null, tags: [], folder: null, description: "Auto-generated",
-      is_generated: true, generated_by: "cv_generator", created_at: new Date().toISOString(),
-    };
-    setDocs((prev) => [newDoc, ...prev]);
+    const t = toast.loading("Building your CV PDF…");
+    try {
+      const r = await fetch("/api/cv");
+      if (!r.ok) { toast.error("Failed to generate CV", { id: t }); return; }
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `CV-${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      toast.success("CV downloaded", { id: t });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed", { id: t });
+    }
   });
 
   const onDelete = (id: string) => start(async () => {
