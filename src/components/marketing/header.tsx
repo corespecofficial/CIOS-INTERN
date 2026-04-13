@@ -16,169 +16,165 @@ const NAV_LINKS: { href: string; label: string; anchor?: boolean }[] = [
   { href: "/#faq", label: "FAQ", anchor: true },
 ];
 
-const MOBILE_BREAKPOINT = 900;
-
 export function MarketingHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
-  useEffect(() => {
-    const mq = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT}px)`);
-    const apply = () => setIsMobile(mq.matches);
-    apply();
-    mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
-  }, []);
-
-  // Lock body scroll when drawer open
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [mobileOpen]);
 
   return (
-    <nav style={{
-      position: "sticky", top: 0, zIndex: 60,
-      borderBottom: "1px solid rgba(255,255,255,0.06)",
-      background: "rgba(10,14,26,0.92)",
-      backdropFilter: "blur(16px)",
-      WebkitBackdropFilter: "blur(16px)",
-    }}>
-      <div style={{
-        maxWidth: 1200, margin: "0 auto",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "0 16px", height: 60,
-        gap: 12,
-      }}>
-        {/* Brand */}
-        <Link href="/" style={{
-          display: "inline-flex", alignItems: "center", gap: 10,
-          textDecoration: "none", flexShrink: 0,
-          minWidth: 0,
-        }}>
-          <img src={LOGO} alt="CIOS" width={32} height={32} style={{ borderRadius: 10, flexShrink: 0, display: "block" }} />
-          <span style={{
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontWeight: 700, fontSize: isMobile ? 16 : 18,
-            background: "linear-gradient(135deg, #fff, #1E88E5)",
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-          }}>
-            CIOS{isMobile ? "" : " Platform"}
-          </span>
-        </Link>
+    <>
+      {/* Header-only CSS — overrides ALL global rules with high specificity + !important */}
+      <style>{`
+        .cios-mh { position: sticky; top: 0; z-index: 60;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+          background: rgba(10,14,26,0.92);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+        }
+        .cios-mh-row {
+          max-width: 1200px; margin: 0 auto;
+          display: flex !important;
+          flex-wrap: nowrap !important;
+          align-items: center; justify-content: space-between;
+          padding: 0 16px; height: 60px; gap: 12px;
+        }
+        .cios-mh-brand {
+          display: inline-flex !important; align-items: center; gap: 10px;
+          text-decoration: none; flex-shrink: 0; min-width: 0;
+          flex-wrap: nowrap !important; white-space: nowrap !important;
+        }
+        .cios-mh-brand img { border-radius: 10px; flex-shrink: 0; display: block; }
+        .cios-mh-title {
+          font-family: 'Space Grotesk', sans-serif;
+          font-weight: 700; font-size: 18px;
+          background: linear-gradient(135deg, #fff, #1E88E5);
+          -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+          background-clip: text; color: transparent;
+          white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis;
+        }
+        .cios-mh-title-long { display: inline; }
+        .cios-mh-title-short { display: none; }
 
-        {/* Right side — desktop nav OR mobile hamburger only */}
-        {!isMobile ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 22, flexShrink: 0 }}>
+        /* Desktop nav — visible by default, hidden on mobile */
+        .cios-mh-desktop { display: flex !important; align-items: center; gap: 22px; flex-shrink: 0; flex-wrap: nowrap !important; }
+        .cios-mh-link { font-size: 14px; color: #8892A4; text-decoration: none; transition: color 0.2s; white-space: nowrap; }
+        .cios-mh-link:hover { color: #fff; }
+        .cios-mh-signin {
+          font-size: 14px; font-weight: 700; padding: 10px 22px; border-radius: 12px;
+          background: linear-gradient(135deg, #1E88E5, #1565C0); color: #fff;
+          text-decoration: none; box-shadow: 0 4px 20px rgba(30,136,229,0.35);
+          white-space: nowrap;
+        }
+
+        /* Hamburger button — hidden on desktop */
+        .cios-mh-hamburger {
+          display: none;
+          align-items: center; justify-content: center;
+          width: 42px; height: 42px; border-radius: 10px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+          color: #E8EDF5; cursor: pointer; flex-shrink: 0; padding: 0;
+        }
+        .cios-mh-hamburger:hover { background: rgba(30,136,229,0.18); }
+
+        /* ── MOBILE BREAKPOINT ── */
+        @media (max-width: 900px) {
+          .cios-mh-desktop { display: none !important; }
+          .cios-mh-hamburger { display: inline-flex !important; }
+          .cios-mh-title-long { display: none; }
+          .cios-mh-title-short { display: inline; }
+          .cios-mh-title { font-size: 17px; }
+        }
+
+        /* Drawer */
+        .cios-mh-backdrop {
+          position: fixed; inset: 60px 0 0 0;
+          background: rgba(0,0,0,0.5); z-index: 55;
+          animation: cios-mh-fade 0.2s ease;
+        }
+        .cios-mh-drawer {
+          position: fixed; top: 60px; right: 0; bottom: 0;
+          width: min(320px, 85vw); z-index: 56;
+          background: #0A0E1A;
+          border-left: 1px solid rgba(255,255,255,0.07);
+          padding: 24px 20px;
+          display: flex; flex-direction: column; gap: 4px;
+          overflow-y: auto;
+          animation: cios-mh-slide 0.25s ease;
+        }
+        .cios-mh-drawer-link {
+          display: block; padding: 14px 12px; border-radius: 10px;
+          font-size: 16px; font-weight: 600; color: #E8EDF5;
+          text-decoration: none;
+          border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .cios-mh-drawer-link:hover { background: rgba(255,255,255,0.04); }
+        .cios-mh-drawer-cta {
+          margin-top: 18px; text-align: center;
+          padding: 14px 24px; border-radius: 12px;
+          background: linear-gradient(135deg, #1E88E5, #1565C0);
+          color: #fff; font-size: 15px; font-weight: 700;
+          text-decoration: none;
+          box-shadow: 0 6px 20px rgba(30,136,229,0.4);
+        }
+        @keyframes cios-mh-fade { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes cios-mh-slide { from { transform: translateX(100%) } to { transform: translateX(0) } }
+      `}</style>
+
+      <nav className="cios-mh">
+        <div className="cios-mh-row">
+          {/* Brand */}
+          <Link href="/" className="cios-mh-brand">
+            <img src={LOGO} alt="CIOS" width={32} height={32} />
+            <span className="cios-mh-title">
+              <span className="cios-mh-title-long">CIOS Platform</span>
+              <span className="cios-mh-title-short">CIOS</span>
+            </span>
+          </Link>
+
+          {/* Desktop nav */}
+          <div className="cios-mh-desktop">
             {NAV_LINKS.map((n) => (
               n.anchor
-                ? <a key={n.href} href={n.href} style={linkStyle}>{n.label}</a>
-                : <Link key={n.href} href={n.href} style={linkStyle}>{n.label}</Link>
+                ? <a key={n.href} href={n.href} className="cios-mh-link">{n.label}</a>
+                : <Link key={n.href} href={n.href} className="cios-mh-link">{n.label}</Link>
             ))}
-            <Link href="/sign-in" style={{
-              fontSize: 14, fontWeight: 700, padding: "10px 22px", borderRadius: 12,
-              background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff",
-              textDecoration: "none", boxShadow: "0 4px 20px rgba(30,136,229,0.35)",
-              whiteSpace: "nowrap",
-            }}>Sign In</Link>
+            <Link href="/sign-in" className="cios-mh-signin">Sign In</Link>
           </div>
-        ) : (
+
+          {/* Hamburger (mobile only) */}
           <button
+            className="cios-mh-hamburger"
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileOpen}
-            style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
-              width: 42, height: 42, borderRadius: 10,
-              background: mobileOpen ? "rgba(30,136,229,0.18)" : "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              color: "#E8EDF5", cursor: "pointer", flexShrink: 0,
-              padding: 0,
-            }}
           >
-            {/* Hamburger / close icon — pure SVG so no emoji rendering surprises */}
             {mobileOpen ? (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6 L18 18 M18 6 L6 18" /></svg>
             ) : (
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7 H20 M4 12 H20 M4 17 H20" /></svg>
             )}
           </button>
-        )}
-      </div>
+        </div>
+      </nav>
 
-      {/* Mobile drawer */}
-      {isMobile && mobileOpen && (
+      {/* Drawer */}
+      {mobileOpen && (
         <>
-          {/* Backdrop */}
-          <div
-            onClick={() => setMobileOpen(false)}
-            style={{
-              position: "fixed", inset: "60px 0 0 0",
-              background: "rgba(0,0,0,0.5)", zIndex: 55,
-              animation: "cios-fade 0.2s ease",
-            }}
-          />
-          {/* Slide panel */}
-          <div style={{
-            position: "fixed", top: 60, right: 0, bottom: 0,
-            width: "min(320px, 85vw)", zIndex: 56,
-            background: "#0A0E1A",
-            borderLeft: "1px solid rgba(255,255,255,0.07)",
-            padding: "24px 20px",
-            display: "flex", flexDirection: "column", gap: 4,
-            overflowY: "auto",
-            animation: "cios-slide 0.25s ease",
-          }}>
-            {NAV_LINKS.map((n) => {
-              const C = n.anchor ? "a" : Link;
-              return (
-                // @ts-expect-error - dynamic component selection
-                <C
-                  key={n.href}
-                  href={n.href}
-                  onClick={() => setMobileOpen(false)}
-                  style={{
-                    display: "block",
-                    padding: "14px 12px",
-                    borderRadius: 10,
-                    fontSize: 16, fontWeight: 600,
-                    color: "#E8EDF5",
-                    textDecoration: "none",
-                    borderBottom: "1px solid rgba(255,255,255,0.04)",
-                  }}
-                >
-                  {n.label}
-                </C>
-              );
-            })}
-            <Link
-              href="/sign-in"
-              onClick={() => setMobileOpen(false)}
-              style={{
-                marginTop: 18, textAlign: "center",
-                padding: "14px 24px", borderRadius: 12,
-                background: "linear-gradient(135deg, #1E88E5, #1565C0)",
-                color: "#fff", fontSize: 15, fontWeight: 700,
-                textDecoration: "none",
-                boxShadow: "0 6px 20px rgba(30,136,229,0.4)",
-              }}
-            >
-              Sign In →
-            </Link>
+          <div className="cios-mh-backdrop" onClick={() => setMobileOpen(false)} />
+          <div className="cios-mh-drawer">
+            {NAV_LINKS.map((n) => (
+              n.anchor
+                ? <a key={n.href} href={n.href} onClick={() => setMobileOpen(false)} className="cios-mh-drawer-link">{n.label}</a>
+                : <Link key={n.href} href={n.href} onClick={() => setMobileOpen(false)} className="cios-mh-drawer-link">{n.label}</Link>
+            ))}
+            <Link href="/sign-in" onClick={() => setMobileOpen(false)} className="cios-mh-drawer-cta">Sign In →</Link>
           </div>
-
-          <style>{`
-            @keyframes cios-fade { from { opacity: 0 } to { opacity: 1 } }
-            @keyframes cios-slide { from { transform: translateX(100%) } to { transform: translateX(0) } }
-          `}</style>
         </>
       )}
-    </nav>
+    </>
   );
 }
-
-const linkStyle: React.CSSProperties = {
-  fontSize: 14, color: "#8892A4", textDecoration: "none",
-  transition: "color 0.2s", whiteSpace: "nowrap",
-};
