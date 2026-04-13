@@ -18,16 +18,13 @@ export default withSentryConfig(withNextIntl(nextConfig), {
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,
 
-  // Upload sourcemaps in prod builds only, keep them private
+  // Quiet build output
   silent: !process.env.CI,
-  disableLogger: true,
   widenClientFileUpload: true,
-  hideSourceMaps: true,
 
   // Route browser requests through /monitoring to bypass ad-blockers
   tunnelRoute: "/monitoring",
 
-  // Only run the Sentry plugin if configured — otherwise skip entirely (keeps local builds fast)
-  disableServerWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN,
-  disableClientWebpackPlugin: !process.env.SENTRY_AUTH_TOKEN,
+  // Skip source-map upload entirely when no auth token is set (Netlify env without Sentry)
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
 });
