@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import { PricingSection } from "@/components/marketing/pricing-section";
+import { MarketingHeader } from "@/components/marketing/header";
 
 const LOGO = "https://res.cloudinary.com/detsk6uql/image/upload/v1775646964/Adobe_Express_-_file_lydnbc.png";
 
@@ -19,32 +20,8 @@ export default function LandingPage() {
         ))}
       </div>
 
-      {/* NAV */}
-      <nav style={{
-        position: "sticky", top: 0, zIndex: 50, borderBottom: "1px solid rgba(255,255,255,0.06)",
-        background: "rgba(10,14,26,0.85)", backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-      }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 32px", height: 64 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <img src={LOGO} alt="CIOS" width={40} height={40} style={{ borderRadius: 12, animation: "float 4s ease-in-out infinite" }} />
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, background: "linear-gradient(135deg, #fff, #1E88E5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>CIOS Platform</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 22, flexWrap: "wrap" }}>
-            <a href="#features" style={{ fontSize: 14, color: "#8892A4", textDecoration: "none" }}>Features</a>
-            <Link href="/about" style={{ fontSize: 14, color: "#8892A4", textDecoration: "none" }}>About</Link>
-            <Link href="/recruiters" style={{ fontSize: 14, color: "#8892A4", textDecoration: "none" }}>For Recruiters</Link>
-            <Link href="/talent-showcase" style={{ fontSize: 14, color: "#8892A4", textDecoration: "none" }}>Talent</Link>
-            <Link href="/pricing" style={{ fontSize: 14, color: "#8892A4", textDecoration: "none" }}>Pricing</Link>
-            <Link href="/contact" style={{ fontSize: 14, color: "#8892A4", textDecoration: "none" }}>Contact</Link>
-            <a href="#faq" style={{ fontSize: 14, color: "#8892A4", textDecoration: "none" }}>FAQ</a>
-            <Link href="/sign-in" style={{
-              fontSize: 14, fontWeight: 700, padding: "10px 24px", borderRadius: 12,
-              background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff", textDecoration: "none",
-              boxShadow: "0 4px 20px rgba(30,136,229,0.35)",
-            }}>Sign In</Link>
-          </div>
-        </div>
-      </nav>
+      {/* NAV — shared marketing header (responsive with mobile drawer) */}
+      <MarketingHeader />
 
       {/* HERO */}
       <section style={{ position: "relative", padding: "80px 24px 60px", textAlign: "center", zIndex: 1 }}>
