@@ -1,6 +1,8 @@
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
+// Note: Netlify's Next runtime supports both "edge" and "nodejs" for OG image generation.
+// Using "nodejs" is broader-compatible and avoids the Edge runtime cold-start tax on Netlify.
+export const runtime = "nodejs";
 export const contentType = "image/png";
 export const size = { width: 1200, height: 630 };
 export const alt = "CIOS — AI-powered internship operating system";
