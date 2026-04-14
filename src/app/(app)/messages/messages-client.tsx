@@ -129,6 +129,7 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
   const [showPollModal, setShowPollModal] = useState(false);
   const [statuses, setStatuses] = useState<StatusRow[]>(initialStatuses);
   const [viewingStatuses, setViewingStatuses] = useState<{ list: StatusRow[]; index: number } | null>(null);
+  const [showStatusesSheet, setShowStatusesSheet] = useState(false);
   const [showCreateStatus, setShowCreateStatus] = useState(false);
   const [showLockSettings, setShowLockSettings] = useState(false);
   const chatLock = useChatLock();
@@ -658,16 +659,13 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
           <div className="cios-chat-tabs" style={{ display: "flex", gap: 4, marginTop: 10 }}>
             <button onClick={() => setShowArchived(false)} style={{ ...tabBtn, ...(showArchived ? {} : tabBtnActive) }}>All</button>
             <button onClick={() => setShowArchived(true)} style={{ ...tabBtn, ...(showArchived ? tabBtnActive : {}) }}>Archived</button>
+            <button onClick={() => setShowStatusesSheet(true)} style={{ ...tabBtn, position: "relative" }} title="Statuses">
+              📸 Statuses{statuses.length > 0 && <span style={{ position: "absolute", top: 4, right: 6, width: 6, height: 6, borderRadius: "50%", background: "#66BB6A" }} />}
+            </button>
           </div>
         </div>
 
-        {/* Status strip */}
-        <StatusStrip
-          statuses={statuses}
-          meId={me.id}
-          onOpen={(list, index) => setViewingStatuses({ list, index })}
-          onCreate={() => setShowCreateStatus(true)}
-        />
+        {/* Statuses now live behind a dedicated tab — see showStatusesSheet modal below. */}
 
         <div className="cios-room-scroll" style={{ flex: "1 1 0", overflowY: "auto", minHeight: 0, WebkitOverflowScrolling: "touch" }}>
           {visibleRooms.length === 0 && (
@@ -833,6 +831,42 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
           lockNow={chatLock.lock}
         />
       )}
+      {/* Statuses sheet — opens from the Statuses tab */}
+      {showStatusesSheet && (
+        <div onClick={(e) => e.target === e.currentTarget && setShowStatusesSheet(false)} style={{
+          position: "fixed", inset: 0, zIndex: 250,
+          background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "flex-end", justifyContent: "center",
+          animation: "cios-fade 0.15s ease",
+        }}>
+          <div style={{
+            background: "#111827", width: "100%", maxWidth: 560,
+            borderRadius: "16px 16px 0 0",
+            borderTop: "1px solid rgba(255,255,255,0.1)",
+            padding: "6px 0 20px",
+            maxHeight: "80dvh", overflowY: "auto",
+            animation: "cios-slide-up 0.22s ease",
+          }}>
+            {/* Pull handle */}
+            <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 99, margin: "8px auto 12px" }} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 18px 10px" }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>📸 Statuses</h3>
+              <button onClick={() => setShowStatusesSheet(false)} style={{ width: 32, height: 32, borderRadius: 8, background: "transparent", color: "#8892A4", border: "1px solid rgba(255,255,255,0.08)", fontSize: 14, cursor: "pointer" }}>✕</button>
+            </div>
+            <StatusStrip
+              statuses={statuses}
+              meId={me.id}
+              onOpen={(list, index) => { setShowStatusesSheet(false); setViewingStatuses({ list, index }); }}
+              onCreate={() => { setShowStatusesSheet(false); setShowCreateStatus(true); }}
+            />
+          </div>
+          <style>{`
+            @keyframes cios-fade { from { opacity: 0 } to { opacity: 1 } }
+            @keyframes cios-slide-up { from { transform: translateY(100%) } to { transform: translateY(0) } }
+          `}</style>
+        </div>
+      )}
+
       {viewingStatuses && (
         <StatusViewer
           list={viewingStatuses.list}
