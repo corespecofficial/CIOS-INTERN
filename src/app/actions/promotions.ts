@@ -63,27 +63,53 @@ function computeReadiness(u: UserRow, completedTasks: number, attendancePct: num
    AUTOMATED SCAN — call from cron
    ─────────────────────────────────────── */
 
+/**
+ * Minimum tenure/engagement required before ANY promotion recommendation.
+ * Prevents instant promotions from a burst of activity.
+ */
+const MIN_ACCOUNT_AGE_DAYS = 14;          // account must be ≥14 days old
+const MIN_ACTIVE_DAYS_IN_WINDOW = 14;     // ≥14 distinct active days in 30
+const ENGAGEMENT_WINDOW_DAYS = 30;
+
 export async function scanForPromotions(): Promise<R<{ created: number; scanned: number }>> {
   try {
     const sb = supabaseAdmin();
     const { data: users } = await sb.from("users")
-      .select("id, name, role, level, xp, streak, performance, reputation, avatar_url")
+      .select("id, name, role, level, xp, streak, performance, reputation, avatar_url, created_at")
       .in("role", ROLE_LADDER as unknown as string[]);
     if (!users) return { ok: true, data: { created: 0, scanned: 0 } };
 
+    const now = Date.now();
+    const windowStart = new Date(now - ENGAGEMENT_WINDOW_DAYS * 86400_000).toISOString();
+
     let created = 0;
-    for (const u of users as UserRow[]) {
+    for (const u of users as (UserRow & { created_at: string })[]) {
       const next = nextRoleFor(u.role);
       if (!next) continue;
+
+      // ── TENURE GATE: account age ≥ 14 days ──
+      const ageDays = (now - new Date(u.created_at).getTime()) / 86400_000;
+      if (ageDays < MIN_ACCOUNT_AGE_DAYS) continue;
+
       // Skip if there's already a pending recommendation for this user
       const { data: existing } = await sb.from("promotion_recommendations")
         .select("id").eq("user_id", u.id).eq("status", "pending").maybeSingle();
       if (existing) continue;
 
+      // ── ENGAGEMENT GATE: ≥14 distinct active days in the last 30 ──
+      const { data: activityRows } = await sb.from("user_events")
+        .select("created_at")
+        .eq("user_id", u.id)
+        .in("event", ["session_start", "page_view"])
+        .gte("created_at", windowStart);
+      const activeDays = new Set(
+        ((activityRows || []) as Array<{ created_at: string }>).map((r) => r.created_at.slice(0, 10)),
+      );
+      if (activeDays.size < MIN_ACTIVE_DAYS_IN_WINDOW) continue;
+
       const [{ count: tasksDone }] = await Promise.all([
         sb.from("tasks").select("*", { count: "exact", head: true }).eq("user_id", u.id).eq("status", "completed"),
       ]);
-      // We don't have an attendance table baseline — use perf as a proxy for now
       const attendancePct = Math.min(100, Math.max(0, u.performance));
 
       const { score, reason } = computeReadiness(u, tasksDone || 0, attendancePct);
@@ -96,12 +122,46 @@ export async function scanForPromotions(): Promise<R<{ created: number; scanned:
         to_role: next,
         to_rank: rankFromLevel(Math.max((u.level || 1) + 1, 3)).title,
         readiness_score: score,
-        reason,
+        reason: `${reason} · ${activeDays.size} active days (last 30) · ${Math.floor(ageDays)}-day tenure`,
         status: "pending",
       });
       created++;
     }
     return { ok: true, data: { created, scanned: users.length } };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+/**
+ * Super-admin nuclear option: demote every non-admin/non-recruiter user back
+ * to 'intern' (New Intern rank), close any pending promotion recommendations,
+ * and start the 14-day clock from now.
+ *
+ * Intentionally does NOT touch: admin, super_admin, recruiter, instructor,
+ * moderator, finance, support roles. Only people currently on the career
+ * ladder (intern → manager) get reset.
+ */
+export async function resetAllToNewIntern(): Promise<R<{ demoted: number; cleared: number }>> {
+  try {
+    const me = await getCurrentDbUser();
+    if (!me) return { ok: false, error: "Unauthorized" };
+    if (me.role !== "super_admin") return { ok: false, error: "Super admin only" };
+    const sb = supabaseAdmin();
+    // Demote every career-ladder user (includes current interns; no-op for them)
+    const { data: affected, error: updErr } = await sb
+      .from("users")
+      .update({ role: "intern" })
+      .in("role", ROLE_LADDER as unknown as string[])
+      .select("id");
+    if (updErr) return { ok: false, error: updErr.message };
+    // Close any pending recommendations — they no longer apply
+    const { data: cleared } = await sb
+      .from("promotion_recommendations")
+      .update({ status: "rejected", reviewed_by: me.id, reviewed_at: new Date().toISOString(), reject_reason: "Global reset" })
+      .eq("status", "pending")
+      .select("id");
+    revalidatePath("/admin/promotions");
+    revalidatePath("/dashboard");
+    return { ok: true, data: { demoted: (affected || []).length, cleared: (cleared || []).length } };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 

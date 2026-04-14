@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import toast from "react-hot-toast";
-import { listPendingPromotions, approvePromotion, rejectPromotion, scanForPromotions, type PromotionRecommendation } from "@/app/actions/promotions";
+import { listPendingPromotions, approvePromotion, rejectPromotion, scanForPromotions, resetAllToNewIntern, type PromotionRecommendation } from "@/app/actions/promotions";
 import { BackBar } from "@/components/back-bar";
 
 export default function AdminPromotionsPage() {
@@ -36,6 +36,16 @@ export default function AdminPromotionsPage() {
     setRows((prev) => prev.filter((x) => x.id !== id));
   });
 
+  const onReset = () => start(async () => {
+    if (!confirm("⚠️ DEMOTE every career-ladder user back to New Intern?\n\nThis resets intern, senior_intern, team_lead, department_lead, trainer, and manager roles to intern. Admin/recruiter/instructor roles are untouched. Pending recommendations will be rejected. The 14-day engagement clock restarts from now.\n\nProceed?")) return;
+    if (!confirm("Are you absolutely sure? This cannot be undone.")) return;
+    const t = toast.loading("Resetting all career-ladder users…");
+    const r = await resetAllToNewIntern();
+    if (!r.ok) { toast.error(r.error, { id: t }); return; }
+    toast.success(`Reset complete — ${r.data!.demoted} demoted, ${r.data!.cleared} recommendations cleared`, { id: t });
+    refresh();
+  });
+
   const onScan = () => start(async () => {
     const t = toast.loading("Scanning for new promotion candidates…");
     const r = await scanForPromotions();
@@ -52,9 +62,14 @@ export default function AdminPromotionsPage() {
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>🎖 Promotion Recommendations</h1>
           <p style={{ fontSize: 13, color: "#8892A4", margin: "2px 0 0" }}>Review AI-suggested promotions from real intern performance data.</p>
         </div>
-        <button onClick={onScan} disabled={pending} style={{ padding: "10px 18px", background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
-          🔄 Run scan now
-        </button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={onScan} disabled={pending} style={{ padding: "10px 18px", background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+            🔄 Run scan now
+          </button>
+          <button onClick={onReset} disabled={pending} title="Super-admin only. Demotes everyone on the career ladder back to New Intern." style={{ padding: "10px 18px", background: "transparent", color: "#EF5350", border: "1px solid rgba(239,83,80,0.4)", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+            ♻ Reset all to New Intern
+          </button>
+        </div>
       </div>
 
       {loading && <div style={{ padding: 40, textAlign: "center", color: "#8892A4", fontSize: 13 }}>Loading…</div>}
