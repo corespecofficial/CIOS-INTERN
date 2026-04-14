@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Nunito, Space_Grotesk } from "next/font/google";
-import Script from "next/script";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "react-hot-toast";
 import { NextIntlClientProvider } from "next-intl";
@@ -85,8 +84,14 @@ export default async function RootLayout({
         data-theme="dark"
         suppressHydrationWarning
       >
-        {/* Pre-paint theme bootstrap — hoisted by next/script to <head> */}
-        <Script id="cios-theme-init" strategy="beforeInteractive">{`(function(){try{var t=localStorage.getItem('cios-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`}</Script>
+        <head>
+          {/* Pre-paint theme bootstrap — runs before React hydrates */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(){try{var t=localStorage.getItem('cios-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`,
+            }}
+          />
+        </head>
         <body className="min-h-full antialiased font-[family-name:var(--font-nunito)]" suppressHydrationWarning>
           <NextIntlClientProvider locale={locale} messages={messages}>
             {children}
