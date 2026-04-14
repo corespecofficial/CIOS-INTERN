@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import toast from "react-hot-toast";
 import { reviewPeerRequest } from "@/app/actions/messaging-privacy";
+import { BackBar } from "@/components/back-bar";
 
 interface Outgoing {
   id: string;
@@ -42,12 +43,10 @@ export function RequestsClient({ outgoing, incoming }: { outgoing: Outgoing[]; i
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto", fontFamily: "'Nunito', sans-serif" }}>
-      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
-        <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>📨 Connect requests</h1>
-          <p style={{ fontSize: 12, color: "#8892A4", margin: "2px 0 0 0" }}>Incoming peer requests you need to approve, and your outgoing requests</p>
-        </div>
-        <Link href="/messages/contacts" style={{ padding: "9px 14px", color: "#E8EDF5", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, fontSize: 12, fontWeight: 600, textDecoration: "none" }}>← Contacts</Link>
+      <BackBar to="/messages" label="Back to messages" extras={[{ href: "/messages/contacts", label: "🤝 Contacts" }]} />
+      <div style={{ marginBottom: 16 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>📨 Connect requests</h1>
+        <p style={{ fontSize: 12, color: "#8892A4", margin: "2px 0 0 0" }}>Incoming peer requests you need to approve, and your outgoing requests</p>
       </div>
 
       {/* Tabs */}

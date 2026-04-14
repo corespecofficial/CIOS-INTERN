@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import toast from "react-hot-toast";
 import { sendContactRequest } from "@/app/actions/messaging-privacy";
+import { BackBar } from "@/components/back-bar";
 
 interface Contact { id: string; displayName: string; internId: string | null; avatarUrl: string | null; role: string; masked: boolean; lastSeen: string | null }
 
@@ -41,6 +42,7 @@ export function ContactsClient({ initial, myRole }: { initial: Contact[]; myRole
 
   return (
     <div style={{ maxWidth: 820, margin: "0 auto", fontFamily: "'Nunito', sans-serif" }}>
+      <BackBar to="/messages" label="Back to messages" />
       <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
         <div>
           <span style={{ display: "inline-block", padding: "3px 10px", background: "rgba(30,136,229,0.15)", color: "#1E88E5", fontSize: 11, fontWeight: 700, borderRadius: 20, letterSpacing: 0.5, marginBottom: 6 }}>CONTACTS</span>

@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import toast from "react-hot-toast";
 import { listPendingPromotions, approvePromotion, rejectPromotion, scanForPromotions, type PromotionRecommendation } from "@/app/actions/promotions";
+import { BackBar } from "@/components/back-bar";
 
 export default function AdminPromotionsPage() {
   const [rows, setRows] = useState<PromotionRecommendation[]>([]);
@@ -45,6 +46,7 @@ export default function AdminPromotionsPage() {
 
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto", fontFamily: "'Nunito', sans-serif" }}>
+      <BackBar to="/dashboard" label="Back" />
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>🎖 Promotion Recommendations</h1>

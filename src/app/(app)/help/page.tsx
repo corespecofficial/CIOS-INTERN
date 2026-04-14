@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { BackBar } from "@/components/back-bar";
 
 const FAQS: Array<{ q: string; a: string; tags: string }> = [
   { q: "How do I join a live class?", a: "Open Classroom from the sidebar. Active classes show a green pulse. Click Join to enter.", tags: "classroom live class attend" },
@@ -60,6 +61,7 @@ export default function HelpPage() {
 
   return (
     <div style={{ maxWidth: 980, margin: "0 auto" }}>
+      <BackBar to="/dashboard" label="Back" />
       <div style={{ marginBottom: 20 }}>
         <span style={{ display: "inline-block", padding: "3px 10px", background: "rgba(38,198,218,0.15)", color: "#26C6DA", fontSize: 11, fontWeight: 700, borderRadius: 20, letterSpacing: 0.5, marginBottom: 6 }}>HELP CENTER</span>
         <h1 style={{ fontSize: 26, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>💬 How can we help?</h1>

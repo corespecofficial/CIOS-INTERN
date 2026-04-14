@@ -5,12 +5,14 @@ import toast from "react-hot-toast";
 import { createWebhook, listMyWebhooks, deleteWebhook, toggleWebhook, type WebhookEndpoint, type WebhookEvent } from "@/app/actions/webhooks";
 import { createApiToken, listMyApiTokens, revokeApiToken, type ApiToken } from "@/app/actions/api-tokens";
 import { API_SCOPES as SCOPES } from "@/lib/api-token-scopes";
+import { BackBar } from "@/components/back-bar";
 
 const EVENTS: WebhookEvent[] = ["announcement.published", "hire.confirmed", "candidate.applied", "user.created", "task.completed", "achievement.earned"];
 
 export default function IntegrationsPage() {
   return (
     <div style={{ maxWidth: 980, margin: "0 auto", fontFamily: "'Nunito', sans-serif" }}>
+      <BackBar to="/dashboard" label="Back" />
       <h1 style={{ fontSize: 24, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>🔌 Integrations</h1>
       <p style={{ fontSize: 13, color: "#8892A4", margin: "2px 0 18px 0" }}>Webhooks, API tokens, and external service connections.</p>
       <WebhooksSection />

@@ -303,12 +303,63 @@ export function Header() {
 
 function BrowserPermNudge({ onEnable }: { onEnable: () => Promise<NotificationPermission> }) {
   const [perm, setPerm] = useState<NotificationPermission | "unsupported" | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!("Notification" in window)) { setPerm("unsupported"); return; }
     setPerm(Notification.permission);
   }, []);
-  if (perm === null || perm === "granted" || perm === "unsupported" || perm === "denied") return null;
+
+  const test = () => {
+    try {
+      const n = new Notification("🔔 CIOS test", {
+        body: "Notifications are working — you'll see alerts like this for new messages and activity.",
+        icon: "/icon-192.png",
+        badge: "/badge-72.png",
+      });
+      setTimeout(() => { try { n.close(); } catch {} }, 5000);
+    } catch { /* denied at OS level */ }
+  };
+
+  if (perm === null || perm === "unsupported") return null;
+
+  if (perm === "granted") {
+    // Show a tiny confirmation row with a test button
+    return (
+      <div style={{ padding: "8px 14px", background: "rgba(102,187,106,0.06)", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", gap: 8, alignItems: "center", fontSize: 11 }}>
+        <span style={{ color: "#66BB6A" }}>✓ Desktop notifications enabled</span>
+        <div style={{ flex: 1 }} />
+        <button onClick={test} style={{ background: "transparent", color: "#66BB6A", border: "1px solid rgba(102,187,106,0.3)", borderRadius: 6, padding: "3px 10px", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>Test</button>
+      </div>
+    );
+  }
+
+  if (perm === "denied") {
+    return (
+      <div style={{ padding: "10px 14px", background: "rgba(239,83,80,0.08)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <span style={{ fontSize: 18 }}>🔕</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#E8EDF5" }}>Notifications blocked</div>
+            <div style={{ fontSize: 10, color: "#8892A4" }}>You&apos;ll miss alerts for messages & activity.</div>
+          </div>
+          <button onClick={() => setHelpOpen(!helpOpen)} style={{ background: "#EF5350", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Re-enable</button>
+        </div>
+        {helpOpen && (
+          <div style={{ marginTop: 10, padding: 10, background: "rgba(0,0,0,0.25)", borderRadius: 8, fontSize: 11, color: "#B0BEC5", lineHeight: 1.55 }}>
+            <strong style={{ color: "#E8EDF5" }}>How to re-enable</strong>
+            <ol style={{ margin: "6px 0 0 16px", padding: 0 }}>
+              <li>Click the <strong>🔒 lock icon</strong> in your browser&apos;s address bar</li>
+              <li>Find <strong>Notifications</strong> → switch to <strong>Allow</strong></li>
+              <li>Reload this page</li>
+            </ol>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // default / not asked yet
   return (
     <div style={{ padding: "10px 14px", background: "rgba(30,136,229,0.08)", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", gap: 10, alignItems: "center" }}>
       <span style={{ fontSize: 18 }}>🔔</span>
