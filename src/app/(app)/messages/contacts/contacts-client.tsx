@@ -32,9 +32,11 @@ export function ContactsClient({ initial, myRole }: { initial: Contact[]; myRole
     setShowRequest(false); setInternId(""); setReason("");
   });
 
+  // 60s threshold — matches src/lib/presence.ts so numbers never disagree
+  // across the messages page, contacts page, and chat header.
   const isOnline = (lastSeen: string | null) => {
     if (!lastSeen) return false;
-    return Date.now() - new Date(lastSeen).getTime() < 5 * 60 * 1000;
+    return Date.now() - new Date(lastSeen).getTime() < 60_000;
   };
 
   return (

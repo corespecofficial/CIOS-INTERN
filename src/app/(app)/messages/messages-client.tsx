@@ -547,10 +547,21 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
     if (v.trim()) publishTyping();
   }
 
-  // WhatsApp-accurate presence: DB last_seen < 60 s OR Ably says online right now.
-  // Ably alone produced false positives from stale channel subs; DB-backed check is truth.
+  // Tick every 20s so isOnline(last_seen) re-evaluates without needing a refresh
+  const [, setPresenceTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setPresenceTick((t) => t + 1), 20_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // WhatsApp-accurate presence. A user is ONLINE only if EITHER:
+  //   - their last_seen was refreshed within the last 60s (DB heartbeat), OR
+  //   - they're actively subscribed to this chat's Ably channel (excluding me).
+  // The old `presence.online.size > 0` check was a bug — it always included
+  // my own clientId so every offline user appeared online.
   const otherOnline = activeRoom?.type === "direct"
-    ? isOnline(activeRoom.other_user_last_seen) || presence.online.size > 0
+    ? (isOnline(activeRoom.other_user_last_seen) ||
+       Array.from(presence.online).some((cid) => cid !== me.clerkId))
     : false;
 
   const activeTyping = Array.from(presence.typing).length > 0;
@@ -951,6 +962,8 @@ function RoomRow({
   onPin: () => void; onMute: () => void; onArchive: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  // Online = DB last_seen within 60s. Direct rooms only — groups don't show a dot.
+  const online = room.type === "direct" && isOnline(room.other_user_last_seen);
   return (
     <div
       onClick={onClick}
@@ -962,7 +975,21 @@ function RoomRow({
         borderBottom: "1px solid rgba(255,255,255,0.03)",
       }}
     >
-      <Avatar size={42} name={room.name} url={room.avatar_url} id={room.id} />
+      <div style={{ position: "relative" }}>
+        <Avatar size={42} name={room.name} url={room.avatar_url} id={room.id} />
+        {room.type === "direct" && (
+          <span
+            title={online ? "Online" : "Offline"}
+            style={{
+              position: "absolute", bottom: -1, right: -1,
+              width: 12, height: 12, borderRadius: "50%",
+              background: online ? "#66BB6A" : "#5A6478",
+              border: "2px solid #111827",
+              boxShadow: online ? "0 0 6px rgba(102,187,106,0.5)" : "none",
+            }}
+          />
+        )}
+      </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 6 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "#E8EDF5", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
