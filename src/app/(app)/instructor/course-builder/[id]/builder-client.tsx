@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import type { CourseFull, CourseModuleRow } from "@/lib/db";
 import {
   addModule, updateModule, deleteModule, reorderModules,
-  updateCourse, deleteCourse, saveQuiz, saveAssignment,
+  updateCourse, deleteCourse, saveQuiz, saveAssignment, setBossQuizFlags,
 } from "@/app/actions/courses-lms";
 import type { QuizQuestion } from "@/lib/db";
 import { parseVideoEmbed, embedIframeProps } from "@/lib/video-embed";
@@ -189,6 +189,9 @@ function ModuleEditor({
   // Quiz state
   const [questions, setQuestions] = useState<QuizQuestion[]>(mod?.quiz_questions || []);
   const [passScore, setPassScore] = useState<number>(mod?.pass_score ?? 60);
+  const [isBossQuiz, setIsBossQuiz] = useState<boolean>(mod?.is_boss_quiz || false);
+  const [timeLimitSec, setTimeLimitSec] = useState<number>(mod?.time_limit_sec || 0);
+  const [bonusXp, setBonusXp] = useState<number>(mod?.bonus_xp || 0);
   // Assignment state
   const [assignmentPrompt, setAssignmentPrompt] = useState<string>(mod?.assignment_prompt || "");
   const [assignmentMaxScore, setAssignmentMaxScore] = useState<number>(mod?.assignment_max_score ?? 100);
@@ -233,6 +236,10 @@ function ModuleEditor({
     if (contentType === "quiz") {
       const qr = await saveQuiz(savedId, questions, passScore);
       if (!qr.ok) { setBusy(false); toast.error(qr.error); return; }
+      if (isBossQuiz || timeLimitSec > 0 || bonusXp > 0) {
+        const br = await setBossQuizFlags(savedId, isBossQuiz, timeLimitSec, bonusXp);
+        if (!br.ok) { setBusy(false); toast.error(br.error); return; }
+      }
     }
     if (contentType === "assignment") {
       const ar = await saveAssignment(savedId, assignmentPrompt, assignmentMaxScore);
@@ -343,7 +350,7 @@ function ModuleEditor({
 
           {contentType === "quiz" && (
             <div style={{ background: "#0A0E1A", borderRadius: 10, padding: 14, border: "1px solid rgba(30,136,229,0.15)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 10 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#1E88E5", textTransform: "uppercase", letterSpacing: 0.5 }}>
                   Quiz questions ({questions.length})
                 </div>
@@ -352,6 +359,26 @@ function ModuleEditor({
                   <input type="number" min={0} max={100} value={passScore} onChange={(e) => setPassScore(parseInt(e.target.value) || 0)}
                     style={{ ...input, width: 60, padding: "4px 8px", fontSize: 12 }} />
                 </div>
+              </div>
+
+              <div style={{ background: isBossQuiz ? "linear-gradient(135deg,rgba(123,31,162,0.2),rgba(239,83,80,0.15))" : "#111827", border: `1px solid ${isBossQuiz ? "rgba(239,83,80,0.3)" : "rgba(255,255,255,0.06)"}`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+                  <input type="checkbox" checked={isBossQuiz} onChange={(e) => setIsBossQuiz(e.target.checked)} />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#E8EDF5" }}>👹 Boss quiz</span>
+                  <span style={{ fontSize: 10, color: "#8892A4" }}>Adds timer, cooldown, and weekly leaderboard</span>
+                </label>
+                {isBossQuiz && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+                    <div>
+                      <div style={{ fontSize: 10, color: "#8892A4", marginBottom: 4 }}>Time limit (seconds — 0 = untimed)</div>
+                      <input type="number" min={0} max={3600} value={timeLimitSec} onChange={(e) => setTimeLimitSec(parseInt(e.target.value) || 0)} style={input} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, color: "#8892A4", marginBottom: 4 }}>Bonus XP on pass</div>
+                      <input type="number" min={0} max={500} value={bonusXp} onChange={(e) => setBonusXp(parseInt(e.target.value) || 0)} style={input} />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {questions.length === 0 && (

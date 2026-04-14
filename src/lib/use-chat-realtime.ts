@@ -140,6 +140,42 @@ export function useChatRealtime(roomId: string | null, currentClerkId: string | 
   return { presence, onMessage, publishMessage, publishTyping };
 }
 
+/** Hook for per-course "cohort" presence — shows who else is studying this
+ *  course right now. Lightweight: presence-only, no message publishing. */
+export function useCohortPresence(courseId: string | null, currentClerkId: string | null) {
+  const [members, setMembers] = useState<Array<{ clientId: string; data?: { name?: string; avatar?: string; lessonId?: string } }>>([]);
+
+  useEffect(() => {
+    if (!courseId || !currentClerkId) return;
+    let cancelled = false;
+    let ch: Ably.RealtimeChannel | null = null;
+
+    (async () => {
+      const client = await getAblyClient();
+      if (!client || cancelled) return;
+      ch = client.channels.get(`cohort:${courseId}`);
+      const sync = async () => {
+        if (!ch || ch.state !== "attached") return;
+        try {
+          const list = await ch.presence.get();
+          if (cancelled) return;
+          setMembers(list.map((m) => ({ clientId: m.clientId, data: (m.data as { name?: string; avatar?: string; lessonId?: string }) || {} })));
+        } catch (e) { console.warn("[ably] cohort presence get:", e); }
+      };
+      ch.presence.subscribe(["enter", "leave", "update"], sync);
+      try { await ch.presence.enter({}); } catch (e) { console.warn("[ably] cohort enter:", e); }
+      sync();
+    })();
+
+    return () => {
+      cancelled = true;
+      if (ch) { try { if (ch.state === "attached") ch.presence.leave(); } catch {} }
+    };
+  }, [courseId, currentClerkId]);
+
+  return members;
+}
+
 /** Hook for the global online-presence across the whole app (rooms list). */
 export function useGlobalPresence(currentClerkId: string | null) {
   const [onlineIds, setOnlineIds] = useState<Set<string>>(new Set());

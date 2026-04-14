@@ -11,6 +11,9 @@ import { uploadToCloudinary, humanFileSize } from "@/lib/cloudinary-upload";
 import { parseVideoEmbed, embedIframeProps } from "@/lib/video-embed";
 import { LessonReactions } from "@/components/engagement/lesson-reactions";
 import { CourseLeaderboard } from "@/components/engagement/course-leaderboard";
+import { CohortPresence } from "@/components/engagement/cohort-presence";
+import { BossQuizFrame } from "@/components/engagement/boss-quiz-frame";
+import { StudyBuddyWidget } from "@/components/engagement/study-buddy-widget";
 import { reportQuestProgress } from "@/app/actions/engagement-v2";
 
 export function PlayerClient({
@@ -111,6 +114,9 @@ export function PlayerClient({
               <div style={{ height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 4, overflow: "hidden", marginBottom: 14 }}>
                 <div style={{ width: `${progress}%`, height: "100%", background: "linear-gradient(90deg, #1E88E5, #66BB6A)", transition: "width 0.5s" }} />
               </div>
+              <div style={{ marginBottom: 12 }}>
+                <CohortPresence courseId={course.id} />
+              </div>
               <CourseLeaderboard courseId={course.id} />
             </>
           )}
@@ -185,17 +191,31 @@ export function PlayerClient({
                 </div>
               )}
 
-              {/* Quiz runner */}
+              {/* Quiz runner (boss variant wraps with timer + leaderboard) */}
               {active.content_type === "quiz" && enrolled && (
-                <QuizRunner
-                  module={active}
-                  courseId={course.id}
-                  completed={completedIds.has(active.id)}
-                  onPassed={() => {
-                    setCompletedIds((prev) => new Set([...prev, active.id]));
-                    setProgress((p) => Math.max(p, Math.round(((completedIds.size + 1) / modules.length) * 100)));
-                  }}
-                />
+                active.is_boss_quiz ? (
+                  <BossQuizFrame module={active}>
+                    <QuizRunner
+                      module={active}
+                      courseId={course.id}
+                      completed={completedIds.has(active.id)}
+                      onPassed={() => {
+                        setCompletedIds((prev) => new Set([...prev, active.id]));
+                        setProgress((p) => Math.max(p, Math.round(((completedIds.size + 1) / modules.length) * 100)));
+                      }}
+                    />
+                  </BossQuizFrame>
+                ) : (
+                  <QuizRunner
+                    module={active}
+                    courseId={course.id}
+                    completed={completedIds.has(active.id)}
+                    onPassed={() => {
+                      setCompletedIds((prev) => new Set([...prev, active.id]));
+                      setProgress((p) => Math.max(p, Math.round(((completedIds.size + 1) / modules.length) * 100)));
+                    }}
+                  />
+                )
               )}
 
               {/* Assignment runner */}
@@ -313,6 +333,7 @@ export function PlayerClient({
           })}
         </div>
       </aside>
+      {enrolled && <StudyBuddyWidget courseId={course.id} />}
     </div>
   );
 }
@@ -358,6 +379,7 @@ function QuizRunner({
     setSubmitting(false);
     if (!r.ok) { toast.error(r.error); return; }
     setResult({ score: r.data!.score, passed: r.data!.passed, per: r.data!.per });
+    window.dispatchEvent(new CustomEvent("quiz-submitted", { detail: { score: r.data!.score, passed: r.data!.passed } }));
     if (r.data!.passed) {
       toast.success(`🎉 Passed! +30 XP`);
       onPassed();

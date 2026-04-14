@@ -357,6 +357,23 @@ async function assignPeerReviewers(submissionId: string, submitterId: string, mo
   );
 }
 
+export async function setBossQuizFlags(moduleId: string, isBoss: boolean, timeLimitSec: number, bonusXp: number): Promise<Result> {
+  try {
+    const sb = supabaseAdmin();
+    const { data: mod } = await sb.from("course_modules").select("course_id").eq("id", moduleId).single();
+    if (!mod) return { ok: false, error: "Module not found" };
+    await requireInstructorOrSuperAdmin(mod.course_id);
+    const { error } = await sb.from("course_modules").update({
+      is_boss_quiz: !!isBoss,
+      time_limit_sec: Math.max(0, Math.min(3600, timeLimitSec || 0)),
+      bonus_xp: Math.max(0, Math.min(500, bonusXp || 0)),
+    }).eq("id", moduleId);
+    if (error) return { ok: false, error: error.message };
+    revalidatePath(`/instructor/course-builder/${mod.course_id}`);
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
 export async function gradeSubmission(submissionId: string, grade: number, feedback: string): Promise<Result> {
   try {
     const me = await requireMe();

@@ -61,11 +61,16 @@ export interface EngagementFeatures {
   peerReview: boolean;
   teams: boolean;
   shareCert: boolean;
+  liveSessions: boolean;
+  bossQuiz: boolean;
+  studyBuddy: boolean;
+  cohortPresence: boolean;
   questXpBonus: number;
   freezeCostXp: number;
   leaderboardResetDay: number; // 1=Mon..7=Sun ISO
   teamSize: number;
   reviewXpReward: number;
+  bossQuizCooldownMin: number;
 }
 
 export const DEFAULT_ENGAGEMENT_FEATURES: EngagementFeatures = {
@@ -78,9 +83,14 @@ export const DEFAULT_ENGAGEMENT_FEATURES: EngagementFeatures = {
   peerReview: true,
   teams: true,
   shareCert: true,
+  liveSessions: true,
+  bossQuiz: true,
+  studyBuddy: true,
+  cohortPresence: true,
   questXpBonus: 50,
   freezeCostXp: 200,
   leaderboardResetDay: 1,
   teamSize: 4,
   reviewXpReward: 40,
+  bossQuizCooldownMin: 60,
 };

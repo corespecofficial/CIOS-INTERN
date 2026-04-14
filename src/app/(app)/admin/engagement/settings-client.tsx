@@ -15,6 +15,10 @@ const FEATURES: Array<{ key: keyof EngagementFeatures; label: string; hint: stri
   { key: "peerReview",   label: "Peer review",       hint: "2 random peers auto-review every assignment submission.", emoji: "📝" },
   { key: "teams",        label: "Team challenges",   hint: "Squads compete weekly on combined XP.",                   emoji: "🏳" },
   { key: "shareCert",    label: "Shareable certificates", hint: "Public OG image + /c/[slug] share link for every certificate.", emoji: "🔗" },
+  { key: "liveSessions", label: "Live classes",      hint: "Embed YouTube Live / Twitch / TikTok Live / Google Meet / Classroom / Zoom.", emoji: "📡" },
+  { key: "bossQuiz",     label: "Boss quizzes",      hint: "Timed, cooldown-gated quizzes with a weekly leaderboard.", emoji: "👹" },
+  { key: "studyBuddy",   label: "AI study buddy",    hint: "Per-course AI chat that knows the lessons and gives hints.", emoji: "🤖" },
+  { key: "cohortPresence", label: "Cohort presence", hint: "Shows who else is studying the same course right now.",    emoji: "🟢" },
 ];
 
 const NUMBERS: Array<{ key: keyof EngagementFeatures; label: string; hint: string; min: number; max: number }> = [
@@ -23,6 +27,7 @@ const NUMBERS: Array<{ key: keyof EngagementFeatures; label: string; hint: strin
   { key: "leaderboardResetDay", label: "Leaderboard reset day", hint: "1=Mon … 7=Sun (ISO day). Weekly reset time is 00:00 UTC.", min: 1, max: 7 },
   { key: "teamSize",            label: "Team size (max members)", hint: "Upper bound on members per team.", min: 2, max: 12 },
   { key: "reviewXpReward",      label: "Peer review XP reward",   hint: "XP awarded to a reviewer when they submit thoughtful feedback.", min: 0, max: 300 },
+  { key: "bossQuizCooldownMin", label: "Boss-quiz cooldown (min)", hint: "Minutes an intern must wait before retrying a boss quiz.", min: 0, max: 1440 },
 ];
 
 export function EngagementSettingsClient({ initial }: { initial: EngagementFeatures }) {

@@ -850,6 +850,9 @@ export interface CourseModuleRow {
   pass_score: number;
   assignment_prompt: string | null;
   assignment_max_score: number;
+  is_boss_quiz?: boolean;
+  time_limit_sec?: number;
+  bonus_xp?: number;
   created_at: string;
 }
 
