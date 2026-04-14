@@ -595,6 +595,31 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
             flex: 1 1 0 !important;
             min-height: 0 !important;
             overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+          }
+          /* Everything above the scroll list must be fixed-height (no grow). */
+          .cios-messages-root aside.cios-room-list > *:not(.cios-room-scroll) {
+            flex-shrink: 0 !important;
+          }
+          /* Compact the All/Archived tabs on phone */
+          .cios-messages-root aside.cios-room-list [role="tablist"],
+          .cios-messages-root aside.cios-room-list .cios-chat-tabs {
+            gap: 4px !important;
+          }
+          .cios-messages-root aside.cios-room-list .cios-chat-tabs button {
+            padding: 6px 10px !important;
+            font-size: 12px !important;
+          }
+          /* Compact statuses strip — was eating 90px+ */
+          .cios-messages-root aside.cios-room-list .cios-status-strip {
+            padding: 8px 10px !important;
+            gap: 8px !important;
+          }
+          .cios-messages-root aside.cios-room-list .cios-status-strip .cios-status-bubble {
+            width: 44px !important; height: 44px !important;
+          }
+          .cios-messages-root aside.cios-room-list .cios-status-strip .cios-status-label {
+            font-size: 10px !important; margin-top: 2px !important;
           }
           /* Shrink the me-footer so it doesn't eat the list on phones */
           .cios-messages-root aside.cios-room-list > div:last-child {
@@ -613,23 +638,16 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
       `}</style>
       {/* ── Sidebar: rooms list ── */}
       <aside className="cios-room-list" style={{ width: 320, background: "#111827", borderRight: "1px solid rgba(255,255,255,0.07)", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "14px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <div style={{ padding: "12px 14px", borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 6 }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: "#E8EDF5", margin: 0 }}>Messages</h2>
-            <div style={{ display: "flex", gap: 6 }}>
+            <div style={{ display: "flex", gap: 4 }}>
+              <a href="/messages/contacts" style={{ ...iconBtn, color: "#1E88E5", textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }} title="Contacts">🤝</a>
+              <a href="/messages/requests" style={{ ...iconBtn, color: "#AB47BC", textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }} title="Connect requests">📨</a>
               <button onClick={() => setShowNewChat(true)} style={iconBtn} title="New chat">✉️</button>
               <button onClick={() => setShowNewGroup(true)} style={iconBtn} title="New group">👥</button>
               <button onClick={() => setShowLockSettings(true)} style={iconBtn} title="Lock & privacy">{chatLock.config.enabled ? "🔒" : "🔓"}</button>
             </div>
-          </div>
-          {/* Prominent CTA row: contacts + connect requests */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 10 }}>
-            <a href="/messages/contacts" style={{ textAlign: "center", padding: "9px 10px", background: "linear-gradient(135deg, rgba(30,136,229,0.18), rgba(30,136,229,0.08))", color: "#1E88E5", border: "1px solid rgba(30,136,229,0.25)", borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
-              🤝 Contacts
-            </a>
-            <a href="/messages/requests" style={{ textAlign: "center", padding: "9px 10px", background: "linear-gradient(135deg, rgba(171,71,188,0.18), rgba(171,71,188,0.08))", color: "#AB47BC", border: "1px solid rgba(171,71,188,0.25)", borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
-              📨 Requests
-            </a>
           </div>
           <input
             placeholder="Search chats..."
@@ -637,7 +655,7 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
             onChange={(e) => setSearchFilter(e.target.value)}
             style={{ width: "100%", background: "#0A0E1A", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "8px 12px", color: "#E8EDF5", fontSize: 13, outline: "none" }}
           />
-          <div style={{ display: "flex", gap: 4, marginTop: 10 }}>
+          <div className="cios-chat-tabs" style={{ display: "flex", gap: 4, marginTop: 10 }}>
             <button onClick={() => setShowArchived(false)} style={{ ...tabBtn, ...(showArchived ? {} : tabBtnActive) }}>All</button>
             <button onClick={() => setShowArchived(true)} style={{ ...tabBtn, ...(showArchived ? tabBtnActive : {}) }}>Archived</button>
           </div>
@@ -2261,7 +2279,7 @@ function StatusStrip({
   const myGroup = byUser.find((g) => g.isMine);
 
   return (
-    <div style={{ padding: "10px 14px 12px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+    <div className="cios-status-strip" style={{ padding: "10px 14px 12px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: "#8892A4", letterSpacing: 0.5, marginBottom: 8, textTransform: "uppercase" }}>
         Statuses · expire in 24h
       </div>

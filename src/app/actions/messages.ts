@@ -132,6 +132,20 @@ export async function sendMessage(p: SendMessagePayload): Promise<Result<{ messa
     if (content.length > 4000) return { ok: false, error: "Message too long" };
 
     const sb = supabaseAdmin();
+
+    // Belt-and-braces: enforce contact permission on every send, not just on
+    // room creation. Covers the case where a connection was revoked but the
+    // old room row still exists with both users as members.
+    const { data: room } = await sb.from("chat_rooms").select("type").eq("id", p.roomId).maybeSingle();
+    if ((room as { type?: string } | null)?.type === "direct") {
+      const { data: others } = await sb.from("chat_room_members")
+        .select("user_id").eq("chat_room_id", p.roomId).neq("user_id", me.id);
+      const otherId = (others as Array<{ user_id: string }> | null)?.[0]?.user_id;
+      if (otherId) {
+        const allowed = await canMessage(me.id, otherId);
+        if (!allowed) return { ok: false, error: "This contact was revoked. Send a new connect request from Contacts." };
+      }
+    }
     const { data, error } = await sb
       .from("messages")
       .insert({
