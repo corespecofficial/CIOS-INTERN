@@ -113,7 +113,10 @@ function formatLastSeen(iso: string | null, online: boolean): string {
 
 export function MessagesClient({ initialRooms, directory, initialStatuses, me }: Props) {
   const [rooms, setRooms] = useState<RoomListItem[]>(initialRooms);
-  const [activeRoomId, setActiveRoomId] = useState<string | null>(initialRooms[0]?.id || null);
+  // Start on the room list — NEVER auto-open a chat. The user chooses what to view.
+  // The deep-link (?to=USER_ID) effect is the only place that sets activeRoomId
+  // on load, and only when it's explicit in the URL.
+  const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   const [messages, setMessages] = useState<DbMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [draft, setDraft] = useState("");
@@ -141,29 +144,39 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
   const { presence, onMessage, publishMessage, publishTyping } = useChatRealtime(activeRoomId, me.clerkId);
 
   // Deep-link support: /messages?to=USER_ID → open or create that DM.
-  // Used by /messages/contacts and anywhere else that links to a conversation.
+  // Fires ONCE per unique "to" value — then strips the param so subsequent
+  // renders / HMR / router-state blips can't re-trigger an unwanted switch.
   const searchParams = useSearchParams();
+  const consumedDeepLinkRef = useRef<string | null>(null);
   useEffect(() => {
     const to = searchParams?.get("to");
-    if (!to) return;
+    if (!to || consumedDeepLinkRef.current === to) return;
+    consumedDeepLinkRef.current = to;
     let cancelled = false;
     (async () => {
-      // If we already have a DM with this user in the list, just open it.
       const existing = rooms.find((r) => r.type === "direct" && r.other_user_id === to);
-      if (existing) { if (!cancelled) setActiveRoomId(existing.id); return; }
-      // Otherwise ask the server to get-or-create
-      const r = await saDirect(to);
-      if (cancelled) return;
-      if (!r.ok) {
-        toast((t) => (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-            <span>{r.error}</span>
-            <a href="/messages/contacts" onClick={() => toast.dismiss(t.id)} style={{ color: "#1E88E5", fontWeight: 700, textDecoration: "underline" }}>Fix →</a>
-          </span>
-        ), { duration: 6000, icon: "🔒" });
-        return;
+      if (existing) {
+        if (!cancelled) setActiveRoomId(existing.id);
+      } else {
+        const r = await saDirect(to);
+        if (cancelled) return;
+        if (!r.ok) {
+          toast((t) => (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+              <span>{r.error}</span>
+              <a href="/messages/contacts" onClick={() => toast.dismiss(t.id)} style={{ color: "#1E88E5", fontWeight: 700, textDecoration: "underline" }}>Fix →</a>
+            </span>
+          ), { duration: 6000, icon: "🔒" });
+        } else {
+          setActiveRoomId(r.data!.roomId);
+        }
       }
-      setActiveRoomId(r.data!.roomId);
+      // Strip the ?to= query param so reloads / back navigation don't re-open it
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("to");
+        window.history.replaceState({}, "", url.toString());
+      } catch { /* ignore */ }
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
