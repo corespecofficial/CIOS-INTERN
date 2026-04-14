@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Nunito, Space_Grotesk } from "next/font/google";
+import { cookies } from "next/headers";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "react-hot-toast";
 import { NextIntlClientProvider } from "next-intl";
@@ -75,23 +76,19 @@ export default async function RootLayout({
   const locale = (await getLocale()) as Locale;
   const messages = await getMessages();
   const dir = LOCALE_LABELS[locale]?.dir || "ltr";
+  // Read theme from cookie so we can apply it SSR and avoid FOUC.
+  // The cookie is written client-side by the app store whenever the user toggles.
+  const themeCookie = (await cookies()).get("cios-theme")?.value;
+  const theme: "light" | "dark" = themeCookie === "light" ? "light" : "dark";
   return (
     <ClerkProvider>
       <html
         lang={locale}
         dir={dir}
         className={`${nunito.variable} ${spaceGrotesk.variable} h-full`}
-        data-theme="dark"
+        data-theme={theme}
         suppressHydrationWarning
       >
-        <head>
-          {/* Pre-paint theme bootstrap — runs before React hydrates */}
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `(function(){try{var t=localStorage.getItem('cios-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`,
-            }}
-          />
-        </head>
         <body className="min-h-full antialiased font-[family-name:var(--font-nunito)]" suppressHydrationWarning>
           <NextIntlClientProvider locale={locale} messages={messages}>
             {children}

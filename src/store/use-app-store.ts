@@ -1,5 +1,17 @@
 import { create } from "zustand";
 
+function applyTheme(theme: "dark" | "light") {
+  if (typeof window === "undefined") return;
+  document.documentElement.setAttribute("data-theme", theme);
+  try { localStorage.setItem("cios-theme", theme); } catch {}
+  // Also write a cookie so the server-side root layout can render with the
+  // correct data-theme attribute on first paint (no FOUC on reload).
+  try {
+    const year = 60 * 60 * 24 * 365;
+    document.cookie = `cios-theme=${theme}; path=/; max-age=${year}; samesite=lax`;
+  } catch {}
+}
+
 export type Role =
   | "intern"
   | "team_lead"
@@ -71,18 +83,12 @@ export const useAppStore = create<AppState>((set) => ({
   toggleTheme: () =>
     set((s) => {
       const newTheme = s.theme === "dark" ? "light" : "dark";
-      if (typeof window !== "undefined") {
-        document.documentElement.setAttribute("data-theme", newTheme);
-        try { localStorage.setItem("cios-theme", newTheme); } catch {}
-      }
+      applyTheme(newTheme);
       return { theme: newTheme };
     }),
   setTheme: (theme: "dark" | "light") =>
     set(() => {
-      if (typeof window !== "undefined") {
-        document.documentElement.setAttribute("data-theme", theme);
-        try { localStorage.setItem("cios-theme", theme); } catch {}
-      }
+      applyTheme(theme);
       return { theme };
     }),
 
