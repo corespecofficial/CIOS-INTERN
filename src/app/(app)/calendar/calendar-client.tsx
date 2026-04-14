@@ -99,15 +99,34 @@ export default function CalendarClient({ events }: { events: CalEvent[] }) {
   });
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", fontFamily: "'Nunito', sans-serif" }}>
+    <div className="cios-cal-root" style={{ maxWidth: 1200, margin: "0 auto", fontFamily: "'Nunito', sans-serif" }}>
+      <style>{`
+        /* Calendar mobile optimisation — prevents outside-the-frame overflow. */
+        @media (max-width: 768px) {
+          .cios-cal-root h1 { font-size: 20px !important; }
+          .cios-cal-root .cios-cal-subhead { display: none; }
+          .cios-cal-root .cios-cal-views { flex-wrap: wrap; }
+          .cios-cal-root .cios-cal-views button { padding: 6px 10px !important; font-size: 11px !important; }
+          .cios-cal-root .cios-cal-panel { padding: 10px !important; border-radius: 12px !important; }
+          /* Force the 7-col grid to exactly viewport width, each cell ultra-compact */
+          .cios-cal-root .cios-cal-grid { gap: 2px !important; }
+          .cios-cal-root .cios-cal-cell { min-height: 64px !important; padding: 4px !important; border-radius: 6px !important; }
+          .cios-cal-root .cios-cal-cell .cios-cal-ev { font-size: 9px !important; padding: 2px 4px !important; }
+          .cios-cal-root .cios-cal-headers div { font-size: 9px !important; padding: 3px 0 !important; }
+          .cios-cal-root .cios-cal-nav h2 { font-size: 15px !important; min-width: 0 !important; }
+          /* Day + Week timelines become shorter rows */
+          .cios-cal-root .cios-cal-timeline-row { min-height: 44px !important; }
+          .cios-cal-root .cios-cal-timeline-row > div:first-child { font-size: 9px !important; padding: 3px 4px !important; }
+        }
+      `}</style>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
         <div>
           <span style={{ display: "inline-block", padding: "3px 10px", background: "rgba(30,136,229,0.15)", color: "#1E88E5", fontSize: 11, fontWeight: 700, borderRadius: 20, letterSpacing: 0.5, marginBottom: 6 }}>CALENDAR</span>
           <h1 style={{ fontSize: 26, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>🗓️ Your unified schedule</h1>
-          <p style={{ color: "#8892A4", fontSize: 13, margin: "2px 0 0 0" }}>Plans · classes · deadlines · reminders — all in one place</p>
+          <p className="cios-cal-subhead" style={{ color: "#8892A4", fontSize: 13, margin: "2px 0 0 0" }}>Plans · classes · deadlines · reminders — all in one place</p>
         </div>
-        <div style={{ display: "flex", gap: 4, background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: 4 }}>
+        <div className="cios-cal-views" style={{ display: "flex", gap: 4, background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: 4 }}>
           {VIEWS.map((v) => (
             <button key={v} onClick={() => setView(v)} style={{
               padding: "7px 14px", borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: "pointer",
@@ -120,8 +139,8 @@ export default function CalendarClient({ events }: { events: CalEvent[] }) {
       </div>
 
       {/* Nav bar — adapts label to active view */}
-      <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: 18 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+      <div className="cios-cal-panel" style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: 18 }}>
+        <div className="cios-cal-nav" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, gap: 8, flexWrap: "wrap" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button onClick={() => navPrev(view, selected, month, setSelected, setMonth)} style={btnNav}>‹</button>
             <h2 style={{ fontSize: 20, fontWeight: 800, color: "#E8EDF5", margin: 0, minWidth: 220, textAlign: "center" }}>
@@ -142,14 +161,14 @@ export default function CalendarClient({ events }: { events: CalEvent[] }) {
         {view === "Month" && <>
 
         {/* Weekday header */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: 6 }}>
+        <div className="cios-cal-headers" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: 6 }}>
           {DAY_HEADERS.map((d) => (
             <div key={d} style={{ textAlign: "center", fontSize: 10, fontWeight: 700, color: "#8892A4", letterSpacing: 1, textTransform: "uppercase", padding: "6px 0" }}>{d}</div>
           ))}
         </div>
 
         {/* Month grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5 }}>
+        <div className="cios-cal-grid" style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 5 }}>
           {days.map((d) => {
             const k = dayKey(d);
             const inMonth = d.getMonth() === month.getMonth();
@@ -157,7 +176,7 @@ export default function CalendarClient({ events }: { events: CalEvent[] }) {
             const isSelected = selected === k;
             const evs = byDay.get(k) || [];
             return (
-              <button key={k} onClick={() => setSelected(k)} onDoubleClick={() => setCreating({ date: k, title: "", startTime: "09:00", endTime: "10:00", type: "event", color: "#1E88E5" })}
+              <button key={k} className="cios-cal-cell" onClick={() => setSelected(k)} onDoubleClick={() => setCreating({ date: k, title: "", startTime: "09:00", endTime: "10:00", type: "event", color: "#1E88E5" })}
                 style={{
                   minHeight: 104, padding: 8, textAlign: "left", cursor: "pointer",
                   background: isSelected ? "rgba(30,136,229,0.12)" : isToday ? "rgba(30,136,229,0.06)" : "#0A0E1A",
@@ -179,7 +198,7 @@ export default function CalendarClient({ events }: { events: CalEvent[] }) {
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minHeight: 0 }}>
                   {evs.slice(0, 3).map((e) => (
-                    <div key={e.id} title={e.title} style={{
+                    <div key={e.id} className="cios-cal-ev" title={e.title} style={{
                       fontSize: 10, padding: "3px 6px", borderRadius: 4, color: "#fff", fontWeight: 600,
                       background: `${TYPE_META[e.type].color}CC`,
                       whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
@@ -346,7 +365,7 @@ function DayView({ selectedKey, events, onCreateAt }: { selectedKey: string; eve
         const evs = byHour.get(h) || [];
         const isNow = isToday && h === nowH;
         return (
-          <div key={h} onDoubleClick={() => onCreateAt(`${pad(h)}:00`)} style={{ display: "grid", gridTemplateColumns: "70px 1fr", borderTop: "1px solid rgba(255,255,255,0.04)", minHeight: 56, background: isNow ? "rgba(30,136,229,0.06)" : "transparent", cursor: "pointer" }}>
+          <div key={h} className="cios-cal-timeline-row" onDoubleClick={() => onCreateAt(`${pad(h)}:00`)} style={{ display: "grid", gridTemplateColumns: "70px 1fr", borderTop: "1px solid rgba(255,255,255,0.04)", minHeight: 56, background: isNow ? "rgba(30,136,229,0.06)" : "transparent", cursor: "pointer" }}>
             <div style={{ padding: "6px 10px", fontSize: 11, color: "#8892A4", borderRight: "1px solid rgba(255,255,255,0.05)", textAlign: "right" }}>{pad(h)}:00</div>
             <div style={{ padding: 6, display: "flex", flexDirection: "column", gap: 4 }}>
               {evs.map((e) => (
@@ -384,7 +403,7 @@ function WeekView({ selected, byDay, onSelectDay, onCreateAt }: { selected: stri
         })}
       </div>
       {HOURS.map((h) => (
-        <div key={h} style={{ display: "grid", gridTemplateColumns: "60px repeat(7, 1fr)", borderTop: "1px solid rgba(255,255,255,0.04)", minHeight: 50 }}>
+        <div key={h} className="cios-cal-timeline-row" style={{ display: "grid", gridTemplateColumns: "60px repeat(7, 1fr)", borderTop: "1px solid rgba(255,255,255,0.04)", minHeight: 50 }}>
           <div style={{ padding: "4px 8px", fontSize: 10, color: "#8892A4", borderRight: "1px solid rgba(255,255,255,0.05)", textAlign: "right" }}>{pad(h)}:00</div>
           {days.map((dd) => {
             const k = dd.toISOString().slice(0, 10);
