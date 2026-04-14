@@ -243,7 +243,9 @@ export default function AIHubClient() {
             max-width: none; margin: 0;
             height: auto; min-height: 0;
             gap: 0;
-            z-index: 40;
+            /* No z-index here — a new stacking context would trap the sidebar
+               below the sibling backdrop. Leave at auto so sidebar z:60 stacks
+               correctly above backdrop z:50 at the viewport root level. */
           }
           .cios-aih-sidebar {
             position: fixed;
@@ -289,7 +291,25 @@ export default function AIHubClient() {
               {pinned.map((c) => <ConvoItem key={c.id} c={c} active={activeId === c.id} onOpen={loadConversation} onRename={onRename} onDelete={onDelete} onPin={onPin} onExport={onExport} />)}
             </>
           )}
-          <div style={{ fontSize: 10, color: "#8892A4", letterSpacing: 1, textTransform: "uppercase", fontWeight: 700, padding: "10px 6px 6px 6px" }}>Recent</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 6px 6px 6px" }}>
+            <span style={{ fontSize: 10, color: "#8892A4", letterSpacing: 1, textTransform: "uppercase", fontWeight: 700 }}>Recent ({recent.length})</span>
+            {recent.length > 0 && (
+              <button
+                onClick={() => {
+                  if (!confirm(`Clear all ${recent.length} recent chat${recent.length === 1 ? "" : "s"}? Pinned chats are kept.`)) return;
+                  // Keep pinned, remove the rest
+                  for (const c of recent) ConversationStore.remove(c.id);
+                  setConvos(ConversationStore.list());
+                  if (activeId && recent.some((c) => c.id === activeId)) newChat();
+                  toast.success(`Cleared ${recent.length} chat${recent.length === 1 ? "" : "s"}`);
+                }}
+                style={{ background: "transparent", border: "none", color: "#EF5350", fontSize: 10, fontWeight: 700, cursor: "pointer", padding: "2px 6px", borderRadius: 4, letterSpacing: 0.5 }}
+                title="Clear all unpinned chats"
+              >
+                🗑 Clear all
+              </button>
+            )}
+          </div>
           {recent.length === 0 && <div style={{ fontSize: 11, color: "#5A6478", padding: 8 }}>No saved chats yet</div>}
           {recent.map((c) => <ConvoItem key={c.id} c={c} active={activeId === c.id} onOpen={loadConversation} onRename={onRename} onDelete={onDelete} onPin={onPin} onExport={onExport} />)}
         </div>
