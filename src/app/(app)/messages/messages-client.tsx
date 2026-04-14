@@ -526,7 +526,7 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
     if (!rooms.some((x) => x.id === roomId)) {
       const u = directory.find((x) => x.id === userId);
       setRooms((prev) => [
-        { id: roomId, name: userName, type: "direct", avatar_url: u?.avatar_url || null, other_user_id: userId, other_user_name: userName, other_user_avatar: u?.avatar_url || null, other_user_last_seen: null, last_message: "", last_message_at: null, unread_count: 0, is_muted: false, is_pinned: false, is_archived: false },
+        { id: roomId, name: userName, type: "direct", avatar_url: u?.avatar_url || null, other_user_id: userId, other_user_clerk_id: u?.clerk_id || null, other_user_name: userName, other_user_avatar: u?.avatar_url || null, other_user_last_seen: null, last_message: "", last_message_at: null, unread_count: 0, is_muted: false, is_pinned: false, is_archived: false },
         ...prev,
       ]);
     }
@@ -554,14 +554,14 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
     return () => clearInterval(id);
   }, []);
 
-  // WhatsApp-accurate presence. A user is ONLINE only if EITHER:
-  //   - their last_seen was refreshed within the last 60s (DB heartbeat), OR
-  //   - they're actively subscribed to this chat's Ably channel (excluding me).
-  // The old `presence.online.size > 0` check was a bug — it always included
-  // my own clientId so every offline user appeared online.
+  // WhatsApp-accurate, INSTANT presence. A user is ONLINE only if EITHER:
+  //   - Ably global presence currently contains their clerk_id (real-time,
+  //     <100ms propagation), OR
+  //   - their last_seen was refreshed within the last 60s (fallback for users
+  //     we don't have a clerk_id for yet).
   const otherOnline = activeRoom?.type === "direct"
-    ? (isOnline(activeRoom.other_user_last_seen) ||
-       Array.from(presence.online).some((cid) => cid !== me.clerkId))
+    ? ((activeRoom.other_user_clerk_id && onlineIds.has(activeRoom.other_user_clerk_id)) ||
+       isOnline(activeRoom.other_user_last_seen))
     : false;
 
   const activeTyping = Array.from(presence.typing).length > 0;
@@ -690,6 +690,7 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
               key={r.id}
               room={r}
               active={r.id === activeRoomId}
+              onlineIds={onlineIds}
               onClick={() => setActiveRoomId(r.id)}
               onPin={() => onTogglePref(r.id, "is_pinned", r.is_pinned)}
               onMute={() => onTogglePref(r.id, "is_muted", r.is_muted)}
@@ -956,14 +957,17 @@ function EmptyState() {
 }
 
 function RoomRow({
-  room, active, onClick, onPin, onMute, onArchive,
+  room, active, onlineIds, onClick, onPin, onMute, onArchive,
 }: {
-  room: RoomListItem; active: boolean; onClick: () => void;
+  room: RoomListItem; active: boolean; onlineIds: Set<string>; onClick: () => void;
   onPin: () => void; onMute: () => void; onArchive: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-  // Online = DB last_seen within 60s. Direct rooms only — groups don't show a dot.
-  const online = room.type === "direct" && isOnline(room.other_user_last_seen);
+  // Real-time online check via Ably global presence, falls back to 60s DB heartbeat.
+  const online = room.type === "direct" && (
+    (room.other_user_clerk_id ? onlineIds.has(room.other_user_clerk_id) : false) ||
+    isOnline(room.other_user_last_seen)
+  );
   return (
     <div
       onClick={onClick}
