@@ -555,10 +555,22 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
           .cios-messages-root aside.cios-room-list {
             width: 100% !important;
             display: ${activeRoomId ? "none" : "flex"} !important;
+            flex-direction: column !important;
             min-height: 0 !important;
             height: 100% !important;
+            overflow: hidden !important;
           }
-          .cios-messages-root aside.cios-room-list > div[style*="overflow"] { min-height: 0 !important; }
+          /* The room list itself MUST be the only scrolling child. */
+          .cios-messages-root aside.cios-room-list .cios-room-scroll {
+            flex: 1 1 0 !important;
+            min-height: 0 !important;
+            overflow-y: auto !important;
+          }
+          /* Shrink the me-footer so it doesn't eat the list on phones */
+          .cios-messages-root aside.cios-room-list > div:last-child {
+            padding: 8px 14px !important;
+            flex-shrink: 0 !important;
+          }
           .cios-messages-root main.cios-thread {
             display: ${activeRoomId ? "flex" : "none"} !important;
             min-height: 0 !important;
@@ -609,7 +621,7 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
           onCreate={() => setShowCreateStatus(true)}
         />
 
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        <div className="cios-room-scroll" style={{ flex: "1 1 0", overflowY: "auto", minHeight: 0, WebkitOverflowScrolling: "touch" }}>
           {visibleRooms.length === 0 && (
             <div style={{ padding: 24, textAlign: "center", color: "#8892A4", fontSize: 13 }}>
               <div style={{ fontSize: 36, marginBottom: 8 }}>💬</div>
