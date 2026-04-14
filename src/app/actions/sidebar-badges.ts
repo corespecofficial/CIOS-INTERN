@@ -1,6 +1,7 @@
 "use server";
 
 import { getCurrentDbUser, supabaseAdmin } from "@/lib/db";
+import { cached, cacheKey, TTL } from "@/lib/cache";
 
 export interface SidebarBadges {
   notifications: number;
@@ -12,11 +13,16 @@ export interface SidebarBadges {
 
 const EMPTY: SidebarBadges = { notifications: 0, messages: 0, announcements: 0, contactRequests: 0, applications: 0 };
 
-/** Cheap, parallel counter fetch for sidebar badge display. Never throws. */
+/** Cheap, parallel counter fetch for sidebar badge display. Never throws.
+ *  Cached per-user for 60s — sidebar renders on every nav, so this matters. */
 export async function getSidebarBadges(): Promise<SidebarBadges> {
+  const me = await getCurrentDbUser();
+  if (!me) return EMPTY;
+  return cached(cacheKey.sidebarBadges(me.id), TTL.short, () => loadSidebarBadges(me));
+}
+
+async function loadSidebarBadges(me: { id: string; role: string }): Promise<SidebarBadges> {
   try {
-    const me = await getCurrentDbUser();
-    if (!me) return EMPTY;
     const sb = supabaseAdmin();
 
     const safe = async <T,>(p: PromiseLike<T>, fb: T): Promise<T> => { try { return await p; } catch { return fb; } };

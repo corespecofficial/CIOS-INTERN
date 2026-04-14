@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/db";
 import { renderToBuffer, Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
+import { r2IsConfigured, r2Exists, r2Put, r2Url } from "@/lib/r2";
 import React from "react";
 
 export const runtime = "nodejs";
@@ -117,6 +118,20 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   // Auth: only the owner can download their cert
   if (!u || u.clerk_id !== userId) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
+  const safeCert = d.certificate_number.replace(/[^A-Za-z0-9-]/g, "");
+  const r2Key = `certificates/${safeCert}.pdf`;
+
+  // R2 fast-path: if we've already rendered this cert and stored it, redirect
+  // straight to R2 (no Vercel CPU, no bandwidth). Egress on R2 is free.
+  if (r2IsConfigured()) {
+    try {
+      if (await r2Exists(r2Key)) {
+        const url = await r2Url(r2Key, 600);
+        return NextResponse.redirect(url, { status: 302 });
+      }
+    } catch (e) { console.warn("[cert] R2 lookup failed, falling back to render:", e); }
+  }
+
   const issued = new Date(d.issued_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   const doc = CertificateDoc({
     studentName: u.name || "Student",
@@ -128,7 +143,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const buf = await renderToBuffer(doc as any);
 
-  const safeCert = d.certificate_number.replace(/[^A-Za-z0-9-]/g, "");
+  // Persist to R2 in the background so subsequent downloads skip rendering.
+  if (r2IsConfigured()) {
+    r2Put(r2Key, buf as Buffer, "application/pdf").catch((e) => console.warn("[cert] R2 put failed:", e));
+  }
+
   return new NextResponse(buf as unknown as BodyInit, {
     status: 200,
     headers: {

@@ -3,6 +3,7 @@
 import { getCurrentDbUser, supabaseAdmin } from "@/lib/db";
 import { sendChat, type ChatMessage } from "@/app/actions/ai-chat";
 import { getEngagementFeatures } from "@/app/actions/engagement-v2";
+import { cached, cacheKey, TTL } from "@/lib/cache";
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -46,15 +47,28 @@ export async function sendBuddyMessage(courseId: string, userMessage: string): P
     const sb = supabaseAdmin();
     const threadId = await getOrCreateThread(me.id, courseId);
 
-    // Pull course context + prior messages (last 8 turns)
-    const [{ data: course }, { data: modules }, { data: history }] = await Promise.all([
-      sb.from("courses").select("title, category, difficulty").eq("id", courseId).maybeSingle(),
-      sb.from("course_modules").select("title, summary, content_type").eq("course_id", courseId).order("order_index").limit(30),
-      sb.from("study_buddy_messages").select("role, content").eq("thread_id", threadId).order("created_at", { ascending: true }).limit(16),
-    ]);
-    const c = course as { title: string; category: string; difficulty: string } | null;
-    const modList = ((modules || []) as Array<{ title: string; summary: string; content_type: string }>)
-      .map((m) => `- ${m.title} [${m.content_type}]${m.summary ? ": " + m.summary.slice(0, 120) : ""}`).join("\n");
+    // Course summary is cached for 1h — it changes very rarely vs. the
+    // dozens of buddy messages a user might send per session.
+    const ctx = await cached(cacheKey.courseContext(courseId), TTL.long, async () => {
+      const [{ data: course }, { data: modules }] = await Promise.all([
+        sb.from("courses").select("title, category, difficulty").eq("id", courseId).maybeSingle(),
+        sb.from("course_modules").select("title, summary, content_type").eq("course_id", courseId).order("order_index").limit(30),
+      ]);
+      const c = course as { title: string; category: string; difficulty: string } | null;
+      const modList = ((modules || []) as Array<{ title: string; summary: string; content_type: string }>)
+        .map((m) => `- ${m.title} [${m.content_type}]${m.summary ? ": " + m.summary.slice(0, 120) : ""}`).join("\n");
+      return {
+        title: c?.title || "this course",
+        difficulty: c?.difficulty || "",
+        category: c?.category || "",
+        modList: modList || "(no lessons yet)",
+      };
+    });
+    // Per-thread history is fresh every call (writes happen here).
+    const { data: history } = await sb.from("study_buddy_messages")
+      .select("role, content").eq("thread_id", threadId).order("created_at", { ascending: true }).limit(16);
+    const c = { title: ctx.title, category: ctx.category, difficulty: ctx.difficulty };
+    const modList = ctx.modList;
 
     const system = `You are the AI Study Buddy for a CIOS intern taking "${c?.title || "this course"}" (${c?.difficulty || ""}, ${c?.category || ""}).
 Course lessons:

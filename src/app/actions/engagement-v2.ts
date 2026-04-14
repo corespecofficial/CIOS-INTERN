@@ -8,6 +8,7 @@ import {
   type ReactionKind,
 } from "@/lib/engagement-shared";
 import { awardXP } from "@/lib/gamification";
+import { cached, cacheDel, cacheKey, TTL } from "@/lib/cache";
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -16,13 +17,15 @@ type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
    ─────────────────────────────────────── */
 
 export async function getEngagementFeatures(): Promise<EngagementFeatures> {
-  try {
-    const { data } = await supabaseAdmin().from("system_settings")
-      .select("value").eq("key", "engagement.features").maybeSingle();
-    if (!data?.value) return DEFAULT_ENGAGEMENT_FEATURES;
-    const parsed = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
-    return { ...DEFAULT_ENGAGEMENT_FEATURES, ...parsed } as EngagementFeatures;
-  } catch { return DEFAULT_ENGAGEMENT_FEATURES; }
+  return cached(cacheKey.engagementFeatures(), TTL.medium, async () => {
+    try {
+      const { data } = await supabaseAdmin().from("system_settings")
+        .select("value").eq("key", "engagement.features").maybeSingle();
+      if (!data?.value) return DEFAULT_ENGAGEMENT_FEATURES;
+      const parsed = typeof data.value === "string" ? JSON.parse(data.value) : data.value;
+      return { ...DEFAULT_ENGAGEMENT_FEATURES, ...parsed } as EngagementFeatures;
+    } catch { return DEFAULT_ENGAGEMENT_FEATURES; }
+  });
 }
 
 export async function updateEngagementFeatures(patch: Partial<EngagementFeatures>): Promise<R<EngagementFeatures>> {
@@ -37,6 +40,7 @@ export async function updateEngagementFeatures(patch: Partial<EngagementFeatures
     const sb = supabaseAdmin();
     await sb.from("system_settings")
       .upsert({ key: "engagement.features", value: JSON.stringify(next) }, { onConflict: "key" });
+    await cacheDel(cacheKey.engagementFeatures());
     revalidatePath("/admin/engagement");
     revalidatePath("/dashboard");
     return { ok: true, data: next };
@@ -255,25 +259,27 @@ export async function getCourseLeaderboard(courseId: string, limit = 5): Promise
   try {
     const features = await getEngagementFeatures();
     if (!features.leaderboards) return { ok: true, data: [] };
-    const sb = supabaseAdmin();
-    const since = startOfWeekUTC(features.leaderboardResetDay || 1).toISOString();
-    const { data } = await sb.from("xp_events")
-      .select("user_id, amount")
-      .eq("ref_type", "course").eq("ref_id", courseId)
-      .gte("created_at", since);
-    const byUser = new Map<string, number>();
-    for (const r of (data || []) as Array<{ user_id: string; amount: number }>) {
-      byUser.set(r.user_id, (byUser.get(r.user_id) || 0) + (r.amount || 0));
-    }
-    const top = [...byUser.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit);
-    if (top.length === 0) return { ok: true, data: [] };
-    const { data: users } = await sb.from("users")
-      .select("id, name, avatar_url").in("id", top.map((t) => t[0]));
-    const uMap = new Map(((users || []) as Array<{ id: string; name: string | null; avatar_url: string | null }>).map((u) => [u.id, u]));
-    const rows: LeaderRow[] = top.map(([uid, xp], i) => ({
-      user_id: uid, name: uMap.get(uid)?.name || null, avatar_url: uMap.get(uid)?.avatar_url || null,
-      xp_week: xp, rank: i + 1,
-    }));
+    const rows = await cached<LeaderRow[]>(cacheKey.courseLeaderboard(courseId), TTL.short, async () => {
+      const sb = supabaseAdmin();
+      const since = startOfWeekUTC(features.leaderboardResetDay || 1).toISOString();
+      const { data } = await sb.from("xp_events")
+        .select("user_id, amount")
+        .eq("ref_type", "course").eq("ref_id", courseId)
+        .gte("created_at", since);
+      const byUser = new Map<string, number>();
+      for (const r of (data || []) as Array<{ user_id: string; amount: number }>) {
+        byUser.set(r.user_id, (byUser.get(r.user_id) || 0) + (r.amount || 0));
+      }
+      const top = [...byUser.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit);
+      if (top.length === 0) return [];
+      const { data: users } = await sb.from("users")
+        .select("id, name, avatar_url").in("id", top.map((t) => t[0]));
+      const uMap = new Map(((users || []) as Array<{ id: string; name: string | null; avatar_url: string | null }>).map((u) => [u.id, u]));
+      return top.map(([uid, xp], i) => ({
+        user_id: uid, name: uMap.get(uid)?.name || null, avatar_url: uMap.get(uid)?.avatar_url || null,
+        xp_week: xp, rank: i + 1,
+      }));
+    });
     return { ok: true, data: rows };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }

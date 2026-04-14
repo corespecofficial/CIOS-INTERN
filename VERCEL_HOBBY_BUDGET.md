@@ -53,6 +53,28 @@ Vercel shows usage at **Project → Usage**. Check monthly:
 - Don't add background jobs (Vercel Queues, etc.)
 - Don't import large server-side libraries into client bundles (check `next build` output sizes)
 
+## External free dependencies that extend runway
+
+- **Upstash Redis** (free 10k commands/day) — wired in `src/lib/cache.ts`.
+  Caches engagement settings, sidebar badges, course leaderboards, and
+  per-course context for the AI study buddy. Without it, a single page
+  view can fan out into 5–10 Supabase round-trips. Set
+  `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` to enable; runs
+  silently uncached without them.
+
+- **Cloudflare R2** (free 10 GB storage + UNLIMITED egress) — wired in
+  `src/lib/r2.ts`. Stores rendered certificate PDFs so repeat downloads
+  redirect straight to R2 instead of re-running `@react-pdf/renderer`
+  on a Vercel function. R2 egress is free, so cert downloads stop
+  counting against Vercel's 100 GB bandwidth budget. Set
+  `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
+  `R2_BUCKET` to enable.
+
+- **Cloudinary** (already used) — handles all image uploads + CDN.
+  Don't pipe Cloudinary URLs through Next `<Image>` (it consumes Vercel's
+  1k transformation cap); keep using `<img>` with the Cloudinary URL
+  directly.
+
 ## When to upgrade
 
 Move to Pro ($20/month) when:
