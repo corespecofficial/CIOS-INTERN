@@ -8,6 +8,7 @@ import { getLocale, getMessages } from "next-intl/server";
 import { LOCALE_LABELS, type Locale } from "@/i18n/config";
 import { PWAProvider } from "@/components/pwa-provider";
 import { SentryUser } from "@/components/sentry-user";
+import { XpBurstOverlay } from "@/components/engagement/xp-burst-overlay";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -95,6 +96,7 @@ export default async function RootLayout({
           </NextIntlClientProvider>
           <PWAProvider />
           <SentryUser />
+          <XpBurstOverlay />
           <Toaster
             position="top-right"
             toastOptions={{

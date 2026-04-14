@@ -9,6 +9,9 @@ import { enrollInCourse, markModuleComplete, issueCertificate, submitQuizAttempt
 import { addDiscussion, deleteDiscussion, upvoteDiscussion, pinDiscussion } from "@/app/actions/classroom-extras";
 import { uploadToCloudinary, humanFileSize } from "@/lib/cloudinary-upload";
 import { parseVideoEmbed, embedIframeProps } from "@/lib/video-embed";
+import { LessonReactions } from "@/components/engagement/lesson-reactions";
+import { CourseLeaderboard } from "@/components/engagement/course-leaderboard";
+import { reportQuestProgress } from "@/app/actions/engagement-v2";
 
 export function PlayerClient({
   course, modules, enrollment, iAmInstructor, meId, meName, discussions: initialDiscussions, materials,
@@ -49,6 +52,8 @@ export function PlayerClient({
     if (!r.ok) { toast.error(r.error); return; }
     setCompletedIds((prev) => new Set([...prev, m.id]));
     setProgress(r.data!.progress);
+    reportQuestProgress("lesson_completed").catch(() => {});
+    window.dispatchEvent(new CustomEvent("xp-burst", { detail: { amount: 20, label: m.title } }));
     if (r.data!.completed) {
       toast.success("🎉 Course completed! You can now claim your certificate.");
     } else {
@@ -103,9 +108,10 @@ export function PlayerClient({
                 <span>Your progress</span>
                 <span>{completedIds.size} / {modules.length} · {progress}%</span>
               </div>
-              <div style={{ height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 4, overflow: "hidden", marginBottom: 10 }}>
+              <div style={{ height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 4, overflow: "hidden", marginBottom: 14 }}>
                 <div style={{ width: `${progress}%`, height: "100%", background: "linear-gradient(90deg, #1E88E5, #66BB6A)", transition: "width 0.5s" }} />
               </div>
+              <CourseLeaderboard courseId={course.id} />
             </>
           )}
 
@@ -168,9 +174,10 @@ export function PlayerClient({
               })()}
 
               <h2 style={{ fontSize: 18, fontWeight: 700, color: "#E8EDF5", margin: "0 0 6px 0" }}>{active.title}</h2>
-              <div style={{ fontSize: 11, color: "#8892A4", marginBottom: 14, textTransform: "capitalize" }}>
+              <div style={{ fontSize: 11, color: "#8892A4", marginBottom: 6, textTransform: "capitalize" }}>
                 {active.content_type} · {active.duration_minutes}m
               </div>
+              <LessonReactions moduleId={active.id} />
               {active.summary && <p style={{ fontSize: 14, color: "#8892A4", marginBottom: 14 }}>{active.summary}</p>}
               {active.description && (
                 <div style={{ fontSize: 14, color: "#E8EDF5", lineHeight: 1.7, whiteSpace: "pre-wrap", marginBottom: 14 }}>

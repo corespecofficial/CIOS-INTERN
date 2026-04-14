@@ -496,6 +496,16 @@ export async function markModuleComplete(courseId: string, moduleId: string): Pr
     await awardXP(me.id, "module_completed", { refType: "module", refId: moduleId });
     if (isFullyComplete) await awardXP(me.id, "course_completed", { refType: "course", refId: courseId });
 
+    // Mini-badges: first-lesson on very first completion, course-complete on finish.
+    try {
+      if (completed.size === 1) {
+        await sb.from("user_mini_badges").insert({ user_id: me.id, badge_id: "first-lesson", ref_course: courseId });
+      }
+      if (isFullyComplete) {
+        await sb.from("user_mini_badges").insert({ user_id: me.id, badge_id: "course-complete", ref_course: courseId });
+      }
+    } catch { /* unique collision fine */ }
+
     revalidatePath(`/courses/${courseId}`);
     return { ok: true, data: { progress, completed: isFullyComplete } };
   } catch (e) {

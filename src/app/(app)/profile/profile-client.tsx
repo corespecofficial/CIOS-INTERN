@@ -6,6 +6,7 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import type { PublicProfile } from "@/lib/db";
 import { updateMyProfile, aiSuggestBio } from "@/app/actions/profile";
+import { MiniBadgesGrid } from "@/components/engagement/mini-badges-grid";
 import { uploadToCloudinary, compressImage } from "@/lib/cloudinary-upload";
 
 const ROLE_COLORS: Record<string, string> = {
@@ -317,6 +318,10 @@ function EditModal({ profile, onClose, onSaved }: { profile: PublicProfile; onCl
             <button onClick={onClose} style={btnGhost}>Cancel</button>
             <button onClick={save} disabled={busy} style={btnPrimary}>{busy ? "Saving…" : "Save changes"}</button>
           </div>
+        </div>
+
+        <div style={{ marginTop: 18 }}>
+          <MiniBadgesGrid userId={p.id} />
         </div>
       </div>
     </div>

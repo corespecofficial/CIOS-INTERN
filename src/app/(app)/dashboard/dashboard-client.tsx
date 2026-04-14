@@ -4,6 +4,9 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAppStore } from "@/store/use-app-store";
 import { PromotionProgressCard } from "@/components/promotion-progress-card";
+import { DailyQuestCard } from "@/components/engagement/daily-quest-card";
+import { StreakFreezeCard } from "@/components/engagement/streak-freeze-card";
+import { RankProgressPill } from "@/components/engagement/rank-progress-pill";
 import { useCurrentUser } from "@/lib/use-current-user";
 import { AdminDashboard } from "./admin-dashboard";
 import {
@@ -133,6 +136,15 @@ function InternDashboard({ stats }: { stats: InternStats }) {
             You are on a <span style={{ color: "#FF7043", fontWeight: 700 }}>{stats.streak}</span>-day streak! Keep pushing forward.
           </div>
         </div>
+      </div>
+
+      {/* Rank progress + engagement row */}
+      <div style={{ marginBottom: 20 }}>
+        <RankProgressPill xp={stats.xp} />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, marginBottom: 20 }}>
+        <DailyQuestCard />
+        <StreakFreezeCard />
       </div>
 
       {/* Promotion readiness (real-time score from performance / streak / tasks) */}
