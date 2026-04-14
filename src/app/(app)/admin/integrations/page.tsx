@@ -3,7 +3,8 @@
 import { useEffect, useState, useTransition } from "react";
 import toast from "react-hot-toast";
 import { createWebhook, listMyWebhooks, deleteWebhook, toggleWebhook, type WebhookEndpoint, type WebhookEvent } from "@/app/actions/webhooks";
-import { createApiToken, listMyApiTokens, revokeApiToken, SCOPES, type ApiToken } from "@/app/actions/api-tokens";
+import { createApiToken, listMyApiTokens, revokeApiToken, type ApiToken } from "@/app/actions/api-tokens";
+import { API_SCOPES as SCOPES } from "@/lib/api-token-scopes";
 
 const EVENTS: WebhookEvent[] = ["announcement.published", "hire.confirmed", "candidate.applied", "user.created", "task.completed", "achievement.earned"];
 
@@ -76,7 +77,7 @@ function WebhooksSection() {
 function TokensSection() {
   const [tokens, setTokens] = useState<ApiToken[]>([]);
   const [name, setName] = useState("");
-  const [scopes, setScopes] = useState<Set<string>>(new Set(SCOPES));
+  const [scopes, setScopes] = useState<Set<string>>(() => new Set<string>([...SCOPES]));
   const [revealed, setRevealed] = useState<string | null>(null);
   const refresh = async () => { const r = await listMyApiTokens(); if (r.ok) setTokens(r.data!); };
   useEffect(() => { refresh(); }, []);

@@ -85,10 +85,8 @@ export default async function RootLayout({
         data-theme="dark"
         suppressHydrationWarning
       >
-        <head>
-          {/* Pre-paint theme bootstrap — prevents flash of wrong theme on light-mode reload */}
-          <Script id="cios-theme-init" strategy="beforeInteractive">{`(function(){try{var t=localStorage.getItem('cios-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`}</Script>
-        </head>
+        {/* Pre-paint theme bootstrap — hoisted by next/script to <head> */}
+        <Script id="cios-theme-init" strategy="beforeInteractive">{`(function(){try{var t=localStorage.getItem('cios-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`}</Script>
         <body className="min-h-full antialiased font-[family-name:var(--font-nunito)]" suppressHydrationWarning>
           <NextIntlClientProvider locale={locale} messages={messages}>
             {children}

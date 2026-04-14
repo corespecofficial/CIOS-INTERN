@@ -17,8 +17,6 @@ export interface ApiToken {
   created_at: string;
 }
 
-export const SCOPES = ["read:users", "read:opportunities", "write:opportunities", "read:talent", "send:messages"] as const;
-
 async function requireAdminOrRecruiter() {
   const me = await getCurrentDbUser();
   if (!me || !["admin", "super_admin", "recruiter"].includes(me.role)) throw new Error("Forbidden");

@@ -11,6 +11,7 @@ import { AICopilot } from "@/components/ai-copilot/ai-copilot";
 import { AnnouncementTakeover } from "@/components/announcement-takeover";
 import { CommandPalette } from "@/components/command-palette";
 import { DailyMotivationPopup } from "@/components/daily-motivation-popup";
+import { ActivityTracker } from "@/components/activity-tracker";
 import { useAppStore } from "@/store/use-app-store";
 import { claimDailyLogin } from "@/app/actions/daily-login";
 
@@ -89,6 +90,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Once-per-day morning motivational popup */}
       <DailyMotivationPopup />
+
+      {/* Fires "page_view" + "session_start" events for behavior analytics */}
+      <ActivityTracker />
 
       <style>{`
         @media (max-width: 768px) {
