@@ -31,7 +31,26 @@ export default function AIHubClient() {
   const [temporary, setTemporary] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [memory, setMemory] = useState("");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Default sidebar closed on mobile — open on desktop
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    const apply = () => setSidebarOpen(!mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  // Auto-grow the textarea
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 200) + "px";
+  }, [input]);
 
   // Initial hydration from localStorage
   useEffect(() => {
@@ -54,6 +73,10 @@ export default function AIHubClient() {
     setMeta(null);
     setTemporary(false);
     ConversationStore.setLast(c.id);
+    // Auto-close sidebar on mobile so the chat takes focus
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches) {
+      setSidebarOpen(false);
+    }
   };
 
   const newChat = () => {
@@ -160,9 +183,55 @@ export default function AIHubClient() {
   const recent = useMemo(() => convos.filter((c) => !c.pinned), [convos]);
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto", fontFamily: "'Nunito', sans-serif", display: "grid", gridTemplateColumns: "260px 1fr", gap: 14, height: "calc(100vh - 140px)", minHeight: 560 }}>
+    <div className="cios-aih-root" style={{ maxWidth: 1200, margin: "0 auto", fontFamily: "'Nunito', sans-serif", height: "calc(100dvh - 140px)", minHeight: 560, position: "relative" }}>
+      <style>{`
+        .cios-aih-root { display: grid; grid-template-columns: ${sidebarOpen ? "260px 1fr" : "0 1fr"}; gap: ${sidebarOpen ? "14px" : "0"}; transition: grid-template-columns .25s ease, gap .25s ease; }
+        .cios-aih-sidebar { transition: transform .25s ease, opacity .2s ease; }
+        .cios-aih-toggle { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; background: transparent; border: 1px solid rgba(255,255,255,0.08); color: #E8EDF5; cursor: pointer; padding: 0; flex-shrink: 0; }
+        .cios-aih-toggle:hover { background: rgba(255,255,255,0.04); }
+
+        @media (max-width: 768px) {
+          .cios-aih-root { grid-template-columns: 1fr !important; gap: 0 !important; height: calc(100dvh - 56px - 64px) !important; margin: -12px -12px -80px -12px !important; position: fixed !important; top: 56px !important; left: 0 !important; right: 0 !important; bottom: 64px !important; max-width: none !important; z-index: 40; }
+          .cios-aih-sidebar {
+            position: fixed !important;
+            top: 56px !important; bottom: 64px !important; left: 0 !important;
+            width: min(320px, 88vw) !important;
+            z-index: 60 !important;
+            border-radius: 0 !important;
+            transform: ${sidebarOpen ? "translateX(0)" : "translateX(-110%)"} !important;
+          }
+          .cios-aih-backdrop { display: ${sidebarOpen ? "block" : "none"}; position: fixed; top: 56px; bottom: 64px; left: 0; right: 0; background: rgba(0,0,0,0.45); z-index: 50; }
+          .cios-aih-chat { border-radius: 0 !important; border: none !important; }
+        }
+
+        .cios-aih-input-wrap { position: relative; padding: 12px; border-top: 1px solid rgba(255,255,255,0.05); background: #111827; }
+        .cios-aih-input {
+          width: 100%; box-sizing: border-box; resize: none;
+          padding: 12px 52px 12px 16px;
+          background: #0A0E1A; color: #E8EDF5;
+          border: 1px solid rgba(255,255,255,0.12); border-radius: 14px;
+          font-size: 14px; line-height: 1.45; font-family: inherit; outline: none;
+          min-height: 46px; max-height: 200px;
+          transition: border-color .15s;
+        }
+        .cios-aih-input:focus { border-color: rgba(171,71,188,0.4); }
+        .cios-aih-send {
+          position: absolute; right: 22px; bottom: 22px;
+          width: 34px; height: 34px; border-radius: 10px;
+          background: linear-gradient(135deg, #AB47BC, #8E24AA);
+          color: #fff; border: none; cursor: pointer;
+          display: inline-flex; align-items: center; justify-content: center;
+          transition: opacity .15s, transform .1s;
+        }
+        .cios-aih-send:disabled { opacity: 0.35; cursor: not-allowed; }
+        .cios-aih-send:hover:not(:disabled) { transform: scale(1.06); }
+      `}</style>
+
+      {/* Mobile backdrop */}
+      <div className="cios-aih-backdrop" onClick={() => setSidebarOpen(false)} />
+
       {/* Sidebar */}
-      <aside style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <aside className="cios-aih-sidebar" style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, display: "flex", flexDirection: "column", overflow: "hidden", opacity: sidebarOpen ? 1 : 0, pointerEvents: sidebarOpen ? "auto" : "none" }}>
         <div style={{ padding: 10, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
           <button onClick={newChat} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: "linear-gradient(135deg, #AB47BC, #8E24AA)", color: "#fff", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ New chat</button>
         </div>
@@ -206,17 +275,27 @@ export default function AIHubClient() {
       </aside>
 
       {/* Chat panel */}
-      <section style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <div style={{ padding: "12px 18px", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: "#E8EDF5" }}>{tool.label}{temporary && <span style={{ marginLeft: 10, fontSize: 10, padding: "2px 8px", borderRadius: 99, background: "rgba(255,193,7,0.15)", color: "#FFC107", fontWeight: 700 }}>TEMPORARY</span>}</div>
-            <div style={{ fontSize: 11, color: "#8892A4" }}>
-              {meta ? `${meta.provider} · ${meta.model} · ${meta.latencyMs}ms` : "Keys configured by your Super Admin · conversations stored locally in your browser"}
+      <section className="cios-aih-chat" style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+        <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
+            <button className="cios-aih-toggle" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}>
+              {sidebarOpen
+                ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+                : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h16" /></svg>}
+            </button>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "#E8EDF5", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {tool.label}
+                {temporary && <span style={{ marginLeft: 10, fontSize: 9, padding: "2px 7px", borderRadius: 99, background: "rgba(255,193,7,0.15)", color: "#FFC107", fontWeight: 700 }}>TEMPORARY</span>}
+              </div>
+              <div style={{ fontSize: 10, color: "#8892A4", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {meta ? `${meta.provider} · ${meta.model} · ${meta.latencyMs}ms` : "Chats stored locally in your browser"}
+              </div>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            {activeId && <button onClick={() => { const c = convos.find((x) => x.id === activeId); if (c) onExport(c); }} style={btnChip}>⬇ Export .md</button>}
-            <span style={{ fontSize: 10, color: "#66BB6A", padding: "3px 10px", borderRadius: 99, background: "rgba(102,187,106,0.12)", border: "1px solid rgba(102,187,106,0.3)", fontWeight: 700 }}>● LIVE</span>
+          <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+            {activeId && <button onClick={() => { const c = convos.find((x) => x.id === activeId); if (c) onExport(c); }} style={btnChip}>⬇</button>}
+            <span style={{ fontSize: 10, color: "#66BB6A", padding: "3px 8px", borderRadius: 99, background: "rgba(102,187,106,0.12)", border: "1px solid rgba(102,187,106,0.3)", fontWeight: 700 }}>● LIVE</span>
           </div>
         </div>
 
@@ -250,23 +329,21 @@ export default function AIHubClient() {
           <div ref={bottomRef} />
         </div>
 
-        <div style={{ padding: 12, borderTop: "1px solid rgba(255,255,255,0.05)", display: "flex", gap: 8 }}>
+        <div className="cios-aih-input-wrap">
           <textarea
+            ref={inputRef}
+            className="cios-aih-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-            placeholder={temporary ? "Temporary chat — Enter to send" : "Ask anything — Enter to send, Shift+Enter for newline"}
-            rows={2}
-            style={{
-              flex: 1, resize: "none", padding: "10px 14px", background: "#0A0E1A", color: "#E8EDF5",
-              border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, fontSize: 14, fontFamily: "inherit", outline: "none",
-            }}
+            placeholder={temporary ? "Temporary chat — Enter to send" : "Ask anything…  (Enter to send, Shift+Enter for newline)"}
+            rows={1}
           />
-          <button onClick={send} disabled={pending || !input.trim()} style={{
-            padding: "0 22px", background: pending ? "#5A6478" : "linear-gradient(135deg, #AB47BC, #8E24AA)",
-            color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 700,
-            cursor: pending ? "wait" : "pointer",
-          }}>{pending ? "…" : "Send ↑"}</button>
+          <button className="cios-aih-send" onClick={send} disabled={pending || !input.trim()} aria-label="Send message">
+            {pending
+              ? <span style={{ fontSize: 14 }}>…</span>
+              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7" /></svg>}
+          </button>
         </div>
       </section>
 
