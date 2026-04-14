@@ -83,13 +83,27 @@ export default function AIHubClient() {
     setActiveId(null);
     setMessages([]);
     setMeta(null);
+    // Auto-close sidebar on mobile for a clean chat view
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches) {
+      setSidebarOpen(false);
+    }
   };
 
   const switchTool = (t: Tool) => {
-    if (tool.id === t.id) return;
+    if (tool.id === t.id) {
+      // Same tool tapped — just close the drawer on mobile
+      if (typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches) {
+        setSidebarOpen(false);
+      }
+      return;
+    }
     if (messages.length > 0 && !confirm("Start a new conversation with this tool?")) return;
     setTool(t);
     newChat();
+    // Auto-close sidebar on mobile so the chat takes focus
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 768px)").matches) {
+      setSidebarOpen(false);
+    }
   };
 
   const composeSystem = (): string => {
