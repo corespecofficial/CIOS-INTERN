@@ -45,7 +45,7 @@ export async function getMyReferralCode(): Promise<R<{ code: string; url: string
       await sb.from("users").update({ referral_code: code }).eq("id", me.id);
     }
     const { count } = await sb.from("users").select("*", { count: "exact", head: true }).eq("referred_by", me.id);
-    const base = process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.netlify.app";
+    const base = process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.vercel.app";
     const url = `${base}/sign-up?ref=${code}`;
     return { ok: true, data: { code, url, count: count || 0 } };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }

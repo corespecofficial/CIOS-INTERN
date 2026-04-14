@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const SITE = process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.netlify.app";
+const SITE = process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.vercel.app";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();

@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
  * Runs the promotion-readiness engine across all eligible users and
  * creates pending recommendations for anyone scoring >= 75.
  *
- * Schedule via netlify.toml / vercel.json → Mondays-Sundays 02:00 UTC.
+ * Schedule via vercel.json → daily at 02:00 UTC.
  * Protected by x-cron-secret header.
  */
 export async function GET(req: Request) {

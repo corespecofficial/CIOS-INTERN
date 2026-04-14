@@ -347,7 +347,7 @@ export async function gradeSubmission(submissionId: string, grade: number, feedb
                <p>Your submission for <strong>${mod?.title || "an assignment"}</strong>${course?.title ? ` in <strong>${course.title}</strong>` : ""} has been graded.</p>
                <p style="font-size:32px;font-weight:800;color:#66BB6A;margin:18px 0;">${clamped} / ${maxScore}</p>
                ${feedback ? `<p style="background:#0A0E1A;padding:14px;border-radius:10px;border-left:3px solid #1E88E5;"><strong>Instructor feedback:</strong><br>${feedback.replace(/\n/g, "<br>")}</p>` : ""}
-               <p style="margin-top:20px;"><a href="${process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.netlify.app"}/courses/${course?.id || ""}" style="background:linear-gradient(135deg,#1E88E5,#1565C0);color:#fff;text-decoration:none;padding:10px 20px;border-radius:10px;font-weight:700;">View feedback →</a></p>`,
+               <p style="margin-top:20px;"><a href="${process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.vercel.app"}/courses/${course?.id || ""}" style="background:linear-gradient(135deg,#1E88E5,#1565C0);color:#fff;text-decoration:none;padding:10px 20px;border-radius:10px;font-weight:700;">View feedback →</a></p>`,
               { preheader: `Graded: ${clamped}/${maxScore}` }
             ),
           }).catch((e) => console.warn("[email] grade:", e));
@@ -526,7 +526,7 @@ export async function issueCertificate(courseId: string): Promise<Result<{ certi
     try {
       const { data: cData } = await sb.from("courses").select("title").eq("id", courseId).single();
       if (me.email) {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.netlify.app";
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.vercel.app";
         await sendEmail({
           to: me.email,
           subject: `🏆 You've earned a CIOS certificate!`,

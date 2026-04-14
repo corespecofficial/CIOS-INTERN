@@ -43,7 +43,7 @@ export async function GET(req: Request) {
         ${taskList.length > 0 ? `<h3 style="color:#E8EDF5;font-size:14px;margin:14px 0 6px;">✅ Tasks completed</h3><ul style="color:#B0BEC5;padding-left:20px;line-height:1.7;">${taskList.map((t) => `<li>${t.title}</li>`).join("")}</ul>` : ""}
         ${notifList.length > 0 ? `<h3 style="color:#E8EDF5;font-size:14px;margin:14px 0 6px;">🔔 You missed these</h3><ul style="color:#B0BEC5;padding-left:20px;line-height:1.7;">${notifList.map((n) => `<li>${n.title}</li>`).join("")}</ul>` : ""}
         <p style="color:#B0BEC5;margin:18px 0 0;">Streak: <strong style="color:#FF7043;">${u.streak || 0} days</strong> · Total XP: <strong style="color:#FFC107;">${(u.xp || 0).toLocaleString()}</strong></p>
-        <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.netlify.app"}/dashboard" style="display:inline-block;margin-top:14px;padding:12px 28px;background:linear-gradient(135deg,#1E88E5,#1565C0);color:#fff;border-radius:10px;font-weight:700;text-decoration:none;">Open dashboard →</a>
+        <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.vercel.app"}/dashboard" style="display:inline-block;margin-top:14px;padding:12px 28px;background:linear-gradient(135deg,#1E88E5,#1565C0);color:#fff;border-radius:10px;font-weight:700;text-decoration:none;">Open dashboard →</a>
       `, { preheader: `Yesterday: ${taskList.length} tasks done, ${notifList.length} updates` });
 
       const r = await sendEmail({ to: u.email, subject: "📅 Your CIOS daily digest", html });
