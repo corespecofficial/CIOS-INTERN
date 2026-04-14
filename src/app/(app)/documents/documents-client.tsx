@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import toast from "react-hot-toast";
 import { saveDocument, renameDocument, deleteDocument } from "@/app/actions/documents";
+import { useCurrentUser } from "@/lib/use-current-user";
 
 interface Doc {
   id: string; name: string; kind: string; mime: string | null; size_bytes: number;
@@ -32,7 +33,9 @@ export function DocumentsClient({ initial }: { initial: Array<Record<string, unk
   const [search, setSearch] = useState("");
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [previewing, setPreviewing] = useState<Doc | null>(null);
   const [pending, start] = useTransition();
+  const me = useCurrentUser();
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
@@ -87,16 +90,34 @@ export function DocumentsClient({ initial }: { initial: Array<Record<string, unk
   const onGenerateCV = () => start(async () => {
     const t = toast.loading("Building your CV PDF…");
     try {
-      const r = await fetch("/api/cv");
-      if (!r.ok) { toast.error("Failed to generate CV", { id: t }); return; }
-      const blob = await r.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `CV-${new Date().toISOString().slice(0, 10)}.pdf`;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1500);
-      toast.success("CV downloaded", { id: t });
+      const date = new Date().toISOString().slice(0, 10);
+      const cvName = `${(me.firstName || "My")}-CV-${date}.pdf`;
+      // Save a pointer row in Documents. The actual PDF is streamed on demand
+      // from /api/cv whenever anyone hits the preview/download link.
+      const res = await saveDocument({
+        name: cvName,
+        kind: "cv",
+        mime: "application/pdf",
+        sizeBytes: 0,
+        url: "/api/cv",
+        description: "Auto-generated from your profile",
+        isGenerated: true,
+        generatedBy: "cv_generator",
+      });
+      if (!res.ok) { toast.error(res.error, { id: t }); return; }
+      const newDoc: Doc = {
+        id: res.data!.id, name: cvName, kind: "cv",
+        mime: "application/pdf", size_bytes: 0,
+        url: "/api/cv",
+        thumbnail_url: null, tags: [], folder: null,
+        description: "Auto-generated from your profile",
+        is_generated: true, generated_by: "cv_generator",
+        created_at: new Date().toISOString(),
+      };
+      setDocs((prev) => [newDoc, ...prev]);
+      toast.success("CV ready — tap to preview", { id: t });
+      // Open the preview right away so the user sees the result
+      setPreviewing(newDoc);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed", { id: t });
     }
@@ -198,7 +219,8 @@ export function DocumentsClient({ initial }: { initial: Array<Record<string, unk
                   <span>{bytes(d.size_bytes)}</span>
                 </div>
                 <div style={{ display: "flex", gap: 4 }}>
-                  <a href={d.url} target="_blank" rel="noopener noreferrer" download={d.name} style={{ flex: 1, textAlign: "center", padding: "6px 10px", background: `${meta.color}22`, color: meta.color, borderRadius: 6, fontSize: 11, fontWeight: 700, textDecoration: "none" }}>↓ Download</a>
+                  <button onClick={() => setPreviewing(d)} style={{ flex: 1, textAlign: "center", padding: "6px 10px", background: `${meta.color}22`, color: meta.color, borderRadius: 6, fontSize: 11, fontWeight: 700, border: "none", cursor: "pointer" }}>👁 Preview</button>
+                  <a href={d.url === "/api/cv" ? "/api/cv?download=1" : d.url} target="_blank" rel="noopener noreferrer" download={d.name} style={{ padding: "6px 10px", background: "transparent", color: "#E8EDF5", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 6, fontSize: 11, fontWeight: 700, textDecoration: "none" }}>↓</a>
                   <button onClick={() => onDelete(d.id)} disabled={pending} style={{ padding: "6px 10px", background: "transparent", color: "#EF5350", border: "1px solid rgba(239,83,80,0.25)", borderRadius: 6, fontSize: 11, cursor: "pointer" }}>✕</button>
                 </div>
               </div>
@@ -208,6 +230,56 @@ export function DocumentsClient({ initial }: { initial: Array<Record<string, unk
       </div>
 
       {uploading && <div style={{ position: "fixed", bottom: 20, right: 20, background: "#111827", border: "1px solid rgba(30,136,229,0.3)", borderRadius: 10, padding: "10px 16px", color: "#1E88E5", fontSize: 12, fontWeight: 700, zIndex: 100 }}>⬆ Uploading…</div>}
+
+      {previewing && <PreviewModal doc={previewing} onClose={() => setPreviewing(null)} />}
+    </div>
+  );
+}
+
+function PreviewModal({ doc, onClose }: { doc: Doc; onClose: () => void }) {
+  const isImage = (doc.mime || "").startsWith("image/");
+  const isPdf = (doc.mime || "").includes("pdf") || doc.url === "/api/cv";
+  const downloadUrl = doc.url === "/api/cv" ? "/api/cv?download=1" : doc.url;
+
+  return (
+    <div onClick={(e) => e.target === e.currentTarget && onClose()} style={{
+      position: "fixed", inset: 0, zIndex: 300,
+      background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: 16,
+    }}>
+      <div style={{
+        width: "min(960px, 100%)", maxHeight: "92dvh",
+        background: "#111827", border: "1px solid rgba(255,255,255,0.1)",
+        borderRadius: 14, overflow: "hidden",
+        display: "flex", flexDirection: "column",
+      }}>
+        {/* Header */}
+        <div style={{ padding: "12px 18px", borderBottom: "1px solid rgba(255,255,255,0.07)", display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#E8EDF5", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{doc.name}</div>
+            <div style={{ fontSize: 11, color: "#8892A4", marginTop: 2 }}>{doc.mime || "Document"}</div>
+          </div>
+          <a href={downloadUrl} download={doc.name} style={{ padding: "8px 16px", background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" }}>↓ Download</a>
+          <button onClick={onClose} aria-label="Close" style={{ width: 36, height: 36, borderRadius: 8, background: "transparent", color: "#8892A4", border: "1px solid rgba(255,255,255,0.08)", cursor: "pointer", fontSize: 16, flexShrink: 0 }}>✕</button>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, background: "#0A0E1A", minHeight: 300, overflow: "hidden" }}>
+          {isPdf ? (
+            <iframe src={doc.url} title={doc.name} style={{ width: "100%", height: "min(80dvh, 720px)", border: "none" }} />
+          ) : isImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={doc.url} alt={doc.name} style={{ width: "100%", height: "auto", maxHeight: "80dvh", objectFit: "contain", display: "block" }} />
+          ) : (
+            <div style={{ padding: 40, textAlign: "center", color: "#8892A4" }}>
+              <div style={{ fontSize: 48, marginBottom: 10 }}>📎</div>
+              <div style={{ fontSize: 13, marginBottom: 14 }}>Preview not available for this file type.</div>
+              <a href={downloadUrl} download={doc.name} style={{ padding: "10px 18px", background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff", borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: "none" }}>Download to view</a>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

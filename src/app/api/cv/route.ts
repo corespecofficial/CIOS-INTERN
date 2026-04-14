@@ -7,7 +7,7 @@ import React from "react";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
   const me = await getCurrentDbUser();
   if (!me) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -42,11 +42,12 @@ export async function GET() {
   const buffer = await renderToBuffer(React.createElement(CVDocument, { data }));
 
   const filename = `${data.name.replace(/[^a-z0-9]+/gi, "-")}-CV.pdf`;
+  const isDownload = new URL(request.url).searchParams.get("download") === "1";
   return new NextResponse(buffer, {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Disposition": `${isDownload ? "attachment" : "inline"}; filename="${filename}"`,
       "Cache-Control": "no-store",
     },
   });
