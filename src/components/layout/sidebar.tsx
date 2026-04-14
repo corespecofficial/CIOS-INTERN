@@ -66,6 +66,7 @@ const NAV_ITEMS: NavItem[] = [
   // ADMIN
   { emoji: "\u{1F6E1}", label: "Admin Panel", href: "/admin", section: "ADMIN", dataRole: ["admin", "super_admin"] },
   { emoji: "\u{1F3AF}", label: "Engagement controls", href: "/admin/engagement", section: "ADMIN", dataRole: ["admin", "super_admin", "moderator"] },
+  { emoji: "\u{1F4D1}", label: "Note templates", href: "/admin/note-templates", section: "ADMIN", dataRole: ["admin", "super_admin"] },
   // SUPER ADMIN
   { emoji: "\u{1F451}", label: "Super Admin", href: "/super-admin", section: "ADMIN", dataRole: ["super_admin"] },
   { emoji: "\u{1F465}", label: "Manage Users", href: "/super-admin/users", section: "ADMIN", dataRole: ["super_admin"] },
