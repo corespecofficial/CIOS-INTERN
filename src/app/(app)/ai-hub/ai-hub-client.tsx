@@ -183,31 +183,29 @@ export default function AIHubClient() {
   const recent = useMemo(() => convos.filter((c) => !c.pinned), [convos]);
 
   return (
-    <div className="cios-aih-root" style={{ maxWidth: 1200, margin: "0 auto", fontFamily: "'Nunito', sans-serif", height: "calc(100dvh - 140px)", minHeight: 560, position: "relative" }}>
+    <>
       <style>{`
-        .cios-aih-root { display: grid; grid-template-columns: ${sidebarOpen ? "260px 1fr" : "0 1fr"}; gap: ${sidebarOpen ? "14px" : "0"}; transition: grid-template-columns .25s ease, gap .25s ease; }
-        .cios-aih-sidebar { transition: transform .25s ease, opacity .2s ease; }
-        .cios-aih-toggle { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 8px; background: transparent; border: 1px solid rgba(255,255,255,0.08); color: #E8EDF5; cursor: pointer; padding: 0; flex-shrink: 0; }
-        .cios-aih-toggle:hover { background: rgba(255,255,255,0.04); }
-
-        @media (max-width: 768px) {
-          .cios-aih-root { grid-template-columns: 1fr !important; gap: 0 !important; height: calc(100dvh - 56px - 64px) !important; margin: -12px -12px -80px -12px !important; position: fixed !important; top: 56px !important; left: 0 !important; right: 0 !important; bottom: 64px !important; max-width: none !important; z-index: 40; }
-          .cios-aih-sidebar {
-            position: fixed !important;
-            top: 56px !important; bottom: 64px !important; left: 0 !important;
-            width: min(320px, 88vw) !important;
-            z-index: 60 !important;
-            border-radius: 0 !important;
-            transform: ${sidebarOpen ? "translateX(0)" : "translateX(-110%)"} !important;
-          }
-          .cios-aih-backdrop { display: ${sidebarOpen ? "block" : "none"}; position: fixed; top: 56px; bottom: 64px; left: 0; right: 0; background: rgba(0,0,0,0.45); z-index: 50; }
-          .cios-aih-chat { border-radius: 0 !important; border: none !important; }
+        .cios-aih-root {
+          max-width: 1200px; margin: 0 auto; font-family: 'Nunito', sans-serif;
+          height: calc(100dvh - 140px); min-height: 560px;
+          display: flex; gap: 14px; position: relative;
         }
-
-        /* Guarantee flex children can actually shrink/scroll and the composer never hides */
-        .cios-aih-chat { min-height: 0 !important; }
+        .cios-aih-sidebar {
+          width: 260px; flex-shrink: 0;
+          background: #111827; border: 1px solid rgba(255,255,255,0.07);
+          border-radius: 14px;
+          display: flex; flex-direction: column; overflow: hidden;
+          transition: width .25s ease, opacity .2s ease, transform .25s ease;
+        }
+        .cios-aih-sidebar.is-collapsed { width: 0; opacity: 0; pointer-events: none; border: none; }
+        .cios-aih-chat {
+          flex: 1 1 0; min-width: 0; min-height: 0;
+          background: #111827; border: 1px solid rgba(255,255,255,0.07);
+          border-radius: 14px;
+          display: flex; flex-direction: column; overflow: hidden;
+        }
         .cios-aih-chat > div:first-child { flex-shrink: 0; }
-        .cios-aih-messages { flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto; padding: 18px; }
+        .cios-aih-messages { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 18px; }
         .cios-aih-input-wrap { position: relative; padding: 12px; border-top: 1px solid rgba(255,255,255,0.05); background: #111827; flex-shrink: 0; }
         .cios-aih-input {
           width: 100%; box-sizing: border-box; resize: none;
@@ -216,7 +214,7 @@ export default function AIHubClient() {
           border: 1px solid rgba(255,255,255,0.12); border-radius: 14px;
           font-size: 14px; line-height: 1.45; font-family: inherit; outline: none;
           min-height: 46px; max-height: 200px;
-          transition: border-color .15s;
+          display: block;
         }
         .cios-aih-input:focus { border-color: rgba(171,71,188,0.4); }
         .cios-aih-send {
@@ -225,17 +223,47 @@ export default function AIHubClient() {
           background: linear-gradient(135deg, #AB47BC, #8E24AA);
           color: #fff; border: none; cursor: pointer;
           display: inline-flex; align-items: center; justify-content: center;
-          transition: opacity .15s, transform .1s;
+          transition: transform .1s;
         }
         .cios-aih-send:disabled { opacity: 0.35; cursor: not-allowed; }
         .cios-aih-send:hover:not(:disabled) { transform: scale(1.06); }
+        .cios-aih-toggle {
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 36px; height: 36px; border-radius: 8px;
+          background: transparent; border: 1px solid rgba(255,255,255,0.08);
+          color: #E8EDF5; cursor: pointer; padding: 0; flex-shrink: 0;
+        }
+        .cios-aih-toggle:hover { background: rgba(255,255,255,0.04); }
+        .cios-aih-backdrop { display: none; }
+
+        @media (max-width: 768px) {
+          .cios-aih-root {
+            position: fixed !important;
+            top: 56px; bottom: 64px; left: 0; right: 0;
+            max-width: none; margin: 0;
+            height: auto; min-height: 0;
+            gap: 0;
+            z-index: 40;
+          }
+          .cios-aih-sidebar {
+            position: fixed;
+            top: 56px; bottom: 64px; left: 0;
+            width: min(320px, 88vw); z-index: 60;
+            border-radius: 0;
+          }
+          .cios-aih-sidebar.is-collapsed { transform: translateX(-110%); width: min(320px, 88vw); opacity: 1; pointer-events: none; }
+          .cios-aih-chat { border-radius: 0; border: none; }
+          .cios-aih-backdrop { display: block; position: fixed; top: 56px; bottom: 64px; left: 0; right: 0; background: rgba(0,0,0,0.5); z-index: 50; }
+          .cios-aih-backdrop.is-hidden { display: none; }
+        }
       `}</style>
 
-      {/* Mobile backdrop */}
-      <div className="cios-aih-backdrop" onClick={() => setSidebarOpen(false)} />
+      {/* Mobile backdrop — outside the grid so it never steals a layout slot */}
+      <div className={`cios-aih-backdrop ${sidebarOpen ? "" : "is-hidden"}`} onClick={() => setSidebarOpen(false)} />
 
+      <div className="cios-aih-root">
       {/* Sidebar */}
-      <aside className="cios-aih-sidebar" style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, display: "flex", flexDirection: "column", overflow: "hidden", opacity: sidebarOpen ? 1 : 0, pointerEvents: sidebarOpen ? "auto" : "none" }}>
+      <aside className={`cios-aih-sidebar ${sidebarOpen ? "" : "is-collapsed"}`}>
         <div style={{ padding: 10, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
           <button onClick={newChat} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, background: "linear-gradient(135deg, #AB47BC, #8E24AA)", color: "#fff", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>+ New chat</button>
         </div>
@@ -351,6 +379,8 @@ export default function AIHubClient() {
         </div>
       </section>
 
+      </div>{/* /cios-aih-root */}
+
       {/* Memory modal */}
       {memoryOpen && (
         <div style={modalBackdrop} onClick={(e) => e.target === e.currentTarget && setMemoryOpen(false)}>
@@ -383,7 +413,7 @@ export default function AIHubClient() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
