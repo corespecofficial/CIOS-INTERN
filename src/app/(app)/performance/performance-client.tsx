@@ -12,6 +12,7 @@ import {
 import type { PersonalMetrics, TeamMember, Weights } from "@/lib/performance-shared";
 import { grade, DEFAULT_WEIGHTS } from "@/lib/performance-shared";
 import { saveWeights } from "@/app/actions/performance";
+import { BehaviorInsightsCard } from "@/components/behavior-insights-card";
 
 type Tab = "me" | "team" | "org" | "leaderboard";
 
@@ -181,6 +182,11 @@ function MyPerformance({ personal: p, weights, canSetWeights }: { personal: Pers
             </AreaChart>
           </ResponsiveContainer>
         </div>
+      </div>
+
+      {/* Live behavior pattern — auto-refreshing */}
+      <div style={{ marginTop: 14 }}>
+        <BehaviorInsightsCard />
       </div>
 
       {/* Attendance trend */}
