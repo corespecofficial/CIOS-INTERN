@@ -237,25 +237,49 @@ export default function AIHubClient() {
         .cios-aih-backdrop { display: none; }
 
         @media (max-width: 768px) {
+          /* Root stays in normal flow — no position:fixed or transform that
+             would create a new stacking context and trap the sidebar's z-index. */
           .cios-aih-root {
-            position: fixed !important;
-            top: 56px; bottom: 64px; left: 0; right: 0;
-            max-width: none; margin: 0;
-            height: auto; min-height: 0;
+            display: block;
+            max-width: none;
+            margin: -12px -12px -80px -12px;
+            height: calc(100dvh - 56px - 64px);
+            min-height: 0;
             gap: 0;
-            /* No z-index here — a new stacking context would trap the sidebar
-               below the sibling backdrop. Leave at auto so sidebar z:60 stacks
-               correctly above backdrop z:50 at the viewport root level. */
           }
-          .cios-aih-sidebar {
-            position: fixed;
-            top: 56px; bottom: 64px; left: 0;
-            width: min(320px, 88vw); z-index: 60;
+          .cios-aih-chat {
             border-radius: 0;
+            border: none;
+            height: 100%;
           }
-          .cios-aih-sidebar.is-collapsed { transform: translateX(-110%); width: min(320px, 88vw); opacity: 1; pointer-events: none; }
-          .cios-aih-chat { border-radius: 0; border: none; }
-          .cios-aih-backdrop { display: block; position: fixed; top: 56px; bottom: 64px; left: 0; right: 0; background: rgba(0,0,0,0.5); z-index: 50; }
+          /* Sidebar is position: fixed at the viewport level — creates its own
+             stacking context scoped to root ONLY IF root also had one. Because
+             root is plain block now, sidebar's z:9999 wins globally. */
+          .cios-aih-sidebar {
+            position: fixed !important;
+            top: 56px !important;
+            bottom: 64px !important;
+            left: 0 !important;
+            width: min(320px, 88vw) !important;
+            max-width: none !important;
+            z-index: 9999 !important;
+            border-radius: 0 !important;
+            border: none !important;
+            border-right: 1px solid rgba(255,255,255,0.07) !important;
+          }
+          .cios-aih-sidebar.is-collapsed {
+            transform: translateX(-110%) !important;
+            width: min(320px, 88vw) !important;
+            opacity: 1 !important;
+            pointer-events: none !important;
+          }
+          .cios-aih-backdrop {
+            display: block;
+            position: fixed;
+            top: 56px; bottom: 64px; left: 0; right: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 9000;
+          }
           .cios-aih-backdrop.is-hidden { display: none; }
         }
       `}</style>
