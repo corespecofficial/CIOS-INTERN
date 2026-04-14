@@ -1187,6 +1187,7 @@ export interface RoomListItem {
   other_user_id: string | null;
   other_user_name: string | null;
   other_user_avatar: string | null;
+  other_user_last_seen: string | null;
   last_message: string;
   last_message_at: string | null;
   unread_count: number;
@@ -1249,14 +1250,14 @@ export async function listMyRooms(): Promise<RoomListItem[]> {
     })
     .map((m) => m.chat_room_id);
 
-  const otherByRoom = new Map<string, { id: string; name: string; avatar_url: string | null }>();
+  const otherByRoom = new Map<string, { id: string; name: string; avatar_url: string | null; last_seen: string | null }>();
   if (directRoomIds.length > 0) {
     const { data: dms } = await supabase()
       .from("chat_room_members")
-      .select("chat_room_id, user:users!chat_room_members_user_id_fkey(id, name, avatar_url)")
+      .select("chat_room_id, user:users!chat_room_members_user_id_fkey(id, name, avatar_url, last_seen)")
       .in("chat_room_id", directRoomIds)
       .neq("user_id", me.id);
-    for (const r of (dms || []) as unknown as { chat_room_id: string; user: { id: string; name: string; avatar_url: string | null } | { id: string; name: string; avatar_url: string | null }[] | null }[]) {
+    for (const r of (dms || []) as unknown as { chat_room_id: string; user: { id: string; name: string; avatar_url: string | null; last_seen: string | null } | { id: string; name: string; avatar_url: string | null; last_seen: string | null }[] | null }[]) {
       const u = Array.isArray(r.user) ? r.user[0] : r.user;
       if (u) otherByRoom.set(r.chat_room_id, u);
     }
@@ -1265,7 +1266,7 @@ export async function listMyRooms(): Promise<RoomListItem[]> {
   const rooms: RoomListItem[] = mems.map((m) => {
     const r = Array.isArray(m.chat_room) ? m.chat_room[0] : m.chat_room;
     if (!r) {
-      return { id: m.chat_room_id, name: "", type: "direct", avatar_url: null, other_user_id: null, other_user_name: null, other_user_avatar: null, last_message: "", last_message_at: null, unread_count: 0, is_muted: false, is_pinned: false, is_archived: false };
+      return { id: m.chat_room_id, name: "", type: "direct", avatar_url: null, other_user_id: null, other_user_name: null, other_user_avatar: null, other_user_last_seen: null, last_message: "", last_message_at: null, unread_count: 0, is_muted: false, is_pinned: false, is_archived: false };
     }
     const other = otherByRoom.get(m.chat_room_id);
     const last = lastByRoom.get(m.chat_room_id);
@@ -1277,6 +1278,7 @@ export async function listMyRooms(): Promise<RoomListItem[]> {
       other_user_id: other?.id || null,
       other_user_name: other?.name || null,
       other_user_avatar: other?.avatar_url || null,
+      other_user_last_seen: other?.last_seen || null,
       last_message: last?.is_deleted ? "Message deleted" : (last?.content || ""),
       last_message_at: last?.created_at || null,
       unread_count: unreadByRoom.get(m.chat_room_id) || 0,

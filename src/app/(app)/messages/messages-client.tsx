@@ -32,6 +32,8 @@ import { uploadToCloudinary, compressImage, isImage, humanFileSize } from "@/lib
 import { useVoiceRecorder } from "@/lib/use-voice-recorder";
 import { CameraCapture } from "@/components/camera-capture";
 import { createPoll as saCreatePoll, votePoll as saVotePoll, closePoll as saClosePoll, getPoll as saGetPoll } from "@/app/actions/polls";
+import { markRoomViewed as saMarkRoomViewed, markRoomDelivered as saMarkRoomDelivered, getOutgoingStatuses as saGetStatuses, type MessageStatus } from "@/app/actions/message-status";
+import { isOnline, formatLastSeen as formatLastSeenNew } from "@/lib/presence";
 
 interface MeInfo { id: string; clerkId: string; name: string; avatarUrl: string | null; }
 
@@ -79,6 +81,21 @@ function formatRelative(iso: string | null): string {
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}d`;
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+/** WhatsApp-style tick indicator. */
+function TickIndicator({ status }: { status: MessageStatus }) {
+  const color = status === "read" ? "#34B7F1" : "#A4B0BB";
+  if (status === "sent") {
+    return <svg width="16" height="12" viewBox="0 0 16 12" style={{ verticalAlign: "middle" }}><path d="M2 7 L6 11 L14 3" stroke={color} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+  }
+  // delivered or read — double tick
+  return (
+    <svg width="18" height="12" viewBox="0 0 18 12" style={{ verticalAlign: "middle" }}>
+      <path d="M1 7 L5 11 L13 3" stroke={color} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6 7 L10 11 L18 3" stroke={color} strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 function formatLastSeen(iso: string | null, online: boolean): string {
@@ -191,7 +208,27 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
     if (!activeRoomId) return;
     saMarkRead(activeRoomId);
     setRooms((prev) => prev.map((r) => (r.id === activeRoomId ? { ...r, unread_count: 0 } : r)));
+    // WhatsApp-style: mark every message in the open room as delivered+read
+    saMarkRoomViewed(activeRoomId).catch(() => {});
   }, [activeRoomId, messages.length]);
+
+  // Ticks: fetch status for every message I've sent
+  const myMessageIds = useMemo(
+    () => messages.filter((m) => m.sender_id === me.id).map((m) => m.id),
+    [messages, me.id],
+  );
+  const [statusMap, setStatusMap] = useState<Record<string, "sent" | "delivered" | "read">>({});
+  useEffect(() => {
+    if (myMessageIds.length === 0) return;
+    let cancelled = false;
+    const tick = async () => {
+      const r = await saGetStatuses(myMessageIds);
+      if (!cancelled && r.ok) setStatusMap(r.data!);
+    };
+    tick();
+    const i = setInterval(tick, 6000); // refresh ticks every 6s while chat open
+    return () => { cancelled = true; clearInterval(i); };
+  }, [myMessageIds.length, activeRoomId]);
 
   // Realtime message listener
   useEffect(() => {
@@ -217,6 +254,11 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
           };
           return [...prev, newMsg];
         });
+        // If the chat is open AND this message is from someone else, mark read.
+        // If chat is closed, just mark delivered.
+        if (m.senderId !== me.id && activeRoomId) {
+          saMarkRoomViewed(activeRoomId).catch(() => {});
+        }
       } else if (m.kind === "edit") {
         setMessages((prev) => prev.map((x) => x.id === m.id ? { ...x, content: m.content, is_edited: true } : x));
       } else if (m.kind === "delete") {
@@ -434,11 +476,10 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
     if (v.trim()) publishTyping();
   }
 
-  const otherOnline = activeRoom?.other_user_id && activeRoom.type === "direct"
-    ? Array.from(onlineIds).some((cid) => {
-        // We don't have clerk_id for other user here. Approximation: use presence channel for the room.
-        return presence.online.has(cid);
-      })
+  // WhatsApp-accurate presence: DB last_seen < 60 s OR Ably says online right now.
+  // Ably alone produced false positives from stale channel subs; DB-backed check is truth.
+  const otherOnline = activeRoom?.type === "direct"
+    ? isOnline(activeRoom.other_user_last_seen) || presence.online.size > 0
     : false;
 
   const activeTyping = Array.from(presence.typing).length > 0;
@@ -578,7 +619,7 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
                 <div className="cios-thread-name" style={{ fontSize: 14, fontWeight: 700, color: "#E8EDF5", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{activeRoom.name}</div>
                 <div className="cios-thread-sub" style={{ fontSize: 11, color: activeTyping ? "#1E88E5" : "#8892A4", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   {activeRoom.type === "direct"
-                    ? (activeTyping ? "Typing..." : formatLastSeen(null, otherOnline))
+                    ? (activeTyping ? "Typing..." : (otherOnline ? "online" : formatLastSeenNew(activeRoom.other_user_last_seen, "offline")))
                     : `${presence.online.size} online · group chat`}
                 </div>
               </div>
@@ -624,6 +665,7 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
                     mine={mine}
                     showAvatar={!sameSender}
                     meId={me.id}
+                    status={mine ? (statusMap[m.id] || "sent") : undefined}
                     onReply={() => setReplyTo(m)}
                     onEdit={mine && !m.is_deleted ? () => { setEditing(m); setDraft(m.content); } : undefined}
                     onDelete={(forEveryone) => onDelete(m, forEveryone)}
@@ -834,11 +876,12 @@ function Avatar({ size, name, url, id }: { size: number; name: string; url: stri
 }
 
 function MessageBubble({
-  msg, mine, showAvatar, meId,
+  msg, mine, showAvatar, meId, status,
   onReply, onEdit, onDelete, onCopy, onReact, onStar, onForward, onBlockSender,
   menuOpen, onToggleMenu,
 }: {
   msg: DbMessage; mine: boolean; showAvatar: boolean; meId: string;
+  status?: MessageStatus;
   onReply: () => void;
   onEdit?: () => void;
   onDelete: (forEveryone: boolean) => void;
@@ -917,8 +960,9 @@ function MessageBubble({
               {emoji} {users.length}
             </button>
           ))}
-          <span style={{ fontSize: 10, color: "#5A6478" }}>
+          <span style={{ fontSize: 10, color: "#5A6478", display: "inline-flex", alignItems: "center", gap: 4 }}>
             {formatTime(msg.created_at)}{msg.is_edited && " · edited"}
+            {mine && status && <TickIndicator status={status} />}
           </span>
           {!msg.is_deleted && (
             <button onClick={onToggleMenu} style={{ background: "transparent", border: "none", color: "#5A6478", cursor: "pointer", fontSize: 12, padding: 0 }}>⋯</button>
