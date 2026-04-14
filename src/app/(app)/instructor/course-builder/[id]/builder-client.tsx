@@ -11,6 +11,7 @@ import {
   updateCourse, deleteCourse, saveQuiz, saveAssignment,
 } from "@/app/actions/courses-lms";
 import type { QuizQuestion } from "@/lib/db";
+import { parseVideoEmbed, embedIframeProps } from "@/lib/video-embed";
 
 type ContentType = "video" | "article" | "quiz" | "assignment";
 
@@ -304,7 +305,7 @@ function ModuleEditor({
     }));
   }
 
-  const ytPreview = youtubeId ? extractId(youtubeId) : null;
+  const videoPreview = parseVideoEmbed(youtubeId);
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -445,18 +446,25 @@ function ModuleEditor({
 
           {contentType === "video" && (
             <div>
-              <div style={lbl}>YouTube URL or video ID</div>
-              <input value={youtubeId} onChange={(e) => setYoutubeId(e.target.value)} placeholder="https://youtube.com/watch?v=... or dQw4w9WgXcQ" style={input} />
-              {ytPreview && (
-                <div style={{ marginTop: 8, aspectRatio: "16/9", borderRadius: 10, overflow: "hidden", maxWidth: 480 }}>
+              <div style={lbl}>Video URL (YouTube, Instagram, TikTok, Vimeo)</div>
+              <input value={youtubeId} onChange={(e) => setYoutubeId(e.target.value)} placeholder="Paste a YouTube, Instagram reel/post, TikTok, or Vimeo link" style={input} />
+              <p style={{ fontSize: 10, color: "#5A6478", marginTop: 6 }}>
+                Supported: youtube.com/watch, youtu.be, youtube.com/shorts, instagram.com/reel|p|tv, tiktok.com/@user/video, vimeo.com. Students watch inline — no redirects.
+              </p>
+              {videoPreview ? (
+                <div style={{ marginTop: 8, aspectRatio: (videoPreview.provider === "instagram" || videoPreview.provider === "tiktok") ? "9/16" : "16/9", borderRadius: 10, overflow: "hidden", maxWidth: (videoPreview.provider === "instagram" || videoPreview.provider === "tiktok") ? 340 : 480, background: "#000" }}>
                   <iframe
-                    src={`https://www.youtube.com/embed/${ytPreview}`}
+                    src={videoPreview.embedUrl}
                     title="Preview"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allow={embedIframeProps(videoPreview.provider).allow}
+                    allowFullScreen={embedIframeProps(videoPreview.provider).allowFullScreen}
+                    scrolling="no"
                     style={{ width: "100%", height: "100%", border: "none" }}
                   />
                 </div>
-              )}
+              ) : youtubeId ? (
+                <p style={{ fontSize: 11, color: "#EF5350", marginTop: 6 }}>⚠ Unrecognised link — double-check the URL.</p>
+              ) : null}
             </div>
           )}
 
@@ -488,19 +496,6 @@ function ModuleEditor({
       </div>
     </div>
   );
-}
-
-function extractId(input: string): string | null {
-  if (/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
-  try {
-    const u = new URL(input);
-    if (u.hostname === "youtu.be") return u.pathname.slice(1).slice(0, 11);
-    if (u.hostname.includes("youtube.com")) {
-      const v = u.searchParams.get("v");
-      if (v) return v.slice(0, 11);
-    }
-  } catch {}
-  return null;
 }
 
 const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: "#8892A4", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 };

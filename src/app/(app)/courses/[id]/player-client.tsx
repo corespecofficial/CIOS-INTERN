@@ -8,6 +8,7 @@ import type { CourseFull, CourseModuleRow, DiscussionRow, MaterialRow } from "@/
 import { enrollInCourse, markModuleComplete, issueCertificate, submitQuizAttempt, submitAssignment } from "@/app/actions/courses-lms";
 import { addDiscussion, deleteDiscussion, upvoteDiscussion, pinDiscussion } from "@/app/actions/classroom-extras";
 import { uploadToCloudinary, humanFileSize } from "@/lib/cloudinary-upload";
+import { parseVideoEmbed, embedIframeProps } from "@/lib/video-embed";
 
 export function PlayerClient({
   course, modules, enrollment, iAmInstructor, meId, meName, discussions: initialDiscussions, materials,
@@ -141,21 +142,30 @@ export function PlayerClient({
           ) : (
             <>
               {/* Video area */}
-              {active.content_type === "video" && active.youtube_id ? (
-                <div style={{ aspectRatio: "16/9", borderRadius: 10, overflow: "hidden", marginBottom: 14 }}>
-                  <iframe
-                    src={`https://www.youtube.com/embed/${active.youtube_id}?rel=0&modestbranding=1`}
-                    title={active.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    style={{ width: "100%", height: "100%", border: "none" }}
-                  />
-                </div>
-              ) : active.content_type === "video" ? (
-                <div style={{ aspectRatio: "16/9", borderRadius: 10, background: "#0A0E1A", display: "flex", alignItems: "center", justifyContent: "center", color: "#8892A4", marginBottom: 14 }}>
-                  No video linked yet
-                </div>
-              ) : null}
+              {active.content_type === "video" && (() => {
+                const v = parseVideoEmbed(active.youtube_id);
+                if (!v) {
+                  return (
+                    <div style={{ aspectRatio: "16/9", borderRadius: 10, background: "#0A0E1A", display: "flex", alignItems: "center", justifyContent: "center", color: "#8892A4", marginBottom: 14 }}>
+                      {active.youtube_id ? "Unsupported video link" : "No video linked yet"}
+                    </div>
+                  );
+                }
+                const isPortrait = v.provider === "instagram" || v.provider === "tiktok";
+                const ifp = embedIframeProps(v.provider);
+                return (
+                  <div style={{ aspectRatio: isPortrait ? "9/16" : "16/9", maxWidth: isPortrait ? 420 : "100%", margin: isPortrait ? "0 auto 14px" : "0 0 14px", borderRadius: 10, overflow: "hidden", background: "#000" }}>
+                    <iframe
+                      src={v.embedUrl}
+                      title={active.title}
+                      allow={ifp.allow}
+                      allowFullScreen={ifp.allowFullScreen}
+                      scrolling="no"
+                      style={{ width: "100%", height: "100%", border: "none" }}
+                    />
+                  </div>
+                );
+              })()}
 
               <h2 style={{ fontSize: 18, fontWeight: 700, color: "#E8EDF5", margin: "0 0 6px 0" }}>{active.title}</h2>
               <div style={{ fontSize: 11, color: "#8892A4", marginBottom: 14, textTransform: "capitalize" }}>

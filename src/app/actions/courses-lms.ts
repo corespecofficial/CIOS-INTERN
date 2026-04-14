@@ -130,18 +130,34 @@ export interface CreateModuleInput {
   isFreePreview?: boolean;
 }
 
-function extractYouTubeId(input: string): string | null {
+/**
+ * Normalise a pasted video link for storage in the legacy `youtube_id` column.
+ * That column now also carries Instagram/TikTok/Vimeo URLs — the player
+ * resolves the embed at render time via `parseVideoEmbed`. For YouTube we
+ * still strip down to the 11-char ID so existing rows stay consistent; for
+ * everything else we store the trimmed URL as-is.
+ */
+function normaliseVideoLink(input: string): string | null {
   if (!input) return null;
-  // already an ID
-  if (/^[A-Za-z0-9_-]{11}$/.test(input)) return input;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  if (/^[A-Za-z0-9_-]{11}$/.test(trimmed)) return trimmed;
   try {
-    const u = new URL(input);
-    if (u.hostname === "youtu.be") return u.pathname.slice(1).slice(0, 11);
-    if (u.hostname.includes("youtube.com")) {
+    const u = new URL(trimmed);
+    const host = u.hostname.replace(/^www\./, "");
+    if (host === "youtu.be") return u.pathname.slice(1).slice(0, 11);
+    if (host.endsWith("youtube.com") || host.endsWith("youtube-nocookie.com")) {
       const v = u.searchParams.get("v");
       if (v) return v.slice(0, 11);
       const m = u.pathname.match(/\/(embed|shorts|live)\/([A-Za-z0-9_-]{11})/);
       if (m) return m[2];
+    }
+    if (
+      host === "instagram.com" || host.endsWith(".instagram.com") ||
+      host === "tiktok.com" || host.endsWith(".tiktok.com") ||
+      host === "vimeo.com" || host.endsWith(".vimeo.com")
+    ) {
+      return trimmed;
     }
   } catch { /* not a URL */ }
   return null;
@@ -151,7 +167,7 @@ export async function addModule(input: CreateModuleInput): Promise<Result<{ id: 
   try {
     await requireInstructorOrSuperAdmin(input.courseId);
     const sb = supabaseAdmin();
-    const ytId = input.youtubeId ? extractYouTubeId(input.youtubeId) : null;
+    const ytId = input.youtubeId ? normaliseVideoLink(input.youtubeId) : null;
     const { data: maxRow } = await sb.from("course_modules")
       .select("order_index").eq("course_id", input.courseId)
       .order("order_index", { ascending: false }).limit(1).maybeSingle();
@@ -372,7 +388,7 @@ export async function updateModule(moduleId: string, patch: Partial<CreateModule
     if (patch.title !== undefined) dbPatch.title = patch.title.trim();
     if (patch.description !== undefined) dbPatch.description = patch.description;
     if (patch.contentType !== undefined) dbPatch.content_type = patch.contentType;
-    if (patch.youtubeId !== undefined) dbPatch.youtube_id = extractYouTubeId(patch.youtubeId || "") || null;
+    if (patch.youtubeId !== undefined) dbPatch.youtube_id = normaliseVideoLink(patch.youtubeId || "") || null;
     if (patch.contentUrl !== undefined) dbPatch.content_url = patch.contentUrl;
     if (patch.summary !== undefined) dbPatch.summary = patch.summary;
     if (patch.durationMinutes !== undefined) dbPatch.duration_minutes = patch.durationMinutes;
