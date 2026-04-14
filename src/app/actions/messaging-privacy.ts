@@ -96,34 +96,123 @@ export async function bulkAllocateByRole(fromUserId: string, targetRole: string)
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 
-/** Intern-side: request contact by Intern ID */
-export async function sendContactRequest(targetInternId: string, reason?: string): Promise<R<{ id: string }>> {
+/**
+ * Intern-side: request contact by Intern ID.
+ *
+ * Two modes:
+ *  - "admin" (default) → admin reviews, approves/rejects. Classic flow.
+ *  - "peer"            → LinkedIn-style. Target intern gets the request and
+ *                        approves/rejects themselves; admin isn't involved.
+ */
+export async function sendContactRequest(
+  targetInternId: string,
+  reason?: string,
+  mode: "admin" | "peer" = "admin",
+): Promise<R<{ id: string }>> {
   try {
     const me = await requireMe();
     const id = targetInternId.trim().toUpperCase();
     if (!id) return { ok: false, error: "Intern ID required" };
     const sb = supabaseAdmin();
-    const { data: target } = await sb.from("users").select("id").eq("intern_id", id).maybeSingle();
+    const { data: target } = await sb.from("users").select("id, name, intern_id").eq("intern_id", id).maybeSingle();
     if (!target) return { ok: false, error: "Intern ID not found" };
     if (target.id === me.id) return { ok: false, error: "That's your own ID" };
-    // Already have permission?
-    if (await canMessage(me.id, target.id)) return { ok: false, error: "You already have access to this contact" };
-    // Deduplicate pending requests
+    if (await canMessage(me.id, target.id)) return { ok: false, error: "You're already connected" };
+
     const { data: existing } = await sb.from("contact_requests").select("id")
       .eq("requester_id", me.id).eq("target_user_id", target.id).eq("status", "pending").maybeSingle();
-    if (existing) return { ok: false, error: "A request to this user is already pending" };
+    if (existing) return { ok: false, error: "A request is already pending" };
+
     const { data: inserted, error } = await sb.from("contact_requests").insert({
       requester_id: me.id, target_intern_id: id, target_user_id: target.id,
-      reason: reason || null, status: "pending",
+      reason: reason || null, status: "pending", mode,
     }).select("id").single();
     if (error) return { ok: false, error: error.message };
-    // Notify admins
-    const { data: admins } = await sb.from("users").select("id").in("role", ["admin", "super_admin"]).limit(10);
-    for (const a of (admins || []) as Array<{ id: string }>) {
-      await pushNotification({ userId: a.id, kind: "system", title: "📨 Contact request", body: `Request to connect with ${id}`, url: "/admin/contact-allocation" }).catch(() => {});
+
+    if (mode === "peer") {
+      // Notify the target intern directly — LinkedIn-style
+      await pushNotification({
+        userId: target.id, kind: "system",
+        title: `🤝 ${me.name || "Someone"} wants to connect`,
+        body: reason || "Tap to review and accept or decline",
+        url: "/messages/requests",
+      }).catch(() => {});
+    } else {
+      // Notify admins
+      const { data: admins } = await sb.from("users").select("id").in("role", ["admin", "super_admin"]).limit(10);
+      for (const a of (admins || []) as Array<{ id: string }>) {
+        await pushNotification({
+          userId: a.id, kind: "system",
+          title: "📨 Contact request",
+          body: `${me.name || "A user"} wants to message ${id}`,
+          url: "/admin/contact-allocation",
+        }).catch(() => {});
+      }
     }
     revalidatePath("/messages/requests"); revalidatePath("/admin/contact-allocation");
     return { ok: true, data: { id: (inserted as { id: string }).id } };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+/** List peer requests sent TO me (LinkedIn-style incoming). */
+export async function listIncomingPeerRequests(): Promise<R<Array<{ id: string; requester_id: string; requester_name: string | null; requester_avatar: string | null; requester_intern_id: string | null; reason: string | null; created_at: string }>>> {
+  try {
+    const me = await requireMe();
+    const { data } = await supabaseAdmin().from("contact_requests")
+      .select("id, requester_id, reason, created_at, requester:requester_id(name, avatar_url, intern_id)")
+      .eq("target_user_id", me.id)
+      .eq("status", "pending")
+      .eq("mode", "peer")
+      .order("created_at", { ascending: false });
+    const rows = ((data || []) as Array<{ id: string; requester_id: string; reason: string | null; created_at: string; requester?: { name?: string | null; avatar_url?: string | null; intern_id?: string | null } | { name?: string | null; avatar_url?: string | null; intern_id?: string | null }[] | null }>).map((r) => {
+      const u = Array.isArray(r.requester) ? r.requester[0] : r.requester;
+      return {
+        id: r.id, requester_id: r.requester_id,
+        requester_name: u?.name || null,
+        requester_avatar: u?.avatar_url || null,
+        requester_intern_id: u?.intern_id || null,
+        reason: r.reason, created_at: r.created_at,
+      };
+    });
+    return { ok: true, data: rows };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+/** Target intern responds to a peer request. No admin needed. */
+export async function reviewPeerRequest(id: string, accept: boolean): Promise<R> {
+  try {
+    const me = await requireMe();
+    const sb = supabaseAdmin();
+    const { data: req } = await sb.from("contact_requests")
+      .select("requester_id, target_user_id, mode")
+      .eq("id", id).eq("status", "pending").maybeSingle();
+    if (!req) return { ok: false, error: "Request not found" };
+    const r = req as { requester_id: string; target_user_id: string; mode: string };
+    if (r.target_user_id !== me.id) return { ok: false, error: "Not your request to review" };
+    if (r.mode !== "peer") return { ok: false, error: "This request needs admin approval" };
+    await sb.from("contact_requests").update({
+      status: accept ? "approved" : "rejected",
+      reviewed_by: me.id, reviewed_at: new Date().toISOString(),
+    }).eq("id", id);
+    if (accept) {
+      // Create the bidirectional contact pair directly
+      const [a, b] = [r.requester_id, r.target_user_id].sort();
+      await sb.from("contact_permissions").upsert({
+        user_a: a, user_b: b,
+        granted_by: me.id, granted_at: new Date().toISOString(), revoked_at: null,
+        allow_files: true, allow_voice: true,
+        source: "peer", note: null,
+      }, { onConflict: "user_a,user_b" });
+    }
+    // Let the requester know either way
+    await pushNotification({
+      userId: r.requester_id, kind: "system",
+      title: accept ? `✅ ${me.name || "Someone"} accepted your connect` : "❌ Connect request declined",
+      body: accept ? "You can now message each other." : "They declined your connect request.",
+      url: accept ? "/messages/contacts" : "/messages/requests",
+    }).catch(() => {});
+    revalidatePath("/messages/requests"); revalidatePath("/messages/contacts");
+    return { ok: true };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 

@@ -208,8 +208,22 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
     if (!activeRoomId) return;
     saMarkRead(activeRoomId);
     setRooms((prev) => prev.map((r) => (r.id === activeRoomId ? { ...r, unread_count: 0 } : r)));
-    // WhatsApp-style: mark every message in the open room as delivered+read
+    // WhatsApp-style: mark every message in the open room as delivered+read.
     saMarkRoomViewed(activeRoomId).catch(() => {});
+    // INSTANT tick flip: broadcast a "read" event over Ably with the IDs of
+    // their messages I'm reading. The sender's client flips ticks to blue
+    // in <100ms rather than waiting 6s for the next poll.
+    const theirMessageIds = messages.filter((m) => m.sender_id !== me.id).map((m) => m.id);
+    if (theirMessageIds.length > 0) {
+      publishMessage({
+        id: `read_${Date.now()}`,
+        senderId: me.clerkId,
+        content: "",
+        createdAt: new Date().toISOString(),
+        kind: "read",
+        ackMessageIds: theirMessageIds,
+      }).catch(() => {});
+    }
   }, [activeRoomId, messages.length]);
 
   // Ticks: fetch status for every message I've sent
@@ -265,10 +279,23 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
         setMessages((prev) => prev.map((x) => x.id === m.id ? { ...x, is_deleted: true, content: "" } : x));
       } else if (m.kind === "reaction" && m.reactions) {
         setMessages((prev) => prev.map((x) => x.id === m.id ? { ...x, reactions: m.reactions! } : x));
+      } else if (m.kind === "read" && m.ackMessageIds && m.senderId !== me.clerkId) {
+        // The other side just opened the chat — instantly flip their-side acks to "read"
+        setStatusMap((prev) => {
+          const next = { ...prev };
+          for (const id of m.ackMessageIds!) next[id] = "read";
+          return next;
+        });
+      } else if (m.kind === "delivered" && m.ackMessageIds && m.senderId !== me.clerkId) {
+        setStatusMap((prev) => {
+          const next = { ...prev };
+          for (const id of m.ackMessageIds!) if (next[id] !== "read") next[id] = "delivered";
+          return next;
+        });
       }
     });
     return off;
-  }, [onMessage, activeRoomId]);
+  }, [onMessage, activeRoomId, me.clerkId]);
 
   // Auto-scroll to bottom on new message
   useEffect(() => {
@@ -448,14 +475,27 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
 
   async function onStartDm(userId: string, userName: string) {
     const r = await saDirect(userId);
-    if (!r.ok) { toast.error(r.error); return; }
+    if (!r.ok) {
+      // Don't swallow — route the user to the right place to fix it.
+      if (r.error.includes("permission") || r.error.includes("connected")) {
+        toast((t) => (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+            <span>{r.error}</span>
+            <a href="/messages/contacts" onClick={() => toast.dismiss(t.id)} style={{ color: "#1E88E5", fontWeight: 700, textDecoration: "underline" }}>Request contact →</a>
+          </span>
+        ), { duration: 6000, icon: "🔒" });
+      } else {
+        toast.error(r.error);
+      }
+      return;
+    }
     const roomId = r.data!.roomId;
     setShowNewChat(false);
     // If not in list, add minimal stub
     if (!rooms.some((x) => x.id === roomId)) {
       const u = directory.find((x) => x.id === userId);
       setRooms((prev) => [
-        { id: roomId, name: userName, type: "direct", avatar_url: u?.avatar_url || null, other_user_id: userId, other_user_name: userName, other_user_avatar: u?.avatar_url || null, last_message: "", last_message_at: null, unread_count: 0, is_muted: false, is_pinned: false, is_archived: false },
+        { id: roomId, name: userName, type: "direct", avatar_url: u?.avatar_url || null, other_user_id: userId, other_user_name: userName, other_user_avatar: u?.avatar_url || null, other_user_last_seen: null, last_message: "", last_message_at: null, unread_count: 0, is_muted: false, is_pinned: false, is_archived: false },
         ...prev,
       ]);
     }
@@ -539,6 +579,15 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
               <button onClick={() => setShowNewGroup(true)} style={iconBtn} title="New group">👥</button>
               <button onClick={() => setShowLockSettings(true)} style={iconBtn} title="Lock & privacy">{chatLock.config.enabled ? "🔒" : "🔓"}</button>
             </div>
+          </div>
+          {/* Prominent CTA row: contacts + connect requests */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 10 }}>
+            <a href="/messages/contacts" style={{ textAlign: "center", padding: "9px 10px", background: "linear-gradient(135deg, rgba(30,136,229,0.18), rgba(30,136,229,0.08))", color: "#1E88E5", border: "1px solid rgba(30,136,229,0.25)", borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+              🤝 Contacts
+            </a>
+            <a href="/messages/requests" style={{ textAlign: "center", padding: "9px 10px", background: "linear-gradient(135deg, rgba(171,71,188,0.18), rgba(171,71,188,0.08))", color: "#AB47BC", border: "1px solid rgba(171,71,188,0.25)", borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+              📨 Requests
+            </a>
           </div>
           <input
             placeholder="Search chats..."

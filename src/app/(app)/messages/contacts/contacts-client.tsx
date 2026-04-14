@@ -11,6 +11,7 @@ interface Contact { id: string; displayName: string; internId: string | null; av
 export function ContactsClient({ initial, myRole }: { initial: Contact[]; myRole: string }) {
   const [search, setSearch] = useState("");
   const [showRequest, setShowRequest] = useState(false);
+  const [mode, setMode] = useState<"peer" | "admin">("peer");
   const [internId, setInternId] = useState("");
   const [reason, setReason] = useState("");
   const [pending, start] = useTransition();
@@ -25,9 +26,9 @@ export function ContactsClient({ initial, myRole }: { initial: Contact[]; myRole
   }, [initial, search]);
 
   const onRequest = () => start(async () => {
-    const res = await sendContactRequest(internId, reason);
+    const res = await sendContactRequest(internId, reason, mode);
     if (!res.ok) return toast.error(res.error);
-    toast.success("Request sent to admin");
+    toast.success(mode === "peer" ? "Connect request sent — waiting for their approval" : "Request sent to admin");
     setShowRequest(false); setInternId(""); setReason("");
   });
 
@@ -96,19 +97,33 @@ export function ContactsClient({ initial, myRole }: { initial: Contact[]; myRole
         <div style={modalBackdrop} onClick={(e) => e.target === e.currentTarget && setShowRequest(false)}>
           <div style={modalPanel}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-              <h2 style={{ fontSize: 16, color: "#E8EDF5", margin: 0, fontWeight: 800 }}>📨 Request new contact</h2>
+              <h2 style={{ fontSize: 16, color: "#E8EDF5", margin: 0, fontWeight: 800 }}>🤝 New contact</h2>
               <button onClick={() => setShowRequest(false)} style={btnClose}>✕</button>
             </div>
-            <p style={{ fontSize: 12, color: "#8892A4", margin: "0 0 14px 0", lineHeight: 1.5 }}>
-              Enter the Intern ID (e.g. <code style={{ color: "#1E88E5" }}>CPS-INT-1042</code>) of the person you want to message. An admin will review your request.
+
+            {/* Mode tabs */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 14, background: "#0A0E1A", padding: 4, borderRadius: 10 }}>
+              <button onClick={() => setMode("peer")} style={{ padding: "8px 10px", borderRadius: 8, border: "none", cursor: "pointer", background: mode === "peer" ? "rgba(30,136,229,0.2)" : "transparent", color: mode === "peer" ? "#1E88E5" : "#8892A4", fontSize: 12, fontWeight: 700 }}>🤝 Connect directly</button>
+              <button onClick={() => setMode("admin")} style={{ padding: "8px 10px", borderRadius: 8, border: "none", cursor: "pointer", background: mode === "admin" ? "rgba(171,71,188,0.2)" : "transparent", color: mode === "admin" ? "#AB47BC" : "#8892A4", fontSize: 12, fontWeight: 700 }}>🛡 Request via admin</button>
+            </div>
+
+            <p style={{ fontSize: 12, color: "#8892A4", margin: "0 0 14px 0", lineHeight: 1.55 }}>
+              {mode === "peer" ? (
+                <>LinkedIn-style: send a direct connect request to the intern. They approve or decline themselves, no admin needed. Both of you can message once they accept.</>
+              ) : (
+                <>Ask an admin to grant you access to this intern. Use this when you don&apos;t know them personally or need special permission.</>
+              )}
             </p>
+
             <label style={lbl}>Intern ID</label>
             <input value={internId} onChange={(e) => setInternId(e.target.value.toUpperCase())} placeholder="CPS-INT-1042" style={input} />
-            <label style={lbl}>Reason</label>
-            <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="Why do you need to connect?" style={{ ...input, fontFamily: "inherit", resize: "vertical" }} />
+            <label style={lbl}>{mode === "peer" ? "Note (shown to them)" : "Reason (shown to admin)"}</label>
+            <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder={mode === "peer" ? "Hey, we met at the Lagos onboarding — would love to connect." : "Why do you need to connect?"} style={{ ...input, fontFamily: "inherit", resize: "vertical" }} />
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
               <button onClick={() => setShowRequest(false)} style={btnGhost}>Cancel</button>
-              <button onClick={onRequest} disabled={pending || !internId.trim()} style={btnPrimary}>{pending ? "Sending…" : "Send request"}</button>
+              <button onClick={onRequest} disabled={pending || !internId.trim()} style={btnPrimary}>
+                {pending ? "Sending…" : mode === "peer" ? "Send connect" : "Send request"}
+              </button>
             </div>
           </div>
         </div>

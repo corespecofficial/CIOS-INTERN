@@ -32,8 +32,10 @@ export interface InboundMessage {
   replyToId?: string | null;
   attachmentUrl?: string | null;
   messageType?: "text" | "image" | "file" | "reply" | "system";
-  kind: "new" | "edit" | "delete" | "reaction";
+  kind: "new" | "edit" | "delete" | "reaction" | "read" | "delivered";
   reactions?: Record<string, string[]>;
+  // For read/delivered events: which of my sent messages are now acknowledged
+  ackMessageIds?: string[];
 }
 
 export interface PresenceState {
