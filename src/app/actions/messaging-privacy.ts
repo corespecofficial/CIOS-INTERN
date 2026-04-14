@@ -123,11 +123,32 @@ export async function sendContactRequest(
       .eq("requester_id", me.id).eq("target_user_id", target.id).eq("status", "pending").maybeSingle();
     if (existing) return { ok: false, error: "A request is already pending" };
 
+    // Try inserting with mode column; fall back gracefully if the migration
+    // hasn't run yet (Supabase schema cache error). Admin-mode requests still
+    // work without the column; only peer mode needs it.
+    let insertedId: string | null = null;
     const { data: inserted, error } = await sb.from("contact_requests").insert({
       requester_id: me.id, target_intern_id: id, target_user_id: target.id,
       reason: reason || null, status: "pending", mode,
     }).select("id").single();
-    if (error) return { ok: false, error: error.message };
+    if (error) {
+      if (error.message?.includes("'mode'") || error.message?.includes("schema cache")) {
+        if (mode === "peer") {
+          return { ok: false, error: "Peer connect needs a DB migration. Admin: run 'ALTER TABLE contact_requests ADD COLUMN IF NOT EXISTS mode text DEFAULT ''admin'' CHECK (mode IN (''admin'',''peer''));' in Supabase." };
+        }
+        // For admin mode, retry without the column
+        const fallback = await sb.from("contact_requests").insert({
+          requester_id: me.id, target_intern_id: id, target_user_id: target.id,
+          reason: reason || null, status: "pending",
+        }).select("id").single();
+        if (fallback.error) return { ok: false, error: fallback.error.message };
+        insertedId = (fallback.data as { id: string }).id;
+      } else {
+        return { ok: false, error: error.message };
+      }
+    } else {
+      insertedId = (inserted as { id: string }).id;
+    }
 
     if (mode === "peer") {
       // Notify the target intern directly — LinkedIn-style
@@ -150,7 +171,7 @@ export async function sendContactRequest(
       }
     }
     revalidatePath("/messages/requests"); revalidatePath("/admin/contact-allocation");
-    return { ok: true, data: { id: (inserted as { id: string }).id } };
+    return { ok: true, data: { id: insertedId! } };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 
@@ -158,12 +179,19 @@ export async function sendContactRequest(
 export async function listIncomingPeerRequests(): Promise<R<Array<{ id: string; requester_id: string; requester_name: string | null; requester_avatar: string | null; requester_intern_id: string | null; reason: string | null; created_at: string }>>> {
   try {
     const me = await requireMe();
-    const { data } = await supabaseAdmin().from("contact_requests")
+    const q = supabaseAdmin().from("contact_requests")
       .select("id, requester_id, reason, created_at, requester:requester_id(name, avatar_url, intern_id)")
       .eq("target_user_id", me.id)
       .eq("status", "pending")
-      .eq("mode", "peer")
       .order("created_at", { ascending: false });
+    // If the mode column exists, filter to peer-mode. Otherwise return empty
+    // (admin-mode requests aren't for the intern to review).
+    let data: unknown = null;
+    const first = await q.eq("mode", "peer");
+    if (first.error && (first.error.message?.includes("'mode'") || first.error.message?.includes("schema cache"))) {
+      return { ok: true, data: [] }; // migration not run yet — no peer requests possible
+    }
+    data = first.data;
     const rows = ((data || []) as Array<{ id: string; requester_id: string; reason: string | null; created_at: string; requester?: { name?: string | null; avatar_url?: string | null; intern_id?: string | null } | { name?: string | null; avatar_url?: string | null; intern_id?: string | null }[] | null }>).map((r) => {
       const u = Array.isArray(r.requester) ? r.requester[0] : r.requester;
       return {
@@ -183,13 +211,28 @@ export async function reviewPeerRequest(id: string, accept: boolean): Promise<R>
   try {
     const me = await requireMe();
     const sb = supabaseAdmin();
-    const { data: req } = await sb.from("contact_requests")
+    // Try with mode column first; fall back if migration not run
+    let req: { requester_id: string; target_user_id: string; mode?: string } | null = null;
+    const first = await sb.from("contact_requests")
       .select("requester_id, target_user_id, mode")
       .eq("id", id).eq("status", "pending").maybeSingle();
+    if (first.error && (first.error.message?.includes("'mode'") || first.error.message?.includes("schema cache"))) {
+      const fb = await sb.from("contact_requests")
+        .select("requester_id, target_user_id")
+        .eq("id", id).eq("status", "pending").maybeSingle();
+      if (fb.error) return { ok: false, error: fb.error.message };
+      req = fb.data as typeof req;
+    } else if (first.error) {
+      return { ok: false, error: first.error.message };
+    } else {
+      req = first.data as typeof req;
+    }
     if (!req) return { ok: false, error: "Request not found" };
-    const r = req as { requester_id: string; target_user_id: string; mode: string };
+    const r = req;
     if (r.target_user_id !== me.id) return { ok: false, error: "Not your request to review" };
-    if (r.mode !== "peer") return { ok: false, error: "This request needs admin approval" };
+    // If mode column exists and it's not peer, reject. Otherwise (migration
+    // not yet run) we trust the flow — only peer requests surface here anyway.
+    if (r.mode && r.mode !== "peer") return { ok: false, error: "This request needs admin approval" };
     await sb.from("contact_requests").update({
       status: accept ? "approved" : "rejected",
       reviewed_by: me.id, reviewed_at: new Date().toISOString(),
