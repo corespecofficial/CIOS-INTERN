@@ -263,17 +263,36 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
     [messages, me.id],
   );
   const [statusMap, setStatusMap] = useState<Record<string, "sent" | "delivered" | "read">>({});
+
+  // Status can only move FORWARD: sent → delivered → read. This prevents the
+  // flicker where the 6s DB poll would briefly downgrade an Ably-confirmed
+  // "read" back to "sent" when the DB hadn't caught up yet.
+  const rankStatus = (s: "sent" | "delivered" | "read" | undefined) =>
+    s === "read" ? 2 : s === "delivered" ? 1 : 0;
+  const mergeStatuses = useCallback(
+    (incoming: Record<string, "sent" | "delivered" | "read">) => {
+      setStatusMap((prev) => {
+        const next = { ...prev };
+        for (const [id, s] of Object.entries(incoming)) {
+          if (rankStatus(s) > rankStatus(prev[id])) next[id] = s;
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
   useEffect(() => {
     if (myMessageIds.length === 0) return;
     let cancelled = false;
     const tick = async () => {
       const r = await saGetStatuses(myMessageIds);
-      if (!cancelled && r.ok) setStatusMap(r.data!);
+      if (!cancelled && r.ok) mergeStatuses(r.data!);
     };
     tick();
     const i = setInterval(tick, 6000); // refresh ticks every 6s while chat open
     return () => { cancelled = true; clearInterval(i); };
-  }, [myMessageIds.length, activeRoomId]);
+  }, [myMessageIds.length, activeRoomId, mergeStatuses]);
 
   // Realtime message listener
   useEffect(() => {
@@ -311,22 +330,19 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
       } else if (m.kind === "reaction" && m.reactions) {
         setMessages((prev) => prev.map((x) => x.id === m.id ? { ...x, reactions: m.reactions! } : x));
       } else if (m.kind === "read" && m.ackMessageIds && m.senderId !== me.clerkId) {
-        // The other side just opened the chat — instantly flip their-side acks to "read"
-        setStatusMap((prev) => {
-          const next = { ...prev };
-          for (const id of m.ackMessageIds!) next[id] = "read";
-          return next;
-        });
+        // The other side just opened the chat — instantly flip their-side acks
+        // to "read". Uses the monotonic merge so nothing can regress.
+        const patch: Record<string, "read"> = {};
+        for (const id of m.ackMessageIds) patch[id] = "read";
+        mergeStatuses(patch);
       } else if (m.kind === "delivered" && m.ackMessageIds && m.senderId !== me.clerkId) {
-        setStatusMap((prev) => {
-          const next = { ...prev };
-          for (const id of m.ackMessageIds!) if (next[id] !== "read") next[id] = "delivered";
-          return next;
-        });
+        const patch: Record<string, "delivered"> = {};
+        for (const id of m.ackMessageIds) patch[id] = "delivered";
+        mergeStatuses(patch);
       }
     });
     return off;
-  }, [onMessage, activeRoomId, me.clerkId]);
+  }, [onMessage, activeRoomId, me.clerkId, mergeStatuses]);
 
   // Auto-scroll to bottom on new message
   useEffect(() => {
