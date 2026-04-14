@@ -104,10 +104,32 @@ export function ClassroomClient({ sessions: initial, canInstruct, panels }: { se
   }
 
   return (
-    <div style={{ fontFamily: "'Nunito', sans-serif", display: "grid", gridTemplateColumns: "minmax(0, 1fr) 320px", gap: 16, alignItems: "flex-start" }}>
-      <style>{`@media (max-width: 960px) { main[data-classroom-grid] { grid-template-columns: 1fr !important; } }`}</style>
+    <div className="cios-classroom" style={{ fontFamily: "'Nunito', sans-serif", display: "grid", gridTemplateColumns: "minmax(0, 1fr) 320px", gap: 16, alignItems: "flex-start" }}>
+      <style>{`
+        @media (max-width: 960px) {
+          .cios-classroom { grid-template-columns: 1fr !important; gap: 12px !important; }
+          .cios-classroom aside[data-side] { position: static !important; }
+        }
+        @media (max-width: 768px) {
+          .cios-classroom h1 { font-size: 20px !important; }
+          .cios-classroom .cios-cr-hero { padding: 14px 16px !important; border-radius: 14px !important; }
+          .cios-classroom .cios-cr-hero div[style*="fontSize: 36"] { font-size: 28px !important; }
+          /* Lesson / assignment cards become single-column and tighter */
+          .cios-classroom .cios-cr-card { padding: 12px !important; border-radius: 12px !important; }
+          .cios-classroom .cios-cr-card h3 { font-size: 14px !important; }
+          .cios-classroom .cios-cr-side-card { padding: 12px !important; }
+          /* Tabs wrap + scroll rather than squish */
+          .cios-classroom .cios-cr-tabs { overflow-x: auto; flex-wrap: nowrap !important; }
+          .cios-classroom .cios-cr-tabs button { flex-shrink: 0 !important; white-space: nowrap; font-size: 11px !important; padding: 6px 10px !important; }
+          /* Two-col inner grids flatten */
+          .cios-classroom div[style*="grid-template-columns: 1fr 1fr"],
+          .cios-classroom div[style*="gridTemplateColumns: \\"1fr 1fr"] {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
       <div>
-      <div style={{
+      <div className="cios-cr-hero" style={{
         background: "linear-gradient(135deg, rgba(30,136,229,0.15), rgba(171,71,188,0.08))",
         border: "1px solid rgba(30,136,229,0.2)",
         borderRadius: 18, padding: "20px 24px", marginBottom: 18,
@@ -129,7 +151,7 @@ export function ClassroomClient({ sessions: initial, canInstruct, panels }: { se
         )}
       </div>
 
-      <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+      <div className="cios-cr-tabs" style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
         <TabBtn active={tab === "upcoming"} onClick={() => setTab("upcoming")}>📅 Upcoming ({partitioned.upcoming.length})</TabBtn>
         <TabBtn active={tab === "live"} onClick={() => setTab("live")}>🔴 Live ({partitioned.live.length})</TabBtn>
         <TabBtn active={tab === "past"} onClick={() => setTab("past")}>✓ Past ({partitioned.past.length})</TabBtn>
@@ -241,7 +263,7 @@ export function ClassroomClient({ sessions: initial, canInstruct, panels }: { se
       </div>
 
       {/* ── Right command panel ── */}
-      <aside style={{ display: "flex", flexDirection: "column", gap: 14, position: "sticky", top: 20 }}>
+      <aside data-side style={{ display: "flex", flexDirection: "column", gap: 14, position: "sticky", top: 20 }}>
         {/* Rewards */}
         <div style={{ background: "linear-gradient(135deg, rgba(255,193,7,0.12), rgba(30,136,229,0.08))", border: "1px solid rgba(255,193,7,0.25)", borderRadius: 14, padding: 16 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: "#FFC107", letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 10 }}>🏆 Rewards</div>
