@@ -9,6 +9,11 @@ import { LOCALE_LABELS, type Locale } from "@/i18n/config";
 import { PWAProvider } from "@/components/pwa-provider";
 import { SentryUser } from "@/components/sentry-user";
 import { XpBurstOverlay } from "@/components/engagement/xp-burst-overlay";
+import { SplashScreen } from "@/components/ui/splash-screen";
+import { RouteLoader } from "@/components/ui/route-loader";
+import { MobileKeyboardGuard } from "@/components/ui/mobile-keyboard-guard";
+import { OfflineBanner } from "@/components/ui/offline-banner";
+import { ShortcutsOverlay } from "@/components/ui/shortcuts-overlay";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -92,6 +97,11 @@ export default async function RootLayout({
       >
         <body className="min-h-full antialiased font-[family-name:var(--font-nunito)]" suppressHydrationWarning>
           <NextIntlClientProvider locale={locale} messages={messages}>
+            <SplashScreen />
+            <RouteLoader />
+            <MobileKeyboardGuard />
+            <OfflineBanner />
+            <ShortcutsOverlay />
             {children}
           </NextIntlClientProvider>
           <PWAProvider />

@@ -1,7 +1,8 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import * as Ably from "ably";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import type { FeedPost, CommentRow } from "@/lib/db";
@@ -26,6 +27,29 @@ export function PostDetailClient({ post: initialPost, initialComments, me }: { p
   const isAuthor = post.author_id === me.id;
 
   const tree = useMemo(() => buildTree(comments, sortMode), [comments, sortMode]);
+
+  // Live thread — subscribe to post channel for new comments.
+  useEffect(() => {
+    const key = process.env.NEXT_PUBLIC_ABLY_API_KEY;
+    if (!key) return;
+    const client = new Ably.Realtime({ key, clientId: me.id || "guest" });
+    const ch = client.channels.get(`cios:post:${post.id}`);
+    const handler = (msg: Ably.Message) => {
+      const d = msg.data as { id: string; parent_id: string | null; author_id: string; author_name: string; author_avatar: string | null; content: string; created_at: string };
+      if (!d?.id || d.author_id === me.id) return; // skip my own (already added)
+      setComments((list) => list.some((x) => x.id === d.id) ? list : [...list, {
+        id: d.id, post_id: post.id, parent_id: d.parent_id,
+        author_id: d.author_id, author_name: d.author_name, author_avatar: d.author_avatar, author_reputation: 0,
+        content: d.content, upvotes: 0, downvotes: 0,
+        is_pinned: false, is_solution: false, brilliant_label: null,
+        is_edited: false, is_deleted: false, created_at: d.created_at, my_vote: null,
+      }]);
+      setPost((p) => ({ ...p, comment_count: p.comment_count + 1 }));
+      toast(`💬 New reply from ${d.author_name}`, { duration: 2500 });
+    };
+    ch.subscribe("new-comment", handler);
+    return () => { try { ch.unsubscribe("new-comment", handler); client.close(); } catch { /* ignore */ } };
+  }, [post.id, me.id]);
 
   async function onVotePost(type: "up" | "down") {
     const r = await votePost(post.id, type);
@@ -273,6 +297,7 @@ function CommentNode({
   const [replyText, setReplyText] = useState("");
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(node.comment.content);
+  const [collapsed, setCollapsed] = useState(false);
   const c = node.comment;
   const mine = c.author_id === meId;
   const isSolution = c.is_solution || postSolvedId === c.id;
@@ -298,6 +323,13 @@ function CommentNode({
               <div style={{ width: 22, height: 22, borderRadius: "50%", background: "#1E88E5", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700, color: "#fff" }}>
                 {(c.author_name?.[0] || "?").toUpperCase()}
               </div>
+            )}
+            {node.children.length > 0 && (
+              <button onClick={() => setCollapsed((v) => !v)}
+                title={collapsed ? `Expand ${countDescendants(node)} replies` : "Collapse"}
+                style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.08)", color: "#8892A4", borderRadius: 4, width: 22, height: 22, cursor: "pointer", fontSize: 11, fontWeight: 700, padding: 0 }}>
+                {collapsed ? "+" : "−"}
+              </button>
             )}
             <span style={{ fontSize: 12, fontWeight: 700, color: "#E8EDF5" }}>{c.author_name || "Unknown"}</span>
             {c.author_reputation > 0 && <span style={{ fontSize: 9, padding: "1px 5px", background: "rgba(255,193,7,0.12)", color: "#FFC107", borderRadius: 4, fontWeight: 700 }}>⭐ {c.author_reputation}</span>}
@@ -347,7 +379,7 @@ function CommentNode({
             </div>
           )}
           {/* Children */}
-          {node.children.length > 0 && (
+          {node.children.length > 0 && !collapsed && (
             <div style={{ marginTop: 10, paddingLeft: 12, borderLeft: "2px solid rgba(255,255,255,0.05)", display: "flex", flexDirection: "column", gap: 8 }}>
               {node.children.map((ch) => (
                 <CommentNode key={ch.comment.id} node={ch} meId={meId} isPostAuthor={isPostAuthor} canModerate={canModerate} postSolvedId={postSolvedId} postIsQuestion={postIsQuestion} depth={depth + 1}
@@ -355,10 +387,19 @@ function CommentNode({
               ))}
             </div>
           )}
+          {collapsed && node.children.length > 0 && (
+            <button onClick={() => setCollapsed(false)} style={{ marginTop: 6, background: "transparent", border: "1px dashed rgba(255,255,255,0.1)", color: "#8892A4", borderRadius: 6, padding: "4px 10px", fontSize: 11, cursor: "pointer", fontWeight: 600 }}>
+              Show {countDescendants(node)} more {countDescendants(node) === 1 ? "reply" : "replies"}
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
+}
+
+function countDescendants(node: Node): number {
+  return node.children.reduce((a, c) => a + 1 + countDescendants(c), 0);
 }
 
 function timeAgo(iso: string): string {

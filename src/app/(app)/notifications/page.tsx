@@ -50,13 +50,28 @@ export default function NotificationsPage() {
   const [search, setSearch] = useState("");
   const [showSettings, setShowSettings] = useState(false);
 
+  // Notification hierarchy — unread first, then by category priority
+  // (error/critical → achievement → task/mention → message → everything else),
+  // then most recent. A mention/reply is treated as the message type.
+  const PRIORITY: Record<string, number> = {
+    error: 0, warning: 1, fine: 2, task: 3, achievement: 4,
+    message: 5, success: 6, info: 7, system: 8,
+  };
   const filtered = useMemo(() => {
-    return notifications.filter((n) => {
-      if (tab === "unread" && n.is_read) return false;
-      if (category !== "all" && n.type !== category) return false;
-      if (search && !(`${n.title} ${n.message}`.toLowerCase().includes(search.toLowerCase()))) return false;
-      return true;
-    });
+    return notifications
+      .filter((n) => {
+        if (tab === "unread" && n.is_read) return false;
+        if (category !== "all" && n.type !== category) return false;
+        if (search && !(`${n.title} ${n.message}`.toLowerCase().includes(search.toLowerCase()))) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (a.is_read !== b.is_read) return a.is_read ? 1 : -1;
+        const pa = PRIORITY[a.type] ?? 99;
+        const pb = PRIORITY[b.type] ?? 99;
+        if (pa !== pb) return pa - pb;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
   }, [notifications, tab, category, search]);
 
   async function onClearAll() {

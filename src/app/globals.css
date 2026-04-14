@@ -811,3 +811,37 @@ section, article, main, .cios-card, [data-card] {
 @media (max-width: 768px) {
   ::-webkit-scrollbar { width: 0 !important; height: 0 !important; }
 }
+
+/* ============================================
+   Mobile keyboard guard — when visualViewport detects
+   the software keyboard, hide bottom nav & floating
+   action buttons so form inputs are never obscured.
+   ============================================ */
+body.kb-open .bottom-nav-mobile,
+body.kb-open .notes-mobile-bottomnav,
+body.kb-open .cios-community-fab {
+  display: none !important;
+}
+body.kb-open main { padding-bottom: 12px !important; }
+
+/* ============================================
+   Light-mode contrast audit — tighten text + borders
+   on pages whose inline dark colours would otherwise
+   stay low-contrast when [data-theme="light"] is set.
+   ============================================ */
+html[data-theme="light"] body { background: #F5F7FB; color: #0F1524; }
+html[data-theme="light"] [style*="color: #8892A4"],
+html[data-theme="light"] [style*="color:#8892A4"] { color: #4a5567 !important; }
+html[data-theme="light"] [style*="color: #B0BEC5"],
+html[data-theme="light"] [style*="color:#B0BEC5"] { color: #556073 !important; }
+html[data-theme="light"] [style*="color: #E8EDF5"],
+html[data-theme="light"] [style*="color:#E8EDF5"] { color: #0F1524 !important; }
+html[data-theme="light"] [style*="background: #111827"],
+html[data-theme="light"] [style*="background:#111827"],
+html[data-theme="light"] [style*="background-color: #111827"] { background: #FFFFFF !important; }
+html[data-theme="light"] [style*="background: #0A0E1A"],
+html[data-theme="light"] [style*="background:#0A0E1A"] { background: #EFF2F8 !important; }
+html[data-theme="light"] [style*="border: 1px solid rgba(255,255,255,0.07)"],
+html[data-theme="light"] [style*="border: 1px solid rgba(255,255,255,0.06)"],
+html[data-theme="light"] [style*="border: 1px solid rgba(255,255,255,0.05)"],
+html[data-theme="light"] [style*="border: 1px solid rgba(255,255,255,0.08)"] { border-color: rgba(15,21,36,0.1) !important; }

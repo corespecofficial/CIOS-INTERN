@@ -11,6 +11,9 @@ import { uploadToCloudinary, humanFileSize } from "@/lib/cloudinary-upload";
 import { parseVideoEmbed, embedIframeProps } from "@/lib/video-embed";
 import { LessonReactions } from "@/components/engagement/lesson-reactions";
 import { CourseLeaderboard } from "@/components/engagement/course-leaderboard";
+import { rememberLesson } from "@/components/engagement/resume-card";
+import { PeerAnswers } from "@/components/engagement/peer-answers";
+import { StudyBuddy } from "@/components/engagement/study-buddy";
 import { CohortPresence } from "@/components/engagement/cohort-presence";
 import { BossQuizFrame } from "@/components/engagement/boss-quiz-frame";
 import { StudyBuddyWidget } from "@/components/engagement/study-buddy-widget";
@@ -36,6 +39,17 @@ export function PlayerClient({
 
   const active = modules.find((m) => m.id === activeId) || null;
   const canWatch = iAmInstructor || enrolled || (active?.is_free_preview ?? false);
+
+  // Remember the current lesson so the dashboard's "Resume" card can link here.
+  useEffect(() => {
+    if (!active) return;
+    rememberLesson({
+      courseId: course.id, courseTitle: course.title,
+      lessonId: active.id, lessonTitle: active.title,
+      href: `/courses/${course.id}`,
+      progressPct: progress,
+    });
+  }, [active?.id, progress, course.id, course.title, active]);
   const isComplete = progress >= 100;
 
   async function handleEnroll() {
@@ -233,11 +247,32 @@ export function PlayerClient({
                   {busy ? "Saving…" : "✓ Mark as complete · +20 XP"}
                 </button>
               )}
-              {active.content_type !== "quiz" && completedIds.has(active.id) && (
-                <div style={{ marginTop: 20, padding: "10px 16px", background: "rgba(102,187,106,0.1)", color: "#66BB6A", borderRadius: 10, fontSize: 13, fontWeight: 700 }}>
-                  ✓ Completed
-                </div>
-              )}
+              {active.content_type !== "quiz" && completedIds.has(active.id) && (() => {
+                const currentIdx = modules.findIndex((m) => m.id === active.id);
+                const nextModule = currentIdx >= 0 && currentIdx + 1 < modules.length ? modules[currentIdx + 1] : null;
+                return (
+                  <div style={{ marginTop: 20, padding: 16, background: "linear-gradient(135deg,rgba(102,187,106,0.12),rgba(30,136,229,0.08))", border: "1px solid rgba(102,187,106,0.25)", borderRadius: 14 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: nextModule ? 10 : 0 }}>
+                      <span style={{ fontSize: 22 }}>✅</span>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: "#66BB6A" }}>Completed! Well done.</div>
+                    </div>
+                    {nextModule ? (
+                      <>
+                        <div style={{ fontSize: 11, color: "#8892A4", textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>Up next</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: "#E8EDF5", marginTop: 2 }}>{nextModule.title}</div>
+                        <button onClick={() => setActiveId(nextModule.id)}
+                          style={{ marginTop: 10, padding: "9px 16px", background: "linear-gradient(135deg,#1E88E5,#1565C0)", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
+                          Continue to next lesson →
+                        </button>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 13, color: "#E8EDF5" }}>
+                        🎓 You&apos;ve finished every lesson in this course. Claim your certificate from the course page.
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </>
           )}
         </div>
@@ -246,6 +281,12 @@ export function PlayerClient({
         {active && (active.content_type === "video" || active.content_type === "article") && (
           <AiLessonTools module={active} />
         )}
+
+        {/* Peer answers from the community, matched on lesson title keywords */}
+        {active && <PeerAnswers query={active.title} />}
+
+        {/* Study Buddy — lesson-aware AI tutor, floating bottom-right */}
+        {active && <StudyBuddy context={[active.title, active.summary, active.description].filter(Boolean).join("\n\n")} />}
 
         {/* Discussions */}
         <DiscussionsPanel
@@ -531,13 +572,18 @@ function AssignmentRunner({
     finally { setUploading(false); }
   }
 
-  async function submit() {
+  const [previewOpen, setPreviewOpen] = useState(false);
+  async function openPreview() {
     if (!content.trim() && !fileUrl) { toast.error("Write something or attach a file"); return; }
+    setPreviewOpen(true);
+  }
+  async function submit() {
     setBusy(true);
     const r = await submitAssignment(m.id, content, fileUrl);
     setBusy(false);
     if (!r.ok) { toast.error(r.error); return; }
     setSubmitted({ grade: null, feedback: null, status: "submitted" });
+    setPreviewOpen(false);
     onSubmitted();
   }
 
@@ -594,9 +640,46 @@ function AssignmentRunner({
         )}
       </div>
 
-      <button onClick={submit} disabled={busy || uploading} style={{ ...btnPrimaryBig, marginTop: 14 }}>
-        {busy ? "Submitting…" : submitted ? "Update submission" : "Submit assignment"}
+      <button onClick={openPreview} disabled={busy || uploading} style={{ ...btnPrimaryBig, marginTop: 14 }}>
+        {busy ? "Submitting…" : submitted ? "Preview update" : "Preview & submit"}
       </button>
+
+      {previewOpen && (
+        <div onClick={() => setPreviewOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 640, maxHeight: "88vh", overflowY: "auto", background: "#111827", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: 22 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div>
+                <div style={{ fontSize: 10, color: "#FFC107", fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>Preview before sending</div>
+                <h3 style={{ fontSize: 17, fontWeight: 800, color: "#E8EDF5", margin: "4px 0 0" }}>{m.title}</h3>
+                <div style={{ fontSize: 11, color: "#8892A4", marginTop: 2 }}>This is exactly what your instructor will see.</div>
+              </div>
+              <button onClick={() => setPreviewOpen(false)} style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.1)", color: "#E8EDF5", width: 30, height: 30, borderRadius: 8, cursor: "pointer" }}>✕</button>
+            </div>
+            <div style={{ background: "#0A0E1A", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 12, padding: 16 }}>
+              {content.trim() ? (
+                <p style={{ fontSize: 14, color: "#E8EDF5", margin: 0, whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{content}</p>
+              ) : (
+                <p style={{ fontSize: 12, color: "#8892A4", margin: 0, fontStyle: "italic" }}>No written response.</p>
+              )}
+              {fileUrl && (
+                <div style={{ marginTop: 12, padding: 10, background: "rgba(30,136,229,0.06)", border: "1px solid rgba(30,136,229,0.2)", borderRadius: 10 }}>
+                  📎 <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#1E88E5", textDecoration: "underline" }}>{filename || "Attached file"}</a>
+                </div>
+              )}
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, fontSize: 10, color: "#5A6478" }}>
+                <span>{content.length} characters · {content.trim().split(/\s+/).filter(Boolean).length} words</span>
+                <span>{new Date().toLocaleString()}</span>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 14 }}>
+              <button onClick={() => setPreviewOpen(false)} style={btnGhost}>Go back & edit</button>
+              <button onClick={submit} disabled={busy} style={btnPrimaryBig}>
+                {busy ? "Submitting…" : "✓ Submit final"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

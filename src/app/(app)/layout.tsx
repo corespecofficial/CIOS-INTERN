@@ -62,16 +62,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <Sidebar />
       </div>
 
-      {/* Main area — offset by sidebar width */}
+      {/* Main area — offset by sidebar width. height (not minHeight) so the
+          inner <main> is the one true scroll container and the Header stays
+          locked in place. */}
       <div className="main-content-area" suppressHydrationWarning style={{
         marginLeft: sidebarWidth,
         display: "flex",
         flexDirection: "column",
-        minHeight: "100vh",
+        height: "100dvh",
+        maxHeight: "100dvh",
+        overflow: "hidden",
         transition: "margin-left 0.2s ease",
       }}>
         <Header />
-        <main id="main-content" role="main" style={{ flex: 1, overflowY: "auto", padding: 20 }}>
+        <main id="main-content" role="main" style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 20 }}>
           {children}
         </main>
       </div>

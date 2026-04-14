@@ -352,6 +352,8 @@ export interface CommunityRow {
   tags: string[];
   created_by: string;
   joined: boolean;
+  suspended_at?: string | null;
+  suspend_reason?: string | null;
 }
 
 export interface FeedPost {
@@ -367,6 +369,7 @@ export interface FeedPost {
   type: string;
   image_url: string | null;
   link_url: string | null;
+  video_url: string | null;
   upvotes: number;
   downvotes: number;
   score: number;
@@ -378,20 +381,30 @@ export interface FeedPost {
   created_at: string;
   my_vote: "up" | "down" | null;
   is_bookmarked: boolean;
+  is_locked: boolean;
+  is_nsfw: boolean;
+  is_spoiler: boolean;
+  crosspost_of: string | null;
+  reactions: Record<string, number>;
+  my_reactions: string[];
+  awards: Record<string, number>;
 }
 
 type FeedSort = "for-you" | "new" | "trending" | "top-today" | "top-week" | "questions" | "following" | "bookmarks";
 
 export async function listCommunities(): Promise<CommunityRow[]> {
   const me = await getCurrentDbUser();
-  const { data } = await supabase()
+  // Use admin client so every signed-in user sees every group (public
+  // directory). RLS on `communities` was hiding rows created by other users.
+  const sb = supabaseAdmin();
+  const { data } = await sb
     .from("communities")
-    .select("id, name, description, member_count, is_private, tags, created_by")
+    .select("id, name, description, member_count, is_private, tags, created_by, suspended_at, suspend_reason")
     .order("member_count", { ascending: false });
   if (!data) return [];
   const myMemberships = new Set<string>();
   if (me) {
-    const { data: mems } = await supabase().from("community_members").select("community_id").eq("user_id", me.id);
+    const { data: mems } = await sb.from("community_members").select("community_id").eq("user_id", me.id);
     for (const m of (mems || []) as { community_id: string }[]) myMemberships.add(m.community_id);
   }
   return (data as CommunityRow[]).map((r) => ({ ...r, joined: myMemberships.has(r.id) }));
@@ -399,9 +412,11 @@ export async function listCommunities(): Promise<CommunityRow[]> {
 
 export async function listFeedPosts(sort: FeedSort = "new", communityId?: string | null): Promise<FeedPost[]> {
   const me = await getCurrentDbUser();
-  const sb = supabase();
+  // Admin client — the feed is a shared public timeline; RLS was hiding
+  // posts authored by other users from non-creators.
+  const sb = supabaseAdmin();
   let query = sb.from("posts")
-    .select("id, community_id, author_id, title, content, type, image_url, link_url, upvotes, downvotes, score, comment_count, is_pinned, is_question, solved_comment_id, tags, created_at, is_deleted, author:users!posts_author_id_fkey(name, avatar_url, reputation), community:communities!posts_community_id_fkey(name)")
+    .select("id, community_id, author_id, title, content, type, image_url, link_url, video_url, upvotes, downvotes, score, comment_count, is_pinned, is_question, solved_comment_id, tags, created_at, is_deleted, is_locked, is_nsfw, is_spoiler, crosspost_of, author:users!posts_author_id_fkey(name, avatar_url, reputation), community:communities!posts_community_id_fkey(name)")
     .eq("is_deleted", false);
 
   if (communityId) query = query.eq("community_id", communityId);
@@ -437,19 +452,50 @@ export async function listFeedPosts(sort: FeedSort = "new", communityId?: string
   const { data } = await query.limit(40);
   if (!data) return [];
 
-  type R = { id: string; community_id: string; author_id: string; title: string; content: string; type: string; image_url: string | null; link_url: string | null; upvotes: number; downvotes: number; score: number; comment_count: number; is_pinned: boolean; is_question: boolean; solved_comment_id: string | null; tags: string[]; created_at: string; author?: { name?: string; avatar_url?: string | null; reputation?: number } | { name?: string; avatar_url?: string | null; reputation?: number }[] | null; community?: { name?: string } | { name?: string }[] | null };
+  type R = { id: string; community_id: string; author_id: string; title: string; content: string; type: string; image_url: string | null; link_url: string | null; upvotes: number; downvotes: number; score: number; comment_count: number; is_pinned: boolean; is_question: boolean; is_locked?: boolean; is_nsfw?: boolean; is_spoiler?: boolean; crosspost_of?: string | null; solved_comment_id: string | null; tags: string[]; created_at: string; author?: { name?: string; avatar_url?: string | null; reputation?: number } | { name?: string; avatar_url?: string | null; reputation?: number }[] | null; community?: { name?: string } | { name?: string }[] | null };
   const rows = data as unknown as R[];
   const ids = rows.map((r) => r.id);
 
   const myVotes = new Map<string, "up" | "down">();
   const myBookmarks = new Set<string>();
-  if (me && ids.length > 0) {
-    const [{ data: votes }, { data: marks }] = await Promise.all([
-      sb.from("post_votes").select("post_id, vote_type").eq("user_id", me.id).in("post_id", ids),
-      sb.from("post_bookmarks").select("post_id").eq("user_id", me.id).in("post_id", ids),
-    ]);
-    for (const v of (votes || []) as { post_id: string; vote_type: "up" | "down" }[]) myVotes.set(v.post_id, v.vote_type);
-    for (const m of (marks || []) as { post_id: string }[]) myBookmarks.add(m.post_id);
+  const reactionCounts = new Map<string, Record<string, number>>();
+  const myReactions = new Map<string, string[]>();
+  const awardCounts = new Map<string, Record<string, number>>();
+  if (ids.length > 0) {
+    const tasks: Promise<unknown>[] = [
+      sb.from("post_reactions").select("post_id, emoji, user_id").in("post_id", ids),
+      sb.from("community_awards").select("post_id, kind").in("post_id", ids),
+    ];
+    if (me) {
+      tasks.push(
+        sb.from("post_votes").select("post_id, vote_type").eq("user_id", me.id).in("post_id", ids),
+        sb.from("post_bookmarks").select("post_id").eq("user_id", me.id).in("post_id", ids),
+      );
+    }
+    const results = await Promise.all(tasks) as Array<{ data?: unknown[] | null }>;
+    const reactions = (results[0]?.data || []) as { post_id: string; emoji: string; user_id: string }[];
+    for (const r of reactions) {
+      const m = reactionCounts.get(r.post_id) || {};
+      m[r.emoji] = (m[r.emoji] || 0) + 1;
+      reactionCounts.set(r.post_id, m);
+      if (me && r.user_id === me.id) {
+        const list = myReactions.get(r.post_id) || [];
+        list.push(r.emoji);
+        myReactions.set(r.post_id, list);
+      }
+    }
+    const awards = (results[1]?.data || []) as { post_id: string; kind: string }[];
+    for (const a of awards) {
+      const m = awardCounts.get(a.post_id) || {};
+      m[a.kind] = (m[a.kind] || 0) + 1;
+      awardCounts.set(a.post_id, m);
+    }
+    if (me) {
+      const votes = (results[2]?.data || []) as { post_id: string; vote_type: "up" | "down" }[];
+      const marks = (results[3]?.data || []) as { post_id: string }[];
+      for (const v of votes) myVotes.set(v.post_id, v.vote_type);
+      for (const m of marks) myBookmarks.add(m.post_id);
+    }
   }
 
   return rows.map((r) => {
@@ -460,13 +506,18 @@ export async function listFeedPosts(sort: FeedSort = "new", communityId?: string
       author_id: r.author_id, author_name: a?.name || null, author_avatar: a?.avatar_url || null,
       author_reputation: a?.reputation || 0,
       title: r.title, content: r.content, type: r.type,
-      image_url: r.image_url, link_url: r.link_url,
+      image_url: r.image_url, link_url: r.link_url, video_url: (r as { video_url?: string | null }).video_url || null,
       upvotes: r.upvotes || 0, downvotes: r.downvotes || 0, score: r.score || 0,
       comment_count: r.comment_count || 0,
       is_pinned: r.is_pinned, is_question: r.is_question, solved_comment_id: r.solved_comment_id,
       tags: r.tags || [], created_at: r.created_at,
       my_vote: myVotes.get(r.id) || null,
       is_bookmarked: myBookmarks.has(r.id),
+      is_locked: !!r.is_locked, is_nsfw: !!r.is_nsfw, is_spoiler: !!r.is_spoiler,
+      crosspost_of: r.crosspost_of || null,
+      reactions: reactionCounts.get(r.id) || {},
+      my_reactions: myReactions.get(r.id) || [],
+      awards: awardCounts.get(r.id) || {},
     };
   });
 }
@@ -493,26 +544,43 @@ export interface CommentRow {
 
 export async function getPostDetail(postId: string): Promise<{ post: FeedPost | null; comments: CommentRow[] }> {
   const me = await getCurrentDbUser();
-  const sb = supabase();
+  const sb = supabaseAdmin();
   const { data: p } = await sb.from("posts")
-    .select("id, community_id, author_id, title, content, type, image_url, link_url, upvotes, downvotes, score, comment_count, is_pinned, is_question, solved_comment_id, tags, created_at, is_deleted, author:users!posts_author_id_fkey(name, avatar_url, reputation), community:communities!posts_community_id_fkey(name)")
+    .select("id, community_id, author_id, title, content, type, image_url, link_url, video_url, upvotes, downvotes, score, comment_count, is_pinned, is_question, solved_comment_id, tags, created_at, is_deleted, is_locked, is_nsfw, is_spoiler, crosspost_of, author:users!posts_author_id_fkey(name, avatar_url, reputation), community:communities!posts_community_id_fkey(name)")
     .eq("id", postId).maybeSingle();
   if (!p || (p as { is_deleted?: boolean }).is_deleted) return { post: null, comments: [] };
 
-  type PR = { id: string; community_id: string; author_id: string; title: string; content: string; type: string; image_url: string | null; link_url: string | null; upvotes: number; downvotes: number; score: number; comment_count: number; is_pinned: boolean; is_question: boolean; solved_comment_id: string | null; tags: string[]; created_at: string; author?: { name?: string; avatar_url?: string | null; reputation?: number } | { name?: string; avatar_url?: string | null; reputation?: number }[] | null; community?: { name?: string } | { name?: string }[] | null };
+  type PR = { id: string; community_id: string; author_id: string; title: string; content: string; type: string; image_url: string | null; link_url: string | null; upvotes: number; downvotes: number; score: number; comment_count: number; is_pinned: boolean; is_question: boolean; is_locked?: boolean; is_nsfw?: boolean; is_spoiler?: boolean; crosspost_of?: string | null; solved_comment_id: string | null; tags: string[]; created_at: string; author?: { name?: string; avatar_url?: string | null; reputation?: number } | { name?: string; avatar_url?: string | null; reputation?: number }[] | null; community?: { name?: string } | { name?: string }[] | null };
   const r = p as unknown as PR;
   const a = Array.isArray(r.author) ? r.author[0] : r.author;
   const c = Array.isArray(r.community) ? r.community[0] : r.community;
 
   let myVote: "up" | "down" | null = null;
   let isBookmarked = false;
-  if (me) {
-    const [{ data: v }, { data: b }] = await Promise.all([
-      sb.from("post_votes").select("vote_type").eq("user_id", me.id).eq("post_id", postId).maybeSingle(),
-      sb.from("post_bookmarks").select("id").eq("user_id", me.id).eq("post_id", postId).maybeSingle(),
-    ]);
-    myVote = (v?.vote_type as "up" | "down" | null) || null;
-    isBookmarked = !!b;
+  const reactionCounts: Record<string, number> = {};
+  const myReacts: string[] = [];
+  {
+    const tasks: Promise<unknown>[] = [
+      sb.from("post_reactions").select("emoji, user_id").eq("post_id", postId),
+    ];
+    if (me) {
+      tasks.push(
+        sb.from("post_votes").select("vote_type").eq("user_id", me.id).eq("post_id", postId).maybeSingle(),
+        sb.from("post_bookmarks").select("id").eq("user_id", me.id).eq("post_id", postId).maybeSingle(),
+      );
+    }
+    const results = await Promise.all(tasks) as Array<{ data?: unknown }>;
+    const reacts = (results[0]?.data || []) as { emoji: string; user_id: string }[];
+    for (const rr of reacts) {
+      reactionCounts[rr.emoji] = (reactionCounts[rr.emoji] || 0) + 1;
+      if (me && rr.user_id === me.id) myReacts.push(rr.emoji);
+    }
+    if (me) {
+      const v = results[1]?.data as { vote_type?: "up" | "down" } | null | undefined;
+      const b = results[2]?.data as { id?: string } | null | undefined;
+      myVote = (v?.vote_type as "up" | "down" | null) || null;
+      isBookmarked = !!b;
+    }
   }
 
   const post: FeedPost = {
@@ -520,12 +588,21 @@ export async function getPostDetail(postId: string): Promise<{ post: FeedPost | 
     author_id: r.author_id, author_name: a?.name || null, author_avatar: a?.avatar_url || null,
     author_reputation: a?.reputation || 0,
     title: r.title, content: r.content, type: r.type,
-    image_url: r.image_url, link_url: r.link_url,
+    image_url: r.image_url, link_url: r.link_url, video_url: (r as { video_url?: string | null }).video_url || null,
     upvotes: r.upvotes || 0, downvotes: r.downvotes || 0, score: r.score || 0,
     comment_count: r.comment_count || 0,
     is_pinned: r.is_pinned, is_question: r.is_question, solved_comment_id: r.solved_comment_id,
     tags: r.tags || [], created_at: r.created_at,
     my_vote: myVote, is_bookmarked: isBookmarked,
+    is_locked: !!r.is_locked, is_nsfw: !!r.is_nsfw, is_spoiler: !!r.is_spoiler,
+    crosspost_of: r.crosspost_of || null,
+    reactions: reactionCounts, my_reactions: myReacts,
+    awards: await (async () => {
+      const { data: aw } = await sb.from("community_awards").select("kind").eq("post_id", postId);
+      const m: Record<string, number> = {};
+      for (const a of (aw || []) as { kind: string }[]) m[a.kind] = (m[a.kind] || 0) + 1;
+      return m;
+    })(),
   };
 
   const { data: cData } = await sb.from("comments")

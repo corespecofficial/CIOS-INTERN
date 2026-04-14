@@ -33,6 +33,9 @@ export function Header() {
   return (
     <header
       style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
         height: 56,
         minHeight: 56,
         display: "flex",

@@ -1,15 +1,18 @@
 import { listFeedPosts, listCommunities, getCurrentDbUser, getTopContributors } from "@/lib/db";
+import { listTrendingTags } from "@/app/actions/community";
 import { CommunityClient } from "./community-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function CommunityPage() {
-  const [me, posts, groups, top] = await Promise.all([
+  const [me, posts, groups, top, trendingR] = await Promise.all([
     getCurrentDbUser(),
     listFeedPosts("new"),
     listCommunities(),
     getTopContributors(8),
+    listTrendingTags(),
   ]);
+  const trending = trendingR.ok ? trendingR.data || [] : [];
 
   return (
     <CommunityClient
@@ -17,6 +20,7 @@ export default async function CommunityPage() {
       initialPosts={posts}
       groups={groups}
       topContributors={top}
+      trending={trending}
     />
   );
 }

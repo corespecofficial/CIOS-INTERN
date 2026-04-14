@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useState } from "react";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const tabItems = ["Daily", "Weekly", "Assignments"];
 
@@ -116,9 +117,9 @@ export default function TasksClient({
 
       {/* Task Items */}
       {activeTab === "Daily" && tasks.length === 0 && (
-        <div style={{ background: "#111827", borderRadius: 12, padding: 20, color: "#8892A4", fontSize: 14 }}>
-          No tasks assigned yet. Check back soon.
-        </div>
+        <EmptyState icon="📋" title="No tasks yet"
+          hint="Your instructor will post assignments here. Meanwhile, warm up in the classroom or practice with AI Hub."
+          action="/classroom" actionLabel="Open classroom" />
       )}
       {activeTab === "Daily" && tasks.length > 0 && (
         <div>

@@ -168,6 +168,7 @@ export function Sidebar() {
 
   return (
     <aside
+      data-tour="sidebar"
       style={{
         width: sidebarWidth,
         minWidth: sidebarWidth,

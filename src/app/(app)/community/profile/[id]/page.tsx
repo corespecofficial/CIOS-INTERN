@@ -1,8 +1,10 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { supabaseAdmin } from "@/lib/db";
+import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
 import { getAllBadgesWithOwnership, levelProgress, rankFromLevel, formatXP } from "@/lib/gamification";
+import { KudosButton } from "@/components/community/kudos-button";
+import { TestimonialsSection } from "@/components/community/testimonials";
 
 export const dynamic = "force-dynamic";
 
@@ -12,16 +14,26 @@ export default async function CommunityProfilePage({ params }: { params: Promise
 
   const { data: u } = await admin
     .from("users")
-    .select("id, name, avatar_url, role, bio, headline, location, xp, level, streak, reputation, created_at, intern_id")
+    .select("id, name, avatar_url, role, bio, headline, location, skills, xp, level, streak, reputation, created_at, intern_id")
     .eq("id", id)
     .maybeSingle();
   if (!u) notFound();
+  const me = await getCurrentDbUser();
 
-  const [postsRes, commentsRes, badges] = await Promise.all([
-    admin.from("posts").select("id, title, upvotes, created_at").eq("author_id", id).eq("is_deleted", false).order("created_at", { ascending: false }).limit(10),
+  const [postsRes, commentsRes, badges, coursesRes] = await Promise.all([
+    admin.from("posts").select("id, title, upvotes, created_at").eq("author_id", id).eq("is_deleted", false).order("upvotes", { ascending: false }).limit(10),
     admin.from("comments").select("id, body, post_id, upvotes, brilliant_label, created_at").eq("author_id", id).eq("is_deleted", false).order("created_at", { ascending: false }).limit(10),
     getAllBadgesWithOwnership(id).catch(() => []),
+    admin.from("enrollments")
+      .select("progress, completed_at, courses:course_id (id, title)")
+      .eq("user_id", id).not("completed_at", "is", null)
+      .order("completed_at", { ascending: false }).limit(6),
   ]);
+  type EnrollmentRow = { progress: number; completed_at: string | null; courses: { id: string; title: string } | { id: string; title: string }[] | null };
+  const completedCourses = ((coursesRes.data || []) as EnrollmentRow[]).map((e) => {
+    const c = Array.isArray(e.courses) ? e.courses[0] : e.courses;
+    return c ? { id: c.id, title: c.title, completedAt: e.completed_at } : null;
+  }).filter((x): x is { id: string; title: string; completedAt: string | null } => !!x);
 
   const earned = badges.filter((b) => !b.locked);
   const progress = levelProgress(u.xp || 0);
@@ -43,12 +55,22 @@ export default async function CommunityProfilePage({ params }: { params: Promise
             {u.headline || u.role?.replace("_", " ")} {u.location && `· ${u.location}`} · Joined {joined}
           </div>
           {u.bio && <p style={{ fontSize: 13, color: "#E8EDF5", marginTop: 10, lineHeight: 1.6 }}>{u.bio}</p>}
+          {Array.isArray(u.skills) && u.skills.length > 0 && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+              {(u.skills as string[]).slice(0, 12).map((s) => (
+                <span key={s} style={{ fontSize: 10, padding: "3px 8px", background: "rgba(30,136,229,0.12)", color: "#1E88E5", border: "1px solid rgba(30,136,229,0.25)", borderRadius: 999, fontWeight: 700 }}>#{s}</span>
+              ))}
+            </div>
+          )}
           <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
             <Stat label="Level" value={progress.level} />
             <Stat label="XP" value={formatXP(u.xp || 0)} />
             <Stat label="Streak" value={`${u.streak || 0}d`} />
             <Stat label="Reputation" value={u.reputation || 0} />
             <Stat label="Badges" value={earned.length} />
+          </div>
+          <div style={{ marginTop: 10 }}>
+            <KudosButton userId={u.id} meId={me?.id || null} />
           </div>
         </div>
       </div>
@@ -81,6 +103,27 @@ export default async function CommunityProfilePage({ params }: { params: Promise
             </Link>
           ))}
         </section>
+      </div>
+
+      {/* Completed courses */}
+      {completedCourses.length > 0 && (
+        <section style={{ ...panel, marginTop: 16 }}>
+          <h2 style={sectionHeader}>🎓 Courses completed ({completedCourses.length})</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
+            {completedCourses.map((c) => (
+              <Link key={c.id} href={`/courses/${c.id}`} style={{ display: "block", background: "#0A0E1A", border: "1px solid rgba(102,187,106,0.2)", borderRadius: 10, padding: 12, textDecoration: "none" }}>
+                <div style={{ fontSize: 10, color: "#66BB6A", fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.5 }}>✓ Completed</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#E8EDF5", marginTop: 4 }}>{c.title}</div>
+                {c.completedAt && <div style={{ fontSize: 10, color: "#8892A4", marginTop: 2 }}>{new Date(c.completedAt).toLocaleDateString(undefined, { month: "short", year: "numeric" })}</div>}
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Testimonials */}
+      <div style={{ marginTop: 16 }}>
+        <TestimonialsSection subjectId={u.id} meId={me?.id || null} subjectName={u.name} />
       </div>
 
       {/* Badges */}

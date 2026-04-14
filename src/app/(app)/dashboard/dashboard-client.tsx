@@ -9,6 +9,10 @@ import { StreakFreezeCard } from "@/components/engagement/streak-freeze-card";
 import { RankProgressPill } from "@/components/engagement/rank-progress-pill";
 import { useCurrentUser } from "@/lib/use-current-user";
 import { AdminDashboard } from "./admin-dashboard";
+import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
+import { StreakNudge } from "@/components/engagement/streak-nudge";
+import { ResumeCard } from "@/components/engagement/resume-card";
+import { WeeklyRecapCard } from "@/components/engagement/weekly-recap-card";
 import {
   SuperAdminDashboard,
   TeamLeadDashboard,
@@ -100,6 +104,11 @@ function InternDashboard({ stats }: { stats: InternStats }) {
 
   return (
     <div style={{ fontFamily: "'Inter', 'Space Grotesk', sans-serif" }}>
+      <OnboardingTour />
+
+      <WeeklyRecapCard />
+      <ResumeCard />
+      <StreakNudge streak={stats.streak} />
 
       {/* ── 1. Welcome Banner ── */}
       <div
