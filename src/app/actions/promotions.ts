@@ -12,9 +12,9 @@ export interface PromotionRecommendation {
   user_id: string;
   user_name: string | null;
   user_avatar: string | null;
-  current_role: string;
-  current_rank: string;
-  recommended_rank: string;
+  from_role: string;
+  from_rank: string;
+  to_rank: string;
   readiness_score: number;
   reason: string;
   status: "pending" | "approved" | "rejected";
@@ -91,10 +91,10 @@ export async function scanForPromotions(): Promise<R<{ created: number; scanned:
 
       await sb.from("promotion_recommendations").insert({
         user_id: u.id,
-        current_role: u.role,
-        current_rank: rankFromLevel(u.level || 1).title,
-        recommended_role: next,
-        recommended_rank: rankFromLevel(Math.max((u.level || 1) + 1, 3)).title,
+        from_role: u.role,
+        from_rank: rankFromLevel(u.level || 1).title,
+        to_role: next,
+        to_rank: rankFromLevel(Math.max((u.level || 1) + 1, 3)).title,
         readiness_score: score,
         reason,
         status: "pending",
@@ -137,18 +137,19 @@ export async function approvePromotion(id: string): Promise<R> {
     const me = await requireAdmin();
     const sb = supabaseAdmin();
     const { data: rec } = await sb.from("promotion_recommendations")
-      .select("user_id, recommended_role, recommended_rank")
+      .select("user_id, to_role, to_rank")
       .eq("id", id).eq("status", "pending").maybeSingle();
     if (!rec) return { ok: false, error: "Recommendation not found" };
-    await sb.from("users").update({ role: (rec as { recommended_role: string }).recommended_role }).eq("id", (rec as { user_id: string }).user_id);
+    const r = rec as { user_id: string; to_role: string; to_rank: string };
+    await sb.from("users").update({ role: r.to_role }).eq("id", r.user_id);
     await sb.from("promotion_recommendations").update({
       status: "approved", reviewed_by: me.id, reviewed_at: new Date().toISOString(),
     }).eq("id", id);
     pushNotification({
-      userId: (rec as { user_id: string }).user_id,
+      userId: r.user_id,
       kind: "achievement",
-      title: `🎉 You've been promoted to ${(rec as { recommended_rank: string }).recommended_rank}!`,
-      body: `Approved by ${me.name}. New role: ${(rec as { recommended_role: string }).recommended_role.replace(/_/g, " ")}.`,
+      title: `🎉 You've been promoted to ${r.to_rank}!`,
+      body: `Approved by ${me.name}. New role: ${r.to_role.replace(/_/g, " ")}.`,
       url: "/gamification",
     }).catch(() => {});
     revalidatePath("/admin/promotions");
