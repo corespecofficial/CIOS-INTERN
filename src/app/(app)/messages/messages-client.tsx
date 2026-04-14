@@ -292,20 +292,35 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
     tick();
     const i = setInterval(tick, 6000); // refresh ticks every 6s while chat open
     return () => { cancelled = true; clearInterval(i); };
-  }, [myMessageIds.length, activeRoomId, mergeStatuses]);
+    // mergeStatuses is stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myMessageIds.length, activeRoomId]);
 
   // Realtime message listener
   useEffect(() => {
     const off = onMessage((m: InboundMessage) => {
       if (m.kind === "new") {
+        // Look up sender display info so the avatar isn't a '?' for realtime messages.
+        // In direct rooms the other user's info is on activeRoom. For me it's `me`.
+        // For groups, we fall back to null and the DB fetch will fill it in later.
+        const amSender = m.senderId === me.id || m.senderId === me.clerkId;
+        let senderName: string | null = null;
+        let senderAvatar: string | null = null;
+        if (amSender) {
+          senderName = me.name;
+          senderAvatar = me.avatarUrl || null;
+        } else if (activeRoom?.type === "direct") {
+          senderName = activeRoom.other_user_name;
+          senderAvatar = activeRoom.other_user_avatar;
+        }
         setMessages((prev) => {
           if (prev.some((x) => x.id === m.id)) return prev;
           const newMsg: DbMessage = {
             id: m.id,
             chat_room_id: activeRoomId || "",
             sender_id: m.senderId,
-            sender_name: null,
-            sender_avatar: null,
+            sender_name: senderName,
+            sender_avatar: senderAvatar,
             content: m.content,
             message_type: (m.messageType || "text") as DbMessage["message_type"],
             reply_to_id: m.replyToId || null,
@@ -342,7 +357,9 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
       }
     });
     return off;
-  }, [onMessage, activeRoomId, me.clerkId, mergeStatuses]);
+    // mergeStatuses is a stable useCallback with empty deps; safe to omit
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onMessage, activeRoomId, me.clerkId]);
 
   // Auto-scroll to bottom on new message
   useEffect(() => {
@@ -800,6 +817,8 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
                     mine={mine}
                     showAvatar={!sameSender}
                     meId={me.id}
+                    fallbackAvatar={!mine && activeRoom?.type === "direct" ? activeRoom.other_user_avatar : null}
+                    fallbackName={!mine && activeRoom?.type === "direct" ? activeRoom.other_user_name : null}
                     status={mine ? (statusMap[m.id] || "sent") : undefined}
                     onReply={() => setReplyTo(m)}
                     onEdit={mine && !m.is_deleted ? () => { setEditing(m); setDraft(m.content); } : undefined}
@@ -1066,12 +1085,14 @@ function Avatar({ size, name, url, id }: { size: number; name: string; url: stri
 }
 
 function MessageBubble({
-  msg, mine, showAvatar, meId, status,
+  msg, mine, showAvatar, meId, status, fallbackAvatar, fallbackName,
   onReply, onEdit, onDelete, onCopy, onReact, onStar, onForward, onBlockSender,
   menuOpen, onToggleMenu,
 }: {
   msg: DbMessage; mine: boolean; showAvatar: boolean; meId: string;
   status?: MessageStatus;
+  fallbackAvatar?: string | null;
+  fallbackName?: string | null;
   onReply: () => void;
   onEdit?: () => void;
   onDelete: (forEveryone: boolean) => void;
@@ -1093,7 +1114,14 @@ function MessageBubble({
     }}>
       {!mine && (
         <div style={{ width: 32, flexShrink: 0 }}>
-          {showAvatar && <Avatar size={32} name={msg.sender_name || "?"} url={msg.sender_avatar} id={msg.sender_id} />}
+          {showAvatar && (
+            <Avatar
+              size={32}
+              name={msg.sender_name || fallbackName || "User"}
+              url={msg.sender_avatar || fallbackAvatar || null}
+              id={msg.sender_id}
+            />
+          )}
         </div>
       )}
       <div style={{ maxWidth: "70%", position: "relative" }}>
