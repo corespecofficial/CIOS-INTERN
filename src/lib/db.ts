@@ -415,9 +415,31 @@ export async function listFeedPosts(sort: FeedSort = "new", communityId?: string
   // Admin client — the feed is a shared public timeline; RLS was hiding
   // posts authored by other users from non-creators.
   const sb = supabaseAdmin();
+
+  // Privacy filter — users only see posts from public + non-suspended groups,
+  // unless they are a member of the private group. Admin client bypasses RLS
+  // so we enforce this here.
+  let visibleCommunityIds: string[] | null = null;
+  {
+    const { data: all } = await sb.from("communities")
+      .select("id, is_private, suspended_at");
+    const rows = (all || []) as { id: string; is_private: boolean; suspended_at: string | null }[];
+    const memberships = new Set<string>();
+    if (me) {
+      const { data: m } = await sb.from("community_members").select("community_id").eq("user_id", me.id);
+      for (const r of (m || []) as { community_id: string }[]) memberships.add(r.community_id);
+    }
+    visibleCommunityIds = rows
+      .filter((r) => !r.suspended_at && (!r.is_private || memberships.has(r.id)))
+      .map((r) => r.id);
+  }
+
   let query = sb.from("posts")
     .select("id, community_id, author_id, title, content, type, image_url, link_url, video_url, upvotes, downvotes, score, comment_count, is_pinned, is_question, solved_comment_id, tags, created_at, is_deleted, is_locked, is_nsfw, is_spoiler, crosspost_of, author:users!posts_author_id_fkey(name, avatar_url, reputation), community:communities!posts_community_id_fkey(name)")
     .eq("is_deleted", false);
+
+  if (visibleCommunityIds.length === 0) return [];
+  query = query.in("community_id", visibleCommunityIds);
 
   if (communityId) query = query.eq("community_id", communityId);
 
@@ -549,6 +571,18 @@ export async function getPostDetail(postId: string): Promise<{ post: FeedPost | 
     .select("id, community_id, author_id, title, content, type, image_url, link_url, video_url, upvotes, downvotes, score, comment_count, is_pinned, is_question, solved_comment_id, tags, created_at, is_deleted, is_locked, is_nsfw, is_spoiler, crosspost_of, author:users!posts_author_id_fkey(name, avatar_url, reputation), community:communities!posts_community_id_fkey(name)")
     .eq("id", postId).maybeSingle();
   if (!p || (p as { is_deleted?: boolean }).is_deleted) return { post: null, comments: [] };
+
+  // Enforce privacy + suspension at the post-detail level too
+  const { data: comm } = await sb.from("communities")
+    .select("is_private, suspended_at").eq("id", (p as { community_id: string }).community_id).maybeSingle();
+  if (comm?.suspended_at) return { post: null, comments: [] };
+  if (comm?.is_private) {
+    if (!me) return { post: null, comments: [] };
+    const { data: mem } = await sb.from("community_members").select("id").eq("community_id", (p as { community_id: string }).community_id).eq("user_id", me.id).maybeSingle();
+    if (!mem && me.role !== "admin" && me.role !== "super_admin" && me.role !== "moderator") {
+      return { post: null, comments: [] };
+    }
+  }
 
   type PR = { id: string; community_id: string; author_id: string; title: string; content: string; type: string; image_url: string | null; link_url: string | null; upvotes: number; downvotes: number; score: number; comment_count: number; is_pinned: boolean; is_question: boolean; is_locked?: boolean; is_nsfw?: boolean; is_spoiler?: boolean; crosspost_of?: string | null; solved_comment_id: string | null; tags: string[]; created_at: string; author?: { name?: string; avatar_url?: string | null; reputation?: number } | { name?: string; avatar_url?: string | null; reputation?: number }[] | null; community?: { name?: string } | { name?: string }[] | null };
   const r = p as unknown as PR;

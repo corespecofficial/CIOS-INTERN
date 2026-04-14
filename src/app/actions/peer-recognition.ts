@@ -3,6 +3,7 @@
 import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { pushNotification } from "@/app/actions/notifications";
+import { checkLimit } from "@/lib/rate-limit";
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -18,6 +19,8 @@ export async function toggleKudos(receiverId: string): Promise<R<{ given: boolea
   try {
     const me = await requireMe();
     if (me.id === receiverId) return { ok: false, error: "Can't kudos yourself" };
+    const limit = checkLimit(me.id, "kudos");
+    if (!limit.ok) return { ok: false, error: limit.error };
     const sb = supabaseAdmin();
     const { data: existing } = await sb.from("peer_kudos")
       .select("id").eq("giver_id", me.id).eq("receiver_id", receiverId).maybeSingle();

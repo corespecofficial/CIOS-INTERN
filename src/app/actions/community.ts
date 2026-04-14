@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { pushNotification } from "@/app/actions/notifications";
 import { awardXP } from "@/lib/gamification";
 import Ably from "ably";
+import { checkLimit } from "@/lib/rate-limit";
 
 let ablyRest: Ably.Rest | null = null;
 function getAblyRest(): Ably.Rest | null {
@@ -207,6 +208,8 @@ async function updateUserReputation(userId: string, delta: number) {
 export async function votePost(postId: string, voteType: "up" | "down"): Promise<Result<{ up: number; down: number; score: number; myVote: "up" | "down" | null }>> {
   try {
     const me = await requireMe();
+    const limit = checkLimit(me.id, "reaction");
+    if (!limit.ok) return { ok: false, error: limit.error };
     const sb = supabaseAdmin();
     const { data: existing } = await sb.from("post_votes")
       .select("id, vote_type").eq("post_id", postId).eq("user_id", me.id).maybeSingle();
@@ -251,6 +254,8 @@ export async function votePost(postId: string, voteType: "up" | "down"): Promise
 export async function voteComment(commentId: string, voteType: "up" | "down"): Promise<Result<{ up: number; down: number; myVote: "up" | "down" | null }>> {
   try {
     const me = await requireMe();
+    const limit = checkLimit(me.id, "reaction");
+    if (!limit.ok) return { ok: false, error: limit.error };
     const sb = supabaseAdmin();
     const { data: existing } = await sb.from("comment_votes")
       .select("id, vote_type").eq("comment_id", commentId).eq("user_id", me.id).maybeSingle();
@@ -308,7 +313,12 @@ export async function addComment(input: { postId: string; parentId?: string | nu
   try {
     const me = await requireMe();
     if (!input.content.trim()) return { ok: false, error: "Empty comment" };
+    const limit = checkLimit(me.id, "comment");
+    if (!limit.ok) return { ok: false, error: limit.error };
     const sb = supabaseAdmin();
+    // Block comments on locked posts
+    const { data: postLocked } = await sb.from("posts").select("is_locked").eq("id", input.postId).maybeSingle();
+    if (postLocked?.is_locked) return { ok: false, error: "This post is locked — no new comments." };
     const { data, error } = await sb.from("comments").insert({
       post_id: input.postId,
       parent_id: input.parentId || null,
@@ -466,6 +476,8 @@ export async function reportContent(input: { postId?: string; commentId?: string
     const me = await requireMe();
     if (!input.reason.trim()) return { ok: false, error: "Reason required" };
     if (!input.postId && !input.commentId) return { ok: false, error: "Nothing to report" };
+    const limit = checkLimit(me.id, "report");
+    if (!limit.ok) return { ok: false, error: limit.error };
     await supabaseAdmin().from("post_reports").insert({
       post_id: input.postId || null,
       comment_id: input.commentId || null,
@@ -486,6 +498,8 @@ export async function togglePostReaction(postId: string, emoji: string): Promise
   try {
     const me = await requireMe();
     if (!REACTION_EMOJIS.includes(emoji as ReactionEmoji)) return { ok: false, error: "Invalid reaction" };
+    const limit = checkLimit(me.id, "reaction");
+    if (!limit.ok) return { ok: false, error: limit.error };
     const sb = supabaseAdmin();
     const { data: existing } = await sb.from("post_reactions")
       .select("id").eq("post_id", postId).eq("user_id", me.id).eq("emoji", emoji).maybeSingle();
@@ -660,6 +674,8 @@ export async function giveAward(input: {
 }): Promise<Result<{ remaining: number; awards: Record<string, number> }>> {
   try {
     const me = await requireMe();
+    const limit = checkLimit(me.id, "award");
+    if (!limit.ok) return { ok: false, error: limit.error };
     const cost = AWARD_COSTS[input.kind];
     if (!cost) return { ok: false, error: "Invalid award" };
     if ((me.reputation || 0) < cost) return { ok: false, error: `Need ${cost} rep; you have ${me.reputation || 0}` };
