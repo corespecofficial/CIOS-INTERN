@@ -17,6 +17,8 @@ export type LiveProvider =
   | "google-meet"
   | "google-classroom"
   | "zoom"
+  | "whatsapp-video"
+  | "whatsapp-voice"
   | "generic";
 
 export interface LiveEmbed {
@@ -116,6 +118,21 @@ export function parseLiveEmbed(raw: string | null | undefined): LiveEmbed | null
       directOnly: true,
       label: "Zoom",
     };
+  }
+
+  // ── WhatsApp call links (call.whatsapp.com/voice|video/SLUG) ──
+  if (host === "call.whatsapp.com") {
+    const isVideo = u.pathname.startsWith("/video/");
+    const isVoice = u.pathname.startsWith("/voice/");
+    if (isVideo || isVoice) {
+      return {
+        provider: isVideo ? "whatsapp-video" : "whatsapp-voice",
+        embedUrl: null,
+        directUrl: input,
+        directOnly: true,
+        label: isVideo ? "WhatsApp video call" : "WhatsApp voice call",
+      };
+    }
   }
 
   // Fallback — allow any URL, launch-only

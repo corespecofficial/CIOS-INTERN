@@ -14,6 +14,8 @@ const PROVIDER_BADGE: Record<string, { label: string; color: string }> = {
   "google-meet":       { label: "Google Meet",       color: "#00897B" },
   "google-classroom":  { label: "Google Classroom",  color: "#1E88E5" },
   "zoom":              { label: "Zoom",              color: "#2D8CFF" },
+  "whatsapp-video":    { label: "WhatsApp video",    color: "#25D366" },
+  "whatsapp-voice":    { label: "WhatsApp voice",    color: "#25D366" },
   "generic":           { label: "Stream",            color: "#8892A4" },
 };
 
@@ -117,7 +119,7 @@ function CreateForm({ onCreated }: { onCreated: (row: LiveSessionRow) => void })
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Session title" style={input} maxLength={120} />
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Short description (optional)" rows={2} style={{ ...input, resize: "vertical" }} />
-        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste stream URL — YouTube Live, Twitch, TikTok Live, Google Meet, Classroom, or Zoom" style={input} />
+        <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="Paste link — YouTube Live, Twitch, TikTok Live, Google Meet, Classroom, Zoom, or WhatsApp call (call.whatsapp.com/voice|video/...)" style={input} />
         {parsed ? (
           <div style={{ fontSize: 11, color: "#66BB6A" }}>✓ Detected: {parsed.label}{parsed.directOnly ? " · launch-only (embed not supported by provider)" : " · embeds in-page"}</div>
         ) : url ? (
