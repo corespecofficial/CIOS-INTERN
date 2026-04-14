@@ -143,7 +143,10 @@ export function Sidebar() {
       try { const b = await getSidebarBadges(); if (!cancelled) setBadges(b); } catch {}
     };
     refresh();
-    const i = setInterval(refresh, 60_000);
+    // 3-minute poll for sidebar unread badges. Focus listener below picks up
+    // anything urgent the moment the tab is re-focused. Was 60s — too chatty
+    // for Vercel Hobby when multiple students are browsing.
+    const i = setInterval(refresh, 180_000);
     const onFocus = () => refresh();
     window.addEventListener("focus", onFocus);
     return () => { cancelled = true; clearInterval(i); window.removeEventListener("focus", onFocus); };

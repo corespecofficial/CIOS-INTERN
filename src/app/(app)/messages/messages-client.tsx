@@ -303,7 +303,11 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
       if (!cancelled && r.ok) mergeStatuses(r.data!);
     };
     tick();
-    const i = setInterval(tick, 6000); // refresh ticks every 6s while chat open
+    // 30s fallback poll. The happy path is Ably realtime 'read'/'delivered'
+    // events that update ticks instantly — this just reconciles after network
+    // blips. A 6s interval was burning ~600 server calls per user per hour on
+    // the Vercel Hobby tier; 30s cuts that 5× without user-visible delay.
+    const i = setInterval(tick, 30_000);
     return () => { cancelled = true; clearInterval(i); };
     // mergeStatuses is stable
     // eslint-disable-next-line react-hooks/exhaustive-deps

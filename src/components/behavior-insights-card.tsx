@@ -22,7 +22,10 @@ function formatHour(h: number): string {
   return `${h12} ${ampm}`;
 }
 
-export function BehaviorInsightsCard({ refreshMs = 60_000 }: { refreshMs?: number }) {
+export function BehaviorInsightsCard({ refreshMs = 300_000 }: { refreshMs?: number }) {
+  // 5-minute refresh (was 60s). Performance analytics don't change that fast —
+  // a user browsing the page for 20 min used to trigger 20 server-action calls;
+  // now it's 4. Saves significant Vercel Hobby invocation quota.
   const [data, setData] = useState<BehaviorInsights | null>(null);
   const [lastRefresh, setLastRefresh] = useState<number>(Date.now());
 
