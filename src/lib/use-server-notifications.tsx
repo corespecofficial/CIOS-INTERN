@@ -168,15 +168,29 @@ export function useServerNotifications(currentClerkId: string | null) {
 
         const priority = priorityOf(d.type);
         const routeSuppressed = isRouteSuppressed(pathRef.current, d.type);
-        const muted = prefs.mutedCategories.includes(d.type) || isQuietNow(prefs);
+        const categoryMuted = prefs.mutedCategories.includes(d.type);
+        const quiet = isQuietNow(prefs);
+        const muted = categoryMuted || quiet;
         const criticalOverride = priority === "critical"; // Critical always toasts/sounds
 
-        // Browser desktop notification (when tab is hidden)
-        if (!muted || criticalOverride) {
+        // Browser OS notification + sound — fire whenever the user hasn't
+        // EXPLICITLY muted this category. Quiet-hours is the OS's job (macOS
+        // Focus, Windows Focus Assist, Android DND). Muting at the app level
+        // means users miss every notification after 22:00 — not the intent.
+        if (!categoryMuted || criticalOverride) {
           showBrowserNotification(d.title, d.message || "", d.actionUrl);
+          if (prefs.soundOn || criticalOverride) playChime(priority);
+          if ("vibrate" in navigator) {
+            try {
+              if (priority === "critical") navigator.vibrate([200, 100, 200, 100, 400]);
+              else if (priority === "important") navigator.vibrate([150]);
+              else navigator.vibrate(60); // gentle tick for normal messages
+            } catch {}
+          }
         }
 
-        // In-app toast
+        // In-app toast — honours full mute (including quiet hours). OS notif
+        // above covers the "wake me up" case; the toast is noise inside the app.
         if ((!muted && !routeSuppressed && prefs.toastsOn) || criticalOverride) {
           const icon = iconFor(d.type);
           const color = colorFor(d.type);
@@ -205,9 +219,8 @@ export function useServerNotifications(currentClerkId: string | null) {
               </div>
             </div>
           ), { duration: priority === "critical" ? 8000 : priority === "important" ? 5500 : 4500 });
-          if (prefs.soundOn || criticalOverride) playChime(priority);
-          if ("vibrate" in navigator && priority === "critical") { try { navigator.vibrate([200, 100, 200, 100, 400]); } catch {} }
-          else if ("vibrate" in navigator && priority === "important") { try { navigator.vibrate([150]); } catch {} }
+          // Sound + vibrate are fired above alongside the OS notification so
+          // they trigger even when the toast is muted.
         }
       });
     })();
