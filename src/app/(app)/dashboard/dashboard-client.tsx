@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAppStore } from "@/store/use-app-store";
+import { PromotionProgressCard } from "@/components/promotion-progress-card";
 import { useCurrentUser } from "@/lib/use-current-user";
 import { AdminDashboard } from "./admin-dashboard";
 import {
@@ -132,6 +133,11 @@ function InternDashboard({ stats }: { stats: InternStats }) {
             You are on a <span style={{ color: "#FF7043", fontWeight: 700 }}>{stats.streak}</span>-day streak! Keep pushing forward.
           </div>
         </div>
+      </div>
+
+      {/* Promotion readiness (real-time score from performance / streak / tasks) */}
+      <div style={{ marginBottom: 20 }}>
+        <PromotionProgressCard />
       </div>
 
       {/* ── 2. Promotion Ladder ── */}

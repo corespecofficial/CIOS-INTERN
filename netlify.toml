@@ -22,6 +22,9 @@
 [functions."daily-digest-cron"]
   schedule = "0 8 * * *"
 
+[functions."scan-promotions-cron"]
+  schedule = "0 2 * * *"
+
 # ───────────────────────────────────────
 # Headers
 # ───────────────────────────────────────

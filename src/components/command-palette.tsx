@@ -53,6 +53,8 @@ const COMMANDS: Cmd[] = [
   { id: "settings", label: "Settings", emoji: "⚙️", href: "/settings", group: "Navigate" },
   { id: "profile", label: "Profile", emoji: "👤", href: "/profile", group: "Navigate" },
   { id: "help", label: "Help & Support", emoji: "💬", href: "/help", group: "Navigate", keywords: "faq ticket contact" },
+  { id: "admin-promos", label: "Admin · Promotion queue", emoji: "🎖", href: "/admin/promotions", group: "Navigate", keywords: "promote rank admin" },
+  { id: "admin-integ", label: "Admin · Integrations", emoji: "🔌", href: "/admin/integrations", group: "Navigate", keywords: "webhooks api tokens" },
 
   { id: "new-task", label: "New task", emoji: "➕", href: "/tasks?new=1", group: "Quick action" },
   { id: "new-event", label: "New calendar event", emoji: "➕", href: "/calendar?new=1", group: "Quick action" },
