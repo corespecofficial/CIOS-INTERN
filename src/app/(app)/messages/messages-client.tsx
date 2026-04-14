@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import type { RoomListItem, DirectoryUser, DbMessage, StatusRow } from "@/lib/db";
 import {
@@ -137,6 +138,35 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
   const activeRoom = rooms.find((r) => r.id === activeRoomId) || null;
   const onlineIds = useGlobalPresence(me.clerkId);
   const { presence, onMessage, publishMessage, publishTyping } = useChatRealtime(activeRoomId, me.clerkId);
+
+  // Deep-link support: /messages?to=USER_ID → open or create that DM.
+  // Used by /messages/contacts and anywhere else that links to a conversation.
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const to = searchParams?.get("to");
+    if (!to) return;
+    let cancelled = false;
+    (async () => {
+      // If we already have a DM with this user in the list, just open it.
+      const existing = rooms.find((r) => r.type === "direct" && r.other_user_id === to);
+      if (existing) { if (!cancelled) setActiveRoomId(existing.id); return; }
+      // Otherwise ask the server to get-or-create
+      const r = await saDirect(to);
+      if (cancelled) return;
+      if (!r.ok) {
+        toast((t) => (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+            <span>{r.error}</span>
+            <a href="/messages/contacts" onClick={() => toast.dismiss(t.id)} style={{ color: "#1E88E5", fontWeight: 700, textDecoration: "underline" }}>Fix →</a>
+          </span>
+        ), { duration: 6000, icon: "🔒" });
+        return;
+      }
+      setActiveRoomId(r.data!.roomId);
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Fetch messages when active room changes — with localStorage cache + delta sync
   useEffect(() => {

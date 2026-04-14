@@ -65,7 +65,7 @@ export function ContactsClient({ initial, myRole }: { initial: Contact[]; myRole
         {filtered.map((c) => {
           const online = isOnline(c.lastSeen);
           return (
-            <Link key={c.id} href={`/messages/${c.id}`} style={{
+            <Link key={c.id} href={`/messages?to=${c.id}`} style={{
               display: "flex", gap: 12, alignItems: "center",
               padding: 14, background: "#111827", border: "1px solid rgba(255,255,255,0.06)",
               borderRadius: 12, textDecoration: "none", color: "inherit",
