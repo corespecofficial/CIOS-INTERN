@@ -54,18 +54,24 @@ export function SyncBadge({ status }: { status: SyncStatus }) {
     status === "offline" ? { label: "Offline",  color: "#EF5350", dot: "#EF5350", spin: false } :
                            { label: "Saved",    color: "#66BB6A", dot: "#66BB6A", spin: false };
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: 8,
+    <div className="cios-sync-badge" style={{
+      display: "flex", alignItems: "center", gap: 8, flexShrink: 0,
       padding: "6px 12px", borderRadius: 999,
       background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)",
       color: cfg.color, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap",
     }}>
       <span style={{
         width: 8, height: 8, borderRadius: "50%", background: cfg.dot,
-        animation: cfg.spin ? "cios-pulse 1s infinite" : "none",
+        animation: cfg.spin ? "cios-pulse 1s infinite" : "none", flexShrink: 0,
       }} />
-      {cfg.label}
-      <style>{`@keyframes cios-pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.35 } }`}</style>
+      <span className="cios-sync-badge-label">{cfg.label}</span>
+      <style>{`
+        @keyframes cios-pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.35 } }
+        @media (max-width: 680px) {
+          .cios-sync-badge { padding: 6px 8px; }
+          .cios-sync-badge-label { display: none; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -111,10 +117,31 @@ export function EditorShell({ accent, topBar, content, bottomBar }: {
             height: 100dvh !important;
           }
         }
+        @media (max-width: 680px) {
+          .notes-editor-topbar {
+            flex-wrap: wrap !important;
+            gap: 4px !important;
+            padding: 8px 8px !important;
+          }
+          .notes-editor-topbar > button,
+          .notes-editor-topbar > a {
+            flex-shrink: 0 !important;
+            width: 36px !important;
+            height: 36px !important;
+            font-size: 16px !important;
+          }
+          .notes-editor-topbar > input {
+            flex: 1 1 100% !important;
+            order: 99;
+            min-width: 0 !important;
+            background: rgba(255,255,255,0.04) !important;
+            padding: 6px 10px !important;
+          }
+        }
       `}</style>
 
       {/* Locked top bar */}
-      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderBottom: "1px solid rgba(255,255,255,0.05)", background: "#0A0E1A", zIndex: 10, borderTop: `3px solid ${accent}` }}>
+      <div className="notes-editor-topbar" style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderBottom: "1px solid rgba(255,255,255,0.05)", background: "#0A0E1A", zIndex: 10, borderTop: `3px solid ${accent}` }}>
         {topBar}
       </div>
 
