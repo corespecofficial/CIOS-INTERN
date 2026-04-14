@@ -58,9 +58,14 @@ export interface EngagementFeatures {
   leaderboards: boolean;
   badges: boolean;
   xpBurst: boolean;
+  peerReview: boolean;
+  teams: boolean;
+  shareCert: boolean;
   questXpBonus: number;
   freezeCostXp: number;
   leaderboardResetDay: number; // 1=Mon..7=Sun ISO
+  teamSize: number;
+  reviewXpReward: number;
 }
 
 export const DEFAULT_ENGAGEMENT_FEATURES: EngagementFeatures = {
@@ -70,7 +75,12 @@ export const DEFAULT_ENGAGEMENT_FEATURES: EngagementFeatures = {
   leaderboards: true,
   badges: true,
   xpBurst: true,
+  peerReview: true,
+  teams: true,
+  shareCert: true,
   questXpBonus: 50,
   freezeCostXp: 200,
   leaderboardResetDay: 1,
+  teamSize: 4,
+  reviewXpReward: 40,
 };

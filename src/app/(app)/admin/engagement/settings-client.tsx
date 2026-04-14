@@ -12,12 +12,17 @@ const FEATURES: Array<{ key: keyof EngagementFeatures; label: string; hint: stri
   { key: "leaderboards", label: "Course leaderboards", hint: "Weekly top-5 XP per course, visible on course pages.", emoji: "🏆" },
   { key: "badges",       label: "Mini-badges",       hint: "Collectable milestone badges shown on profile.",          emoji: "🎖" },
   { key: "xpBurst",      label: "XP burst animation", hint: "Confetti + flying +XP on any XP earn.",                  emoji: "✨" },
+  { key: "peerReview",   label: "Peer review",       hint: "2 random peers auto-review every assignment submission.", emoji: "📝" },
+  { key: "teams",        label: "Team challenges",   hint: "Squads compete weekly on combined XP.",                   emoji: "🏳" },
+  { key: "shareCert",    label: "Shareable certificates", hint: "Public OG image + /c/[slug] share link for every certificate.", emoji: "🔗" },
 ];
 
 const NUMBERS: Array<{ key: keyof EngagementFeatures; label: string; hint: string; min: number; max: number }> = [
   { key: "questXpBonus",        label: "Quest XP bonus",      hint: "XP awarded when an intern claims a completed quest.", min: 0,   max: 500 },
   { key: "freezeCostXp",        label: "Streak freeze cost",  hint: "XP deducted to buy one streak freeze.",                min: 0,   max: 2000 },
   { key: "leaderboardResetDay", label: "Leaderboard reset day", hint: "1=Mon … 7=Sun (ISO day). Weekly reset time is 00:00 UTC.", min: 1, max: 7 },
+  { key: "teamSize",            label: "Team size (max members)", hint: "Upper bound on members per team.", min: 2, max: 12 },
+  { key: "reviewXpReward",      label: "Peer review XP reward",   hint: "XP awarded to a reviewer when they submit thoughtful feedback.", min: 0, max: 300 },
 ];
 
 export function EngagementSettingsClient({ initial }: { initial: EngagementFeatures }) {

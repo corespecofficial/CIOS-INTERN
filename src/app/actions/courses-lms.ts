@@ -311,10 +311,50 @@ export async function submitAssignment(moduleId: string, content: string, fileUr
       { onConflict: "user_id,module_id" }
     ).select("id").single();
     if (error || !data) return { ok: false, error: error?.message || "Submit failed" };
+    // Fire-and-forget peer-review assignment. Safe to fail silently.
+    assignPeerReviewers(data.id, me.id, moduleId).catch(() => {});
     return { ok: true, data: { submissionId: data.id } };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
+}
+
+async function assignPeerReviewers(submissionId: string, submitterId: string, moduleId: string): Promise<void> {
+  const sb = supabaseAdmin();
+  // Check the feature is enabled.
+  const { data: settings } = await sb.from("system_settings").select("value").eq("key", "engagement.features").maybeSingle();
+  let enabled = true;
+  try {
+    const s = settings?.value ? (typeof settings.value === "string" ? JSON.parse(settings.value) : settings.value) : {};
+    enabled = s.peerReview !== false;
+  } catch { enabled = true; }
+  if (!enabled) return;
+
+  const { data: mod } = await sb.from("course_modules").select("course_id").eq("id", moduleId).maybeSingle();
+  if (!mod) return;
+  const courseId = (mod as { course_id: string }).course_id;
+
+  // Skip if reviewers already assigned (e.g. re-submission).
+  const { count } = await sb.from("assignment_peer_reviews")
+    .select("id", { count: "exact", head: true }).eq("submission_id", submissionId);
+  if ((count || 0) > 0) return;
+
+  // Random 2 peers enrolled in the same course, excluding submitter.
+  const { data: peers } = await sb.from("course_enrollments")
+    .select("user_id").eq("course_id", courseId).neq("user_id", submitterId).limit(20);
+  const pool = ((peers || []) as Array<{ user_id: string }>).map((p) => p.user_id);
+  if (pool.length === 0) return;
+  const picks: string[] = [];
+  for (let i = 0; i < 2 && pool.length > 0; i++) {
+    const idx = Math.floor(Math.random() * pool.length);
+    picks.push(pool[idx]);
+    pool.splice(idx, 1);
+  }
+  await sb.from("assignment_peer_reviews").insert(
+    picks.map((reviewerId) => ({
+      submission_id: submissionId, reviewer_id: reviewerId, submitter_id: submitterId, course_id: courseId,
+    })),
+  );
 }
 
 export async function gradeSubmission(submissionId: string, grade: number, feedback: string): Promise<Result> {
@@ -538,8 +578,9 @@ export async function issueCertificate(courseId: string): Promise<Result<{ certi
     if (existing) return { ok: true, data: { certificateNumber: existing.certificate_number } };
 
     const certificateNumber = generateCertNumber();
+    const shareSlug = Math.random().toString(36).slice(2, 12);
     const { error } = await sb.from("certificates").insert({
-      user_id: me.id, course_id: courseId, certificate_number: certificateNumber,
+      user_id: me.id, course_id: courseId, certificate_number: certificateNumber, share_slug: shareSlug,
     });
     if (error) return { ok: false, error: error.message };
     await pushNotification({

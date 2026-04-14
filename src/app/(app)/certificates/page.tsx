@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getMyCertificates } from "@/lib/db";
+import { ShareCertButtons } from "@/components/engagement/share-cert-buttons";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,7 @@ export default async function CertificatesPage() {
                 <a href={`/verify?id=${encodeURIComponent(c.certificateNumber)}`} target="_blank" rel="noopener noreferrer" style={btnGhost}>✓ Verify</a>
                 <Link href={`/courses/${c.courseId}`} style={btnGhost}>View course</Link>
               </div>
+              {c.shareSlug && <ShareCertButtons slug={c.shareSlug} courseTitle={c.courseTitle} />}
             </div>
           ))}
         </div>

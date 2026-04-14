@@ -1028,16 +1028,16 @@ export async function getCourseStudents(courseId: string): Promise<{ userId: str
   });
 }
 
-export async function getMyCertificates(): Promise<{ id: string; certificateNumber: string; courseId: string; courseTitle: string; instructorName: string | null; issuedAt: string }[]> {
+export async function getMyCertificates(): Promise<{ id: string; certificateNumber: string; courseId: string; courseTitle: string; instructorName: string | null; issuedAt: string; shareSlug: string | null }[]> {
   const me = await getCurrentDbUser();
   if (!me) return [];
   const { data } = await supabase()
     .from("certificates")
-    .select("id, certificate_number, issued_at, course:courses!certificates_course_id_fkey(id, title, instructor:users!courses_instructor_id_fkey(name))")
+    .select("id, certificate_number, issued_at, share_slug, course:courses!certificates_course_id_fkey(id, title, instructor:users!courses_instructor_id_fkey(name))")
     .eq("user_id", me.id)
     .order("issued_at", { ascending: false });
   if (!data) return [];
-  return (data as unknown as Array<{ id: string; certificate_number: string; issued_at: string; course?: { id: string; title: string; instructor?: { name?: string } | { name?: string }[] | null } | { id: string; title: string; instructor?: { name?: string } | { name?: string }[] | null }[] | null }>).map((r) => {
+  return (data as unknown as Array<{ id: string; certificate_number: string; issued_at: string; share_slug: string | null; course?: { id: string; title: string; instructor?: { name?: string } | { name?: string }[] | null } | { id: string; title: string; instructor?: { name?: string } | { name?: string }[] | null }[] | null }>).map((r) => {
     const c = Array.isArray(r.course) ? r.course[0] : r.course;
     const instr = c?.instructor ? (Array.isArray(c.instructor) ? c.instructor[0] : c.instructor) : null;
     return {
@@ -1047,6 +1047,7 @@ export async function getMyCertificates(): Promise<{ id: string; certificateNumb
       courseTitle: c?.title || "Course",
       instructorName: instr?.name || null,
       issuedAt: r.issued_at,
+      shareSlug: r.share_slug,
     };
   });
 }
