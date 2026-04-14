@@ -334,24 +334,30 @@ export default function NotesPage() {
   const rt = active ? readingTime(active.html) : 0;
 
   return (
-    <div className="cios-notes-root" style={{ display: "flex", gap: 0, height: "calc(100vh - 110px)", minHeight: 600, fontFamily: "'Nunito', sans-serif" }}>
+    <div className="cios-notes-root" style={{ display: "flex", gap: 14, height: "calc(100vh - 110px)", minHeight: 600, fontFamily: "'Nunito', sans-serif" }}>
       <style>{`
-        .cios-notes-sidebar { width: 280px; flex-shrink: 0; background: #111827; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px 0 0 12px; display: flex; flex-direction: column; overflow: hidden; }
-        .cios-notes-editor { flex: 1; background: #111827; border: 1px solid rgba(255,255,255,0.07); border-left: none; border-radius: 0 12px 12px 0; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
-        .cios-notes-toolbar { display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 14px; border-bottom: 1px solid rgba(255,255,255,0.07); align-items: center; }
-        .cios-notes-tb { background: transparent; border: 1px solid rgba(255,255,255,0.07); color: #E8EDF5; min-width: 32px; height: 30px; padding: 0 8px; border-radius: 6px; font-size: 13px; cursor: pointer; transition: background 0.15s; }
-        .cios-notes-tb:hover { background: rgba(255,255,255,0.06); }
-        .cios-notes-sep { width: 1px; background: rgba(255,255,255,0.1); margin: 4px 4px; height: 22px; }
-        .cios-notes-editor-surface { flex: 1; padding: 36px 56px; overflow-y: auto; outline: none; font-size: 16px; line-height: 1.7; color: #E8EDF5; }
+        .cios-notes-sidebar { width: 300px; flex-shrink: 0; background: #111827; border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; display: flex; flex-direction: column; overflow: hidden; }
+        .cios-notes-editor { flex: 1; background: #111827; border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+        .cios-notes-toolbar { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.07); align-items: center; }
+        .cios-notes-tb { background: transparent; border: 1px solid rgba(255,255,255,0.07); color: #E8EDF5; min-width: 34px; height: 32px; padding: 0 10px; border-radius: 8px; font-size: 13px; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+        .cios-notes-tb:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); }
+        .cios-notes-sep { width: 1px; background: rgba(255,255,255,0.08); margin: 4px 6px; height: 22px; }
+        /* Editor surface — more breathable padding + typography */
+        .cios-notes-editor-surface { flex: 1; padding: 40px 64px 56px; overflow-y: auto; outline: none; font-size: 16px; line-height: 1.75; color: #E8EDF5; max-width: 820px; margin: 0 auto; width: 100%; box-sizing: border-box; }
         .cios-notes-editor-surface:empty:before { content: attr(data-placeholder); color: #5A6478; pointer-events: none; }
-        .cios-notes-editor-surface h1 { font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 800; margin: 18px 0 10px; }
-        .cios-notes-editor-surface h2 { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; margin: 14px 0 8px; }
-        .cios-notes-editor-surface h3 { font-size: 19px; font-weight: 700; margin: 12px 0 6px; }
-        .cios-notes-editor-surface ul, .cios-notes-editor-surface ol { padding-left: 24px; margin: 8px 0; }
-        .cios-notes-editor-surface a { color: #1E88E5; text-decoration: underline; }
-        .cios-notes-editor-surface img { max-width: 100%; border-radius: 8px; }
-        .cios-notes-editor-surface blockquote { border-left: 3px solid #1E88E5; margin: 8px 0; padding: 4px 14px; color: #B0BEC5; }
-        .cios-notes-editor-surface pre { background: #0A0E1A; padding: 12px; border-radius: 8px; overflow-x: auto; }
+        .cios-notes-editor-surface h1 { font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 800; margin: 24px 0 14px; letter-spacing: -0.5px; }
+        .cios-notes-editor-surface h2 { font-family: 'Space Grotesk', sans-serif; font-size: 26px; font-weight: 700; margin: 20px 0 10px; }
+        .cios-notes-editor-surface h3 { font-size: 20px; font-weight: 700; margin: 16px 0 8px; }
+        .cios-notes-editor-surface p { margin: 10px 0; }
+        .cios-notes-editor-surface ul, .cios-notes-editor-surface ol { padding-left: 28px; margin: 12px 0; }
+        .cios-notes-editor-surface li { margin: 4px 0; }
+        .cios-notes-editor-surface a { color: #1E88E5; text-decoration: underline; text-underline-offset: 2px; }
+        .cios-notes-editor-surface img { max-width: 100%; border-radius: 10px; margin: 14px 0; }
+        .cios-notes-editor-surface blockquote { border-left: 3px solid #1E88E5; margin: 14px 0; padding: 8px 18px; color: #B0BEC5; background: rgba(30,136,229,0.04); border-radius: 0 8px 8px 0; }
+        .cios-notes-editor-surface pre { background: #0A0E1A; padding: 16px; border-radius: 10px; overflow-x: auto; margin: 14px 0; border: 1px solid rgba(255,255,255,0.05); }
+        .cios-notes-editor-surface code { background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+        .cios-notes-editor-surface table { border-collapse: collapse; margin: 14px 0; }
+        .cios-notes-editor-surface hr { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 28px 0; }
         .cios-notes-mobile-fab { display: none; }
 
         @media (max-width: 768px) {
@@ -483,10 +489,10 @@ export default function NotesPage() {
               )}
 
               {/* Title row + meta */}
-              <div className="cios-notes-meta" style={{ padding: "14px 24px 6px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <div className="cios-notes-meta" style={{ padding: "18px 32px 10px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                 <button className="cios-notes-mobile-back" onClick={() => setActiveId(null)} aria-label="Back" style={{ background: "transparent", color: "#E8EDF5", border: "none", fontSize: 22, cursor: "pointer", padding: 0 }}>←</button>
-                <button onClick={() => setShowIconPicker(!showIconPicker)} title="Change icon" style={{ background: "transparent", color: "inherit", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 8, padding: "4px 8px", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>{active.icon}</button>
-                <input ref={titleRef} value={active.title} onChange={(e) => updateActive({ title: e.target.value })} placeholder="Untitled note" style={{ flex: 1, minWidth: 200, background: "transparent", border: "none", outline: "none", color: "#E8EDF5", fontSize: 22, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif" }} />
+                <button onClick={() => setShowIconPicker(!showIconPicker)} title="Change icon" style={{ background: "transparent", color: "inherit", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 10, padding: "6px 10px", fontSize: 24, cursor: "pointer", lineHeight: 1 }}>{active.icon}</button>
+                <input ref={titleRef} value={active.title} onChange={(e) => updateActive({ title: e.target.value })} placeholder="Untitled note" style={{ flex: 1, minWidth: 200, background: "transparent", border: "none", outline: "none", color: "#E8EDF5", fontSize: 24, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: "-0.3px", padding: "4px 0" }} />
                 <select value={active.status} onChange={(e) => updateActive({ status: e.target.value as NoteStatus })} style={{ background: "#0A0E1A", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: "#B0BEC5", fontSize: 11, padding: "4px 8px" }}>
                   <option value="draft">Draft</option><option value="final">Final</option>
                   <option value="shared">Shared</option><option value="private">Private</option>
