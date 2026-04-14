@@ -204,7 +204,11 @@ export default function AIHubClient() {
           .cios-aih-chat { border-radius: 0 !important; border: none !important; }
         }
 
-        .cios-aih-input-wrap { position: relative; padding: 12px; border-top: 1px solid rgba(255,255,255,0.05); background: #111827; }
+        /* Guarantee flex children can actually shrink/scroll and the composer never hides */
+        .cios-aih-chat { min-height: 0 !important; }
+        .cios-aih-chat > div:first-child { flex-shrink: 0; }
+        .cios-aih-messages { flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto; padding: 18px; }
+        .cios-aih-input-wrap { position: relative; padding: 12px; border-top: 1px solid rgba(255,255,255,0.05); background: #111827; flex-shrink: 0; }
         .cios-aih-input {
           width: 100%; box-sizing: border-box; resize: none;
           padding: 12px 52px 12px 16px;
@@ -299,7 +303,7 @@ export default function AIHubClient() {
           </div>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: 18 }}>
+        <div className="cios-aih-messages">
           {messages.length === 0 && (
             <div style={{ textAlign: "center", color: "#5A6478", marginTop: 60 }}>
               <div style={{ fontSize: 56, marginBottom: 8 }}>{tool.label.split(" ")[0]}</div>
