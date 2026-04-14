@@ -3,6 +3,7 @@
 import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { pushNotification } from "@/app/actions/notifications";
+import { canMessage } from "@/lib/messaging-privacy";
 
 type Result<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -29,6 +30,9 @@ export async function getOrCreateDirectRoom(otherUserId: string): Promise<Result
   try {
     const me = await requireMe();
     if (me.id === otherUserId) return { ok: false, error: "Cannot DM yourself" };
+    // Enforce contact permission — admins/super-admins bypass inside canMessage
+    const allowed = await canMessage(me.id, otherUserId);
+    if (!allowed) return { ok: false, error: "You don't have permission to message this user. Request a contact via Messages → Contacts." };
     const sb = supabaseAdmin();
 
     // Find rooms where both users are members and type=direct
