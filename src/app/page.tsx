@@ -219,36 +219,73 @@ export default async function LandingPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════
-          PLATFORM SCREENSHOTS / MOCKUP
+          PLATFORM SCREENSHOTS
       ═══════════════════════════════════════════════════ */}
-      <section style={{ padding: "80px 24px", position: "relative", zIndex: 1, borderTop: "1px solid rgba(255,255,255,0.04)", background: "linear-gradient(180deg, transparent, rgba(30,136,229,0.04), transparent)" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto", textAlign: "center" }}>
+      <section id="screenshots" style={{ padding: "80px 24px", position: "relative", zIndex: 1, borderTop: "1px solid rgba(255,255,255,0.04)", background: "linear-gradient(180deg, transparent, rgba(30,136,229,0.04), transparent)", scrollMarginTop: 70 }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", textAlign: "center" }}>
           <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(171,71,188,0.1)", border: "1px solid rgba(171,71,188,0.2)", color: "#AB47BC", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>Inside the Platform</div>
-          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, marginBottom: 12 }}>A platform built for <span style={{ background: "linear-gradient(135deg, #AB47BC, #1E88E5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>real work</span></h2>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, marginBottom: 12 }}>
+            A platform built for <span style={{ background: "linear-gradient(135deg, #AB47BC, #1E88E5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>real work</span>
+          </h2>
           <p style={{ color: "#8892A4", maxWidth: 520, margin: "0 auto 48px", fontSize: 15 }}>Every module is live and used by our interns every single day.</p>
 
-          {/* Mockup cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20 }}>
-            {[
-              { title: "Intern Dashboard", desc: "XP counter, streak tracker, today's tasks, upcoming classes — all in one view.", icon: "📊", accent: "#1E88E5", metrics: ["2,450 XP", "7-day streak", "3 tasks due"] },
-              { title: "AI Hub", desc: "CV generator, interview prep, plagiarism detector, and 5 more AI-powered tools.", icon: "🤖", accent: "#AB47BC", metrics: ["8 AI tools", "GPT-4 powered", "Instant results"] },
-              { title: "Leaderboard", desc: "Global, department, and team rankings updated in real-time every day.", icon: "🏆", accent: "#FFC107", metrics: ["Live rankings", "XP + performance", "Weekly reset"] },
-            ].map(m => (
-              <div key={m.title} style={{ background: "#111827", border: `1px solid ${m.accent}25`, borderRadius: 20, padding: 24, textAlign: "left", position: "relative", overflow: "hidden" }}>
-                <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%", background: `radial-gradient(circle, ${m.accent}15, transparent 70%)`, pointerEvents: "none" }} />
-                <div style={{ fontSize: 36, marginBottom: 12 }}>{m.icon}</div>
-                <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 17, fontWeight: 800, color: "#E8EDF5", marginBottom: 8 }}>{m.title}</div>
-                <p style={{ fontSize: 13, color: "#8892A4", lineHeight: 1.7, marginBottom: 16 }}>{m.desc}</p>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {m.metrics.map(tag => (
-                    <span key={tag} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: `${m.accent}18`, color: m.accent, border: `1px solid ${m.accent}30`, fontWeight: 700 }}>{tag}</span>
+          {/* Screenshot grid — real images when uploaded via SuperAdmin */}
+          {(() => {
+            const shots = [
+              { url: settings.homepage_screenshot_1_url, label: settings.homepage_screenshot_1_label, accent: "#1E88E5" },
+              { url: settings.homepage_screenshot_2_url, label: settings.homepage_screenshot_2_label, accent: "#AB47BC" },
+              { url: settings.homepage_screenshot_3_url, label: settings.homepage_screenshot_3_label, accent: "#FFC107" },
+              { url: settings.homepage_screenshot_4_url, label: settings.homepage_screenshot_4_label, accent: "#66BB6A" },
+            ].filter(s => s.url);
+
+            const fallbacks = [
+              { icon: "📊", label: "Intern Dashboard", desc: "XP counter, streak tracker, today's tasks, upcoming classes — all in one view.", accent: "#1E88E5", tags: ["2,450 XP", "7-day streak", "3 tasks due"] },
+              { icon: "🤖", label: "AI Hub",            desc: "CV generator, interview prep, plagiarism detector, and 5 more AI-powered tools.", accent: "#AB47BC", tags: ["8 AI tools", "GPT-4 powered", "Instant results"] },
+              { icon: "🏆", label: "Leaderboard",       desc: "Global, department, and team rankings updated in real-time every day.", accent: "#FFC107", tags: ["Live rankings", "XP + performance", "Weekly reset"] },
+              { icon: "💼", label: "Recruiter Portal",  desc: "Search, filter, and hire from a verified pool of trained digital talent.", accent: "#66BB6A", tags: ["Verified talent", "Skills filter", "Direct hire"] },
+            ];
+
+            if (shots.length > 0) {
+              return (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20 }}>
+                  {shots.map((s) => (
+                    <div key={s.label} style={{ borderRadius: 16, overflow: "hidden", border: `1px solid ${s.accent}30`, background: "#111827", textAlign: "left" }}>
+                      <div style={{ width: "100%", aspectRatio: "16/9", overflow: "hidden", background: "#0A0E1A" }}>
+                        <img src={s.url} alt={s.label} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                      </div>
+                      <div style={{ padding: "14px 16px" }}>
+                        <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 14, fontWeight: 700, color: "#E8EDF5" }}>{s.label}</div>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
-            ))}
-          </div>
+              );
+            }
 
-          <Link href="/sign-up" style={{ display: "inline-block", marginTop: 40, padding: "14px 36px", borderRadius: 14, background: "linear-gradient(135deg,#1E88E5,#1565C0)", color: "#fff", textDecoration: "none", fontWeight: 700, fontSize: 15 }}>
+            return (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20 }}>
+                {fallbacks.map(m => (
+                  <div key={m.label} style={{ background: "#111827", border: `1px solid ${m.accent}25`, borderRadius: 20, padding: 24, textAlign: "left", position: "relative", overflow: "hidden" }}>
+                    <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%", background: `radial-gradient(circle, ${m.accent}15, transparent 70%)`, pointerEvents: "none" }} />
+                    <div style={{ fontSize: 36, marginBottom: 12 }}>{m.icon}</div>
+                    <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 17, fontWeight: 800, color: "#E8EDF5", marginBottom: 8 }}>{m.label}</div>
+                    <p style={{ fontSize: 13, color: "#8892A4", lineHeight: 1.7, marginBottom: 16 }}>{m.desc}</p>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {m.tags.map(tag => (
+                        <span key={tag} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: `${m.accent}18`, color: m.accent, border: `1px solid ${m.accent}30`, fontWeight: 700 }}>{tag}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+
+          <p style={{ fontSize: 12, color: "#3A4256", marginTop: 16 }}>
+            Upload real screenshots in Super Admin → Landing Content
+          </p>
+
+          <Link href="/sign-up" style={{ display: "inline-block", marginTop: 32, padding: "14px 36px", borderRadius: 14, background: "linear-gradient(135deg,#1E88E5,#1565C0)", color: "#fff", textDecoration: "none", fontWeight: 700, fontSize: 15 }}>
             Explore the full platform →
           </Link>
         </div>

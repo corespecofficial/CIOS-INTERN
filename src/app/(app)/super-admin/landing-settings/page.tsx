@@ -160,9 +160,57 @@ export default function LandingSettingsPage() {
         </div>
       </div>
 
+      {/* PLATFORM SCREENSHOTS */}
+      <div style={card}>
+        <h2 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 17, fontWeight: 800, color: "#E8EDF5", margin: "0 0 8px" }}>🖼️ Platform Screenshots</h2>
+        <p style={{ fontSize: 12, color: "#8892A4", marginBottom: 16, lineHeight: 1.6 }}>
+          Upload screenshots to Cloudinary and paste the image URLs below. These appear on the homepage in the &quot;Inside the Platform&quot; section.
+          Leave all blank to show the default icon cards instead.
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 20 }}>
+          {[
+            { urlKey: "homepage_screenshot_1_url", labelKey: "homepage_screenshot_1_label", num: 1 },
+            { urlKey: "homepage_screenshot_2_url", labelKey: "homepage_screenshot_2_label", num: 2 },
+            { urlKey: "homepage_screenshot_3_url", labelKey: "homepage_screenshot_3_label", num: 3 },
+            { urlKey: "homepage_screenshot_4_url", labelKey: "homepage_screenshot_4_label", num: 4 },
+          ].map(f => {
+            const urlVal = (settings as unknown as Record<string, string>)[f.urlKey] ?? "";
+            const lblVal = (settings as unknown as Record<string, string>)[f.labelKey] ?? "";
+            return (
+              <div key={f.num} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: 16 }}>
+                <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 13, fontWeight: 700, color: "#E8EDF5", marginBottom: 12 }}>Screenshot {f.num}</div>
+                <div style={{ marginBottom: 10 }}>
+                  <span style={label}>Caption / Label</span>
+                  <input
+                    style={input}
+                    placeholder={`e.g. Intern Dashboard`}
+                    value={lblVal}
+                    onChange={e => setSettings(s => ({ ...s, [f.labelKey]: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <span style={label}>Cloudinary Image URL</span>
+                  <input
+                    style={input}
+                    placeholder="https://res.cloudinary.com/..."
+                    value={urlVal}
+                    onChange={e => setSettings(s => ({ ...s, [f.urlKey]: e.target.value }))}
+                  />
+                </div>
+                {urlVal && (
+                  <div style={{ marginTop: 10, borderRadius: 8, overflow: "hidden", aspectRatio: "16/9" }}>
+                    <img src={urlVal} alt={lblVal} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* SAVE SETTINGS */}
       <button onClick={saveSettings} disabled={savingSettings} style={btn("linear-gradient(135deg,#1E88E5,#1565C0)")}>
-        {savingSettings ? "Saving…" : "💾 Save Video + Stats"}
+        {savingSettings ? "Saving…" : "💾 Save Video, Stats & Screenshots"}
       </button>
 
       {/* TESTIMONIALS */}

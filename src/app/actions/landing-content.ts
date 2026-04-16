@@ -20,6 +20,14 @@ export interface PlatformSettings {
   homepage_stats_mentors: string;
   homepage_stats_countries: string;
   homepage_stats_partners: string;
+  homepage_screenshot_1_url: string;
+  homepage_screenshot_1_label: string;
+  homepage_screenshot_2_url: string;
+  homepage_screenshot_2_label: string;
+  homepage_screenshot_3_url: string;
+  homepage_screenshot_3_label: string;
+  homepage_screenshot_4_url: string;
+  homepage_screenshot_4_label: string;
 }
 
 export async function getPlatformSettings(): Promise<PlatformSettings> {
@@ -30,12 +38,20 @@ export async function getPlatformSettings(): Promise<PlatformSettings> {
     map[row.key] = row.value ?? "";
   }
   return {
-    homepage_video_url:       map.homepage_video_url       ?? "",
-    homepage_stats_interns:   map.homepage_stats_interns   ?? "500+",
-    homepage_stats_courses:   map.homepage_stats_courses   ?? "48",
-    homepage_stats_mentors:   map.homepage_stats_mentors   ?? "15",
-    homepage_stats_countries: map.homepage_stats_countries ?? "12",
-    homepage_stats_partners:  map.homepage_stats_partners  ?? "80+",
+    homepage_video_url:           map.homepage_video_url           ?? "",
+    homepage_stats_interns:       map.homepage_stats_interns       ?? "500+",
+    homepage_stats_courses:       map.homepage_stats_courses       ?? "48",
+    homepage_stats_mentors:       map.homepage_stats_mentors       ?? "15",
+    homepage_stats_countries:     map.homepage_stats_countries     ?? "12",
+    homepage_stats_partners:      map.homepage_stats_partners      ?? "80+",
+    homepage_screenshot_1_url:    map.homepage_screenshot_1_url    ?? "",
+    homepage_screenshot_1_label:  map.homepage_screenshot_1_label  ?? "Intern Dashboard",
+    homepage_screenshot_2_url:    map.homepage_screenshot_2_url    ?? "",
+    homepage_screenshot_2_label:  map.homepage_screenshot_2_label  ?? "AI Hub",
+    homepage_screenshot_3_url:    map.homepage_screenshot_3_url    ?? "",
+    homepage_screenshot_3_label:  map.homepage_screenshot_3_label  ?? "Leaderboard",
+    homepage_screenshot_4_url:    map.homepage_screenshot_4_url    ?? "",
+    homepage_screenshot_4_label:  map.homepage_screenshot_4_label  ?? "Recruiter Portal",
   };
 }
 

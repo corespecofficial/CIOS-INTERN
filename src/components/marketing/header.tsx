@@ -5,297 +5,275 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
-function scrollToAnchor(anchor: string) {
-  const el = document.getElementById(anchor);
-  if (el) {
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-}
-
 const LOGO = "https://res.cloudinary.com/detsk6uql/image/upload/v1775646964/Adobe_Express_-_file_lydnbc.png";
 
 interface DropItem { href: string; label: string; desc?: string; icon?: string }
-interface NavGroup { label: string; href?: string; dropdown?: DropItem[] }
+interface NavItem  { label: string; href?: string; dropdown?: DropItem[] }
 
-const NAV: NavGroup[] = [
+const NAV: NavItem[] = [
+  { label: "Home",         href: "/" },
+  {
+    label: "Platform",
+    dropdown: [
+      { href: "/about",           label: "About CIOS",        icon: "ℹ️",  desc: "Our story and mission" },
+      { href: "/success-stories", label: "Success Stories",   icon: "🏆", desc: "Real intern outcomes" },
+      { href: "/demo",            label: "Book a Demo",       icon: "🎯", desc: "See the platform live" },
+    ],
+  },
   {
     label: "Features",
     dropdown: [
-      { href: "/#features",     label: "All Features",   icon: "⚡", desc: "Full platform overview" },
-      { href: "/#how-it-works", label: "How It Works",   icon: "🗺️", desc: "The 6-step journey" },
-      { href: "/about",         label: "About CIOS",     icon: "ℹ️",  desc: "Our story and mission" },
-      { href: "/#faq",          label: "FAQ",            icon: "❓", desc: "Common questions answered" },
+      { href: "/#features",       label: "All Features",      icon: "⚡", desc: "Full platform overview" },
+      { href: "/#how-it-works",   label: "How It Works",      icon: "🗺️", desc: "The 6-step journey" },
+      { href: "/#faq",            label: "FAQ",               icon: "❓", desc: "Common questions" },
     ],
   },
   {
-    label: "Program",
+    label: "Solutions",
     dropdown: [
-      { href: "/success-stories", label: "Success Stories", icon: "🏆", desc: "Graduates who made it" },
-      { href: "/demo",            label: "Book a Demo",     icon: "🎯", desc: "See CIOS live, free" },
-      { href: "/pricing",         label: "Pricing",         icon: "💰", desc: "Plans and fees" },
+      { href: "/about#tracks",       label: "AI & Machine Learning",  icon: "🤖", desc: "Build real AI products" },
+      { href: "/about#tracks",       label: "Digital Marketing",      icon: "📣", desc: "Growth & brand strategy" },
+      { href: "/about#tracks",       label: "UI/UX Design",           icon: "🎨", desc: "Product & interface design" },
+      { href: "/about#tracks",       label: "Web Development",        icon: "💻", desc: "Full-stack engineering" },
+      { href: "/about#tracks",       label: "Data Analytics",         icon: "📊", desc: "Insights and BI" },
+      { href: "/about#tracks",       label: "Content Creation",       icon: "✍️",  desc: "Media & storytelling" },
     ],
   },
+  { label: "How It Works", href: "/#how-it-works" },
+  { label: "Pricing",      href: "/pricing" },
   {
-    label: "Recruiters",
+    label: "Portals",
     dropdown: [
-      { href: "/recruiters",      label: "Recruiter Portal",  icon: "🏢", desc: "Post jobs, find talent" },
-      { href: "/talent-showcase", label: "Talent Directory",  icon: "👥", desc: "Browse intern profiles" },
-    ],
-  },
-  {
-    label: "Company",
-    dropdown: [
-      { href: "/press",    label: "Press & Media",  icon: "📰", desc: "Brand assets & contacts" },
-      { href: "/careers",  label: "Careers",        icon: "💼", desc: "Join our team" },
-      { href: "/contact",  label: "Contact",        icon: "💬", desc: "Get in touch" },
-      { href: "/privacy",  label: "Privacy",        icon: "🔒", desc: "How we handle your data" },
-      { href: "/terms",    label: "Terms",          icon: "📋", desc: "Program rules" },
+      { href: "/sign-in", label: "Creator Admin",    icon: "👑", desc: "Super admin & owner dashboard" },
+      { href: "/mentor",  label: "Mentor Portal",    icon: "🎓", desc: "Mentor sessions & mentees" },
+      { href: "/recruiters", label: "Company Portal", icon: "🏢", desc: "Post jobs, find talent" },
+      { href: "/recruiters", label: "Recruiter Portal", icon: "🔍", desc: "Search intern profiles" },
+      { href: "/marketplace", label: "Marketplace",  icon: "🛒", desc: "Buy & sell digital products" },
     ],
   },
 ];
 
-function AnchorItem({ item, onClose, className }: { item: DropItem; onClose: () => void; className: string }) {
+function scrollToAnchor(id: string) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function SmartLink({ href, className, children, onClick }: {
+  href: string; className: string; children: React.ReactNode; onClick?: () => void;
+}) {
   const pathname = usePathname();
   const router = useRouter();
-  const anchor = item.href.startsWith("/#") ? item.href.slice(2) : null;
+  const anchor = href.startsWith("/#") ? href.slice(2) : href.includes("#") ? href.split("#")[1] : null;
 
   function handleClick(e: React.MouseEvent) {
-    onClose();
-    if (!anchor) return;
+    onClick?.();
+    if (!href.includes("#")) return;
     e.preventDefault();
-    if (pathname === "/") {
+    if (pathname === "/" && anchor) {
       scrollToAnchor(anchor);
     } else {
-      router.push(`/#${anchor}`);
+      router.push(href);
     }
   }
 
-  if (!anchor) {
-    return (
-      <Link href={item.href} className={className} onClick={onClose}>
-        {item.icon && <span className="cios-drop-icon">{item.icon}</span>}
-        <span>
-          <span className="cios-drop-label">{item.label}</span>
-          {item.desc && <span className="cios-drop-desc">{item.desc}</span>}
-        </span>
-      </Link>
-    );
+  if (href.includes("#")) {
+    return <a href={href} className={className} onClick={handleClick}>{children}</a>;
   }
-
-  return (
-    <a href={item.href} className={className} onClick={handleClick}>
-      {item.icon && <span className="cios-drop-icon">{item.icon}</span>}
-      <span>
-        <span className="cios-drop-label">{item.label}</span>
-        {item.desc && <span className="cios-drop-desc">{item.desc}</span>}
-      </span>
-    </a>
-  );
+  return <Link href={href} className={className} onClick={onClick}>{children}</Link>;
 }
 
-function DropdownMenu({ items, onClose }: { items: DropItem[]; onClose: () => void }) {
+function DropMenu({ items, onClose }: { items: DropItem[]; onClose: () => void }) {
   return (
-    <div className="cios-dropdown">
+    <div className="cios-drop">
       {items.map((item) => (
-        <AnchorItem key={item.href} item={item} onClose={onClose} className="cios-drop-item" />
+        <SmartLink key={item.href + item.label} href={item.href} className="cios-drop-row" onClick={onClose}>
+          <span className="cios-drop-ico">{item.icon}</span>
+          <span>
+            <span className="cios-drop-lbl">{item.label}</span>
+            {item.desc && <span className="cios-drop-sub">{item.desc}</span>}
+          </span>
+        </SmartLink>
       ))}
     </div>
   );
 }
 
-function NavItem({ group }: { group: NavGroup }) {
+function DesktopNavItem({ item }: { item: NavItem }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  if (!group.dropdown) {
-    return group.href?.startsWith("/#")
-      ? <a href={group.href} className="cios-nav-link">{group.label}</a>
-      : <Link href={group.href!} className="cios-nav-link">{group.label}</Link>;
+  if (!item.dropdown) {
+    return (
+      <SmartLink href={item.href!} className="cios-nl">
+        {item.label}
+      </SmartLink>
+    );
   }
 
   return (
-    <div
-      ref={ref}
-      className="cios-nav-group"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-    >
-      <button
-        className={`cios-nav-link cios-nav-btn${open ? " active" : ""}`}
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-      >
-        {group.label}
-        <svg
-          className="cios-chevron"
-          style={{ transform: open ? "rotate(180deg)" : "none" }}
-          width="11" height="11" viewBox="0 0 24 24"
-          fill="none" stroke="currentColor" strokeWidth="2.8"
-        >
-          <path d="M6 9l6 6 6-6" />
+    <div ref={ref} className="cios-ng" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+      <button className={`cios-nl cios-nb${open ? " on" : ""}`} onClick={() => setOpen(v => !v)}>
+        {item.label}
+        <svg style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s", opacity: .55 }}
+          width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8">
+          <path d="M6 9l6 6 6-6"/>
         </svg>
       </button>
-      {open && <DropdownMenu items={group.dropdown} onClose={() => setOpen(false)} />}
+      {open && <DropMenu items={item.dropdown} onClose={() => setOpen(false)} />}
     </div>
   );
 }
 
 export function MarketingHeader() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [mob, setMob] = useState(false);
+  const [exp, setExp] = useState<string | null>(null);
+  const close = () => setMob(false);
 
   useEffect(() => {
-    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    document.body.style.overflow = mob ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
-  }, [mobileOpen]);
-
-  const close = () => setMobileOpen(false);
+  }, [mob]);
 
   return (
     <>
       <style>{`
-        .cios-mh {
+        .cios-hdr {
           position: sticky; top: 0; z-index: 60;
-          border-bottom: 1px solid rgba(255,255,255,0.06);
-          background: rgba(10,14,26,0.95);
+          background: rgba(10,14,26,0.96);
+          border-bottom: 1px solid rgba(255,255,255,0.07);
           backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
         }
-        .cios-mh-row {
-          max-width: 1240px; margin: 0 auto;
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 0 20px; height: 62px; gap: 8px;
+        .cios-hdr-row {
+          max-width: 1280px; margin: 0 auto;
+          display: flex; align-items: center; height: 62px;
+          padding: 0 20px; gap: 4px;
         }
-        .cios-mh-brand {
-          display: inline-flex; align-items: center; gap: 10px;
-          text-decoration: none; flex-shrink: 0; white-space: nowrap;
+        /* brand */
+        .cios-brand {
+          display: inline-flex; align-items: center; gap: 9px;
+          text-decoration: none; flex-shrink: 0; margin-right: 16px;
         }
-        .cios-mh-brand img { border-radius: 10px; display: block; }
-        .cios-brand-title {
-          font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 17px;
-          background: linear-gradient(135deg, #fff, #1E88E5);
+        .cios-brand img { border-radius: 9px; display: block; }
+        .cios-brand-lbl {
+          font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 16px;
+          background: linear-gradient(135deg, #fff 40%, #1E88E5);
           -webkit-background-clip: text; -webkit-text-fill-color: transparent;
           background-clip: text; white-space: nowrap;
         }
-        .cios-mh-desktop {
-          display: flex; align-items: center; gap: 2px;
-          flex: 1; justify-content: center;
-        }
-        .cios-nav-group { position: relative; }
-        .cios-nav-link, .cios-nav-btn {
+        /* desktop nav */
+        .cios-nav { display: flex; align-items: center; gap: 2px; flex: 1; }
+        .cios-ng  { position: relative; }
+        .cios-nl, .cios-nb {
           display: inline-flex; align-items: center; gap: 4px;
-          font-size: 13.5px; font-weight: 600; color: #8892A4;
-          text-decoration: none; padding: 8px 12px; border-radius: 8px;
-          background: none; border: none; cursor: pointer;
-          transition: color 0.15s, background 0.15s;
-          white-space: nowrap; font-family: inherit;
+          padding: 7px 11px; border-radius: 8px;
+          font-size: 13px; font-weight: 600; color: #8892A4;
+          text-decoration: none; background: none; border: none;
+          cursor: pointer; white-space: nowrap; font-family: inherit;
+          transition: color .15s, background .15s;
         }
-        .cios-nav-link:hover, .cios-nav-btn:hover, .cios-nav-btn.active {
+        .cios-nl:hover, .cios-nb:hover, .cios-nb.on {
           color: #E8EDF5; background: rgba(255,255,255,0.05);
         }
-        .cios-chevron { transition: transform 0.2s; opacity: 0.55; flex-shrink: 0; }
-        .cios-dropdown {
+        /* dropdown panel */
+        .cios-drop {
           position: absolute; top: calc(100% + 8px); left: 50%;
           transform: translateX(-50%);
-          min-width: 230px; background: #0F1424;
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 14px; padding: 8px;
-          box-shadow: 0 24px 64px rgba(0,0,0,0.6);
-          z-index: 200;
-          animation: dropIn 0.14s ease;
+          min-width: 240px; background: #0F1424;
+          border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+          padding: 8px; z-index: 300;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+          animation: dropIn .13s ease;
         }
         @keyframes dropIn {
-          from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
-          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+          from { opacity:0; transform: translateX(-50%) translateY(-6px); }
+          to   { opacity:1; transform: translateX(-50%) translateY(0); }
         }
-        .cios-drop-item {
+        .cios-drop-row {
           display: flex; align-items: flex-start; gap: 10px;
-          padding: 9px 10px; border-radius: 9px;
+          padding: 8px 10px; border-radius: 9px;
           text-decoration: none; color: #B0BEC5;
-          transition: background 0.15s, color 0.15s;
+          transition: background .15s, color .15s;
         }
-        .cios-drop-item:hover { background: rgba(30,136,229,0.1); color: #E8EDF5; }
-        .cios-drop-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
-        .cios-drop-label { display: block; font-size: 13px; font-weight: 700; color: inherit; line-height: 1.3; }
-        .cios-drop-desc  { display: block; font-size: 11px; color: #5A6478; margin-top: 2px; }
-        .cios-drop-item:hover .cios-drop-desc { color: #8892A4; }
-        .cios-mh-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-        .cios-btn-signin {
+        .cios-drop-row:hover { background: rgba(30,136,229,0.1); color: #E8EDF5; }
+        .cios-drop-ico  { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+        .cios-drop-lbl  { display: block; font-size: 13px; font-weight: 700; line-height: 1.3; }
+        .cios-drop-sub  { display: block; font-size: 11px; color: #5A6478; margin-top: 1px; }
+        .cios-drop-row:hover .cios-drop-sub { color: #8892A4; }
+        /* cta */
+        .cios-actions { display: flex; align-items: center; gap: 8px; margin-left: 12px; flex-shrink: 0; }
+        .cios-btn-in {
           font-size: 13px; font-weight: 700; padding: 8px 16px; border-radius: 10px;
-          background: transparent; color: #8892A4;
-          border: 1px solid rgba(255,255,255,0.1);
-          text-decoration: none; white-space: nowrap;
-          transition: background 0.15s, color 0.15s;
+          color: #8892A4; border: 1px solid rgba(255,255,255,0.1);
+          text-decoration: none; background: none; white-space: nowrap;
+          transition: background .15s, color .15s;
         }
-        .cios-btn-signin:hover { background: rgba(255,255,255,0.05); color: #E8EDF5; }
+        .cios-btn-in:hover { background: rgba(255,255,255,0.05); color: #E8EDF5; }
         .cios-btn-join {
           font-size: 13px; font-weight: 700; padding: 8px 18px; border-radius: 10px;
           background: linear-gradient(135deg, #1E88E5, #1565C0); color: #fff;
           text-decoration: none; white-space: nowrap;
-          box-shadow: 0 3px 16px rgba(30,136,229,0.35);
-          transition: box-shadow 0.2s, transform 0.15s;
+          box-shadow: 0 3px 14px rgba(30,136,229,0.38);
+          transition: box-shadow .2s, transform .15s;
         }
         .cios-btn-join:hover { box-shadow: 0 6px 24px rgba(30,136,229,0.5); transform: translateY(-1px); }
-        .cios-hamburger {
+        /* hamburger */
+        .cios-ham {
           display: none; align-items: center; justify-content: center;
-          width: 40px; height: 40px; border-radius: 10px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.08);
+          width: 40px; height: 40px; border-radius: 10px; margin-left: 8px;
+          background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
           color: #E8EDF5; cursor: pointer; padding: 0; flex-shrink: 0;
         }
-        .cios-hamburger:hover { background: rgba(30,136,229,0.12); }
-        @media (max-width: 960px) {
-          .cios-mh-desktop { display: none !important; }
-          .cios-hamburger  { display: inline-flex !important; }
-          .cios-btn-signin { display: none; }
+        .cios-ham:hover { background: rgba(30,136,229,0.12); }
+        /* responsive */
+        @media (max-width: 1080px) {
+          .cios-nav .cios-nl, .cios-nav .cios-ng { display: none; }
+          .cios-nav .cios-ng:nth-child(-n+3), .cios-nav .cios-nl:nth-child(-n+3) { display: inline-flex; }
         }
-        @media (max-width: 460px) {
-          .cios-mh-actions { display: none !important; }
+        @media (max-width: 840px) {
+          .cios-nav { display: none !important; }
+          .cios-ham { display: inline-flex !important; }
+          .cios-btn-in { display: none; }
         }
-        .cios-backdrop {
-          position: fixed; inset: 62px 0 0 0;
-          background: rgba(0,0,0,0.55); z-index: 55;
-        }
-        .cios-drawer {
+        @media (max-width: 440px) { .cios-actions { display: none !important; } }
+        /* drawer */
+        .cios-bkdp { position: fixed; inset: 62px 0 0 0; background: rgba(0,0,0,0.55); z-index: 55; }
+        .cios-drw {
           position: fixed; top: 62px; right: 0; bottom: 0;
           width: min(340px, 88vw); z-index: 56;
-          background: #0A0E1A;
-          border-left: 1px solid rgba(255,255,255,0.07);
-          overflow-y: auto;
-          animation: slideIn 0.22s ease;
+          background: #0A0E1A; border-left: 1px solid rgba(255,255,255,0.07);
+          overflow-y: auto; animation: slideIn .22s ease;
         }
         @keyframes slideIn { from { transform: translateX(100%) } to { transform: translateX(0) } }
-        .cios-drawer-sect { border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .cios-drawer-head {
+        .cios-drw-sect { border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .cios-drw-hd {
           width: 100%; display: flex; align-items: center; justify-content: space-between;
           padding: 14px 20px; background: none; border: none; cursor: pointer;
           font-size: 14px; font-weight: 700; color: #E8EDF5;
           text-align: left; font-family: inherit; text-decoration: none;
+          transition: background .15s;
         }
-        .cios-drawer-head:hover { background: rgba(255,255,255,0.03); }
-        .cios-drawer-chev { transition: transform 0.2s; flex-shrink: 0; }
-        .cios-drawer-subs { padding: 0 12px 10px; }
-        .cios-drawer-sub {
+        .cios-drw-hd:hover { background: rgba(255,255,255,0.03); }
+        .cios-drw-subs { padding: 0 12px 10px; }
+        .cios-drw-sub {
           display: flex; align-items: center; gap: 10px;
           padding: 9px 12px; border-radius: 8px;
           text-decoration: none; font-size: 13px; color: #8892A4;
-          transition: background 0.15s, color 0.15s;
+          transition: background .15s, color .15s;
         }
-        .cios-drawer-sub:hover { background: rgba(255,255,255,0.04); color: #E8EDF5; }
-        .cios-drawer-cta {
+        .cios-drw-sub:hover { background: rgba(255,255,255,0.04); color: #E8EDF5; }
+        .cios-drw-cta {
           display: block; margin: 16px 20px; text-align: center;
           padding: 13px; border-radius: 12px;
           background: linear-gradient(135deg, #1E88E5, #1565C0);
           color: #fff; font-size: 15px; font-weight: 700; text-decoration: none;
         }
-        .cios-drawer-login {
+        .cios-drw-in {
           display: block; margin: 0 20px 24px; text-align: center;
           padding: 11px; border-radius: 12px;
           border: 1px solid rgba(255,255,255,0.1);
@@ -303,77 +281,71 @@ export function MarketingHeader() {
         }
       `}</style>
 
-      <nav className="cios-mh" role="navigation" aria-label="Main navigation">
-        <div className="cios-mh-row">
-          <Link href="/" className="cios-mh-brand">
+      <header className="cios-hdr">
+        <div className="cios-hdr-row">
+          {/* Brand */}
+          <Link href="/" className="cios-brand">
             <img src={LOGO} alt="CIOS" width={32} height={32} />
-            <span className="cios-brand-title">CIOS Platform</span>
+            <span className="cios-brand-lbl">CIOS Platform</span>
           </Link>
 
-          <div className="cios-mh-desktop">
-            {NAV.map((g) => <NavItem key={g.label} group={g} />)}
-          </div>
+          {/* Desktop nav */}
+          <nav className="cios-nav" aria-label="Main navigation">
+            {NAV.map((item) => <DesktopNavItem key={item.label} item={item} />)}
+          </nav>
 
-          <div className="cios-mh-actions">
-            <Link href="/sign-in" className="cios-btn-signin">Sign In</Link>
+          {/* CTAs */}
+          <div className="cios-actions">
+            <Link href="/sign-in" className="cios-btn-in">Sign In</Link>
             <Link href="/sign-up" className="cios-btn-join">Join Free →</Link>
           </div>
 
-          <button
-            className="cios-hamburger"
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-label={mobileOpen ? "Close menu" : "Open menu"}
-            aria-expanded={mobileOpen}
-          >
-            {mobileOpen
+          {/* Hamburger */}
+          <button className="cios-ham" onClick={() => setMob(v => !v)} aria-label="Toggle menu" aria-expanded={mob}>
+            {mob
               ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M6 6L18 18M18 6L6 18"/></svg>
               : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7H20M4 12H20M4 17H20"/></svg>
             }
           </button>
         </div>
-      </nav>
+      </header>
 
-      {mobileOpen && (
+      {/* Mobile drawer */}
+      {mob && (
         <>
-          <div className="cios-backdrop" onClick={close} />
-          <div className="cios-drawer">
-            {NAV.map((g) => (
-              <div key={g.label} className="cios-drawer-sect">
-                {g.dropdown ? (
+          <div className="cios-bkdp" onClick={close} />
+          <div className="cios-drw">
+            {NAV.map((item) => (
+              <div key={item.label} className="cios-drw-sect">
+                {item.dropdown ? (
                   <>
-                    <button
-                      className="cios-drawer-head"
-                      onClick={() => setExpanded(expanded === g.label ? null : g.label)}
-                    >
-                      {g.label}
-                      <svg
-                        className="cios-drawer-chev"
-                        style={{ transform: expanded === g.label ? "rotate(180deg)" : "none" }}
-                        width="14" height="14" viewBox="0 0 24 24"
-                        fill="none" stroke="currentColor" strokeWidth="2.5"
-                      >
+                    <button className="cios-drw-hd" onClick={() => setExp(exp === item.label ? null : item.label)}>
+                      {item.label}
+                      <svg style={{ transform: exp === item.label ? "rotate(180deg)" : "none", transition: "transform .2s" }}
+                        width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <path d="M6 9l6 6 6-6"/>
                       </svg>
                     </button>
-                    {expanded === g.label && (
-                      <div className="cios-drawer-subs">
-                        {g.dropdown.map((item) => (
-                          <AnchorItem key={item.href} item={item} onClose={close} className="cios-drawer-sub" />
+                    {exp === item.label && (
+                      <div className="cios-drw-subs">
+                        {item.dropdown.map((d) => (
+                          <SmartLink key={d.href + d.label} href={d.href} className="cios-drw-sub" onClick={close}>
+                            {d.icon && <span>{d.icon}</span>}
+                            {d.label}
+                          </SmartLink>
                         ))}
                       </div>
                     )}
                   </>
                 ) : (
-                  <AnchorItem
-                    item={{ href: g.href!, label: g.label }}
-                    onClose={close}
-                    className="cios-drawer-head"
-                  />
+                  <SmartLink href={item.href!} className="cios-drw-hd" onClick={close}>
+                    {item.label}
+                  </SmartLink>
                 )}
               </div>
             ))}
-            <Link href="/sign-up" className="cios-drawer-cta" onClick={close}>Join Free →</Link>
-            <Link href="/sign-in" className="cios-drawer-login" onClick={close}>Sign In</Link>
+            <Link href="/sign-up" className="cios-drw-cta" onClick={close}>Join Free →</Link>
+            <Link href="/sign-in" className="cios-drw-in"  onClick={close}>Sign In</Link>
           </div>
         </>
       )}
