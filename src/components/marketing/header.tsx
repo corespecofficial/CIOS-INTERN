@@ -3,6 +3,14 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+
+function scrollToAnchor(anchor: string) {
+  const el = document.getElementById(anchor);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
 
 const LOGO = "https://res.cloudinary.com/detsk6uql/image/upload/v1775646964/Adobe_Express_-_file_lydnbc.png";
 
@@ -46,28 +54,51 @@ const NAV: NavGroup[] = [
   },
 ];
 
+function AnchorItem({ item, onClose, className }: { item: DropItem; onClose: () => void; className: string }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const anchor = item.href.startsWith("/#") ? item.href.slice(2) : null;
+
+  function handleClick(e: React.MouseEvent) {
+    onClose();
+    if (!anchor) return;
+    e.preventDefault();
+    if (pathname === "/") {
+      scrollToAnchor(anchor);
+    } else {
+      router.push(`/#${anchor}`);
+    }
+  }
+
+  if (!anchor) {
+    return (
+      <Link href={item.href} className={className} onClick={onClose}>
+        {item.icon && <span className="cios-drop-icon">{item.icon}</span>}
+        <span>
+          <span className="cios-drop-label">{item.label}</span>
+          {item.desc && <span className="cios-drop-desc">{item.desc}</span>}
+        </span>
+      </Link>
+    );
+  }
+
+  return (
+    <a href={item.href} className={className} onClick={handleClick}>
+      {item.icon && <span className="cios-drop-icon">{item.icon}</span>}
+      <span>
+        <span className="cios-drop-label">{item.label}</span>
+        {item.desc && <span className="cios-drop-desc">{item.desc}</span>}
+      </span>
+    </a>
+  );
+}
+
 function DropdownMenu({ items, onClose }: { items: DropItem[]; onClose: () => void }) {
   return (
     <div className="cios-dropdown">
-      {items.map((item) =>
-        item.href.startsWith("/#") ? (
-          <a key={item.href} href={item.href} className="cios-drop-item" onClick={onClose}>
-            <span className="cios-drop-icon">{item.icon}</span>
-            <span>
-              <span className="cios-drop-label">{item.label}</span>
-              {item.desc && <span className="cios-drop-desc">{item.desc}</span>}
-            </span>
-          </a>
-        ) : (
-          <Link key={item.href} href={item.href} className="cios-drop-item" onClick={onClose}>
-            <span className="cios-drop-icon">{item.icon}</span>
-            <span>
-              <span className="cios-drop-label">{item.label}</span>
-              {item.desc && <span className="cios-drop-desc">{item.desc}</span>}
-            </span>
-          </Link>
-        )
-      )}
+      {items.map((item) => (
+        <AnchorItem key={item.href} item={item} onClose={onClose} className="cios-drop-item" />
+      ))}
     </div>
   );
 }
@@ -326,26 +357,18 @@ export function MarketingHeader() {
                     </button>
                     {expanded === g.label && (
                       <div className="cios-drawer-subs">
-                        {g.dropdown.map((item) =>
-                          item.href.startsWith("/#") ? (
-                            <a key={item.href} href={item.href} className="cios-drawer-sub" onClick={close}>
-                              <span>{item.icon}</span>{item.label}
-                            </a>
-                          ) : (
-                            <Link key={item.href} href={item.href} className="cios-drawer-sub" onClick={close}>
-                              <span>{item.icon}</span>{item.label}
-                            </Link>
-                          )
-                        )}
+                        {g.dropdown.map((item) => (
+                          <AnchorItem key={item.href} item={item} onClose={close} className="cios-drawer-sub" />
+                        ))}
                       </div>
                     )}
                   </>
                 ) : (
-                  g.href?.startsWith("/#") ? (
-                    <a href={g.href} className="cios-drawer-head" style={{ display: "flex" }} onClick={close}>{g.label}</a>
-                  ) : (
-                    <Link href={g.href!} className="cios-drawer-head" onClick={close}>{g.label}</Link>
-                  )
+                  <AnchorItem
+                    item={{ href: g.href!, label: g.label }}
+                    onClose={close}
+                    className="cios-drawer-head"
+                  />
                 )}
               </div>
             ))}

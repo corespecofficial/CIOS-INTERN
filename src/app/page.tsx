@@ -189,7 +189,7 @@ export default async function LandingPage() {
       {/* ═══════════════════════════════════════════════════
           PLATFORM FEATURES
       ═══════════════════════════════════════════════════ */}
-      <section id="features" style={{ padding: "80px 24px", position: "relative", zIndex: 1, borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+      <section id="features" style={{ padding: "80px 24px", position: "relative", zIndex: 1, borderTop: "1px solid rgba(255,255,255,0.04)", scrollMarginTop: 70 }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", textAlign: "center" }}>
           <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(255,193,7,0.1)", border: "1px solid rgba(255,193,7,0.2)", color: "#FFC107", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>Platform Features</div>
           <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, marginBottom: 12 }}>
@@ -257,7 +257,7 @@ export default async function LandingPage() {
       {/* ═══════════════════════════════════════════════════
           HOW IT WORKS
       ═══════════════════════════════════════════════════ */}
-      <section style={{ padding: "80px 24px", borderTop: "1px solid rgba(255,255,255,0.04)", position: "relative", zIndex: 1 }}>
+      <section id="how-it-works" style={{ padding: "80px 24px", borderTop: "1px solid rgba(255,255,255,0.04)", position: "relative", zIndex: 1, scrollMarginTop: 70 }}>
         <div style={{ maxWidth: 1000, margin: "0 auto", textAlign: "center" }}>
           <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(102,187,106,0.1)", border: "1px solid rgba(102,187,106,0.2)", color: "#66BB6A", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>The Process</div>
           <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, marginBottom: 12 }}>
@@ -348,7 +348,7 @@ export default async function LandingPage() {
       {/* ═══════════════════════════════════════════════════
           FAQ
       ═══════════════════════════════════════════════════ */}
-      <section id="faq" style={{ padding: "80px 24px", borderTop: "1px solid rgba(255,255,255,0.04)", position: "relative", zIndex: 1 }}>
+      <section id="faq" style={{ padding: "80px 24px", borderTop: "1px solid rgba(255,255,255,0.04)", position: "relative", zIndex: 1, scrollMarginTop: 70 }}>
         <div style={{ maxWidth: 740, margin: "0 auto", textAlign: "center" }}>
           <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(255,112,67,0.1)", border: "1px solid rgba(255,112,67,0.2)", color: "#FF7043", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>FAQ</div>
           <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, marginBottom: 48 }}>
