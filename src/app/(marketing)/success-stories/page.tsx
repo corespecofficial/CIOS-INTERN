@@ -79,7 +79,10 @@ const FEATURED_STORIES = [
 ];
 
 export default async function SuccessStoriesPage() {
-  const testimonials = await getLandingTestimonials();
+  const testimonials = await Promise.race([
+    getLandingTestimonials(),
+    new Promise<Awaited<ReturnType<typeof getLandingTestimonials>>>((resolve) => setTimeout(() => resolve([]), 4000)),
+  ]);
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px 80px" }}>

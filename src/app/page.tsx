@@ -18,10 +18,26 @@ function getYouTubeId(url: string): string | null {
   return null;
 }
 
+const DEFAULT_SETTINGS = {
+  homepage_video_url: "",
+  homepage_stats_interns: "500+",
+  homepage_stats_courses: "48",
+  homepage_stats_mentors: "15",
+  homepage_stats_countries: "12",
+  homepage_stats_partners: "80+",
+};
+
+function withTimeout<T>(promise: Promise<T>, fallback: T, ms = 4000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 export default async function LandingPage() {
   const [settings, testimonials] = await Promise.all([
-    getPlatformSettings(),
-    getLandingTestimonials(),
+    withTimeout(getPlatformSettings(), DEFAULT_SETTINGS),
+    withTimeout(getLandingTestimonials(), []),
   ]);
 
   const videoId = getYouTubeId(settings.homepage_video_url);
