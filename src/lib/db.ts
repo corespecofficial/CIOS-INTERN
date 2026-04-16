@@ -308,15 +308,18 @@ export interface PublicProfile {
 
 export async function getPublicProfile(userId: string): Promise<PublicProfile | null> {
   const me = await getCurrentDbUser();
-  const sb = supabase();
-  const { data } = await sb.from("users").select("*").eq("id", userId).maybeSingle();
+  // Use admin client to bypass RLS — profile pages are intentionally public.
+  // The anon-key client would be blocked by row-level security when one user
+  // reads another user's row, causing spurious 404s on shared profile links.
+  const admin = supabaseAdmin();
+  const { data } = await admin.from("users").select("*").eq("id", userId).maybeSingle();
   if (!data) return null;
   const u = data as DbUser;
   const [postsRes, commentsRes, completionsRes, certsRes] = await Promise.all([
-    sb.from("posts").select("*", { count: "exact", head: true }).eq("author_id", userId).eq("is_deleted", false),
-    sb.from("comments").select("*", { count: "exact", head: true }).eq("author_id", userId).eq("is_deleted", false),
-    sb.from("course_enrollments").select("*", { count: "exact", head: true }).eq("user_id", userId).eq("status", "completed"),
-    sb.from("certificates").select("*", { count: "exact", head: true }).eq("user_id", userId),
+    admin.from("posts").select("*", { count: "exact", head: true }).eq("author_id", userId).eq("is_deleted", false),
+    admin.from("comments").select("*", { count: "exact", head: true }).eq("author_id", userId).eq("is_deleted", false),
+    admin.from("course_enrollments").select("*", { count: "exact", head: true }).eq("user_id", userId).eq("status", "completed"),
+    admin.from("certificates").select("*", { count: "exact", head: true }).eq("user_id", userId),
   ]);
   return {
     id: u.id,
