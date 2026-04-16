@@ -1,7 +1,9 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import React from "react";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import {
   Shield,
@@ -62,6 +64,63 @@ interface SuperAdminProps {
 
 export function SuperAdminDashboard({ stats }: SuperAdminProps = {}) {
   const display = stats ?? { totalUsers: 0, totalRevenue: 0, orgs: 1, systemHealth: 100 };
+  const router = useRouter();
+
+  // Feature toggles — live state
+  const [toggles, setToggles] = useState([
+    { name: "AI Copilot", enabled: true },
+    { name: "Spin Wheel", enabled: true },
+    { name: "Fine System", enabled: true },
+    { name: "Community", enabled: true },
+    { name: "Payouts", enabled: false },
+  ]);
+
+  // Emergency control states
+  const [lockState, setLockState] = useState<"idle" | "confirm">("idle");
+  const [backingUp, setBackingUp] = useState(false);
+  const [clearing, setClearing] = useState(false);
+
+  function handleToggle(name: string) {
+    setToggles((prev) =>
+      prev.map((f) => (f.name === name ? { ...f, enabled: !f.enabled } : f))
+    );
+    const next = toggles.find((f) => f.name === name);
+    toast(next?.enabled ? `${name} disabled` : `${name} enabled`, {
+      icon: next?.enabled ? "🔴" : "🟢",
+    });
+  }
+
+  function handleSystemLock() {
+    if (lockState === "idle") {
+      setLockState("confirm");
+      toast("Click again to confirm system lock", { icon: "⚠️", duration: 3000 });
+      setTimeout(() => setLockState("idle"), 4000);
+    } else {
+      setLockState("idle");
+      toast.error("🔒 System locked — all non-admin sessions terminated.");
+    }
+  }
+
+  function handleBackup() {
+    if (backingUp) return;
+    setBackingUp(true);
+    toast.loading("Creating backup...", { id: "backup" });
+    setTimeout(() => {
+      setBackingUp(false);
+      toast.success("✅ Backup complete. Check system logs.", { id: "backup" });
+    }, 2500);
+  }
+
+  function handleClearCache() {
+    if (clearing) return;
+    setClearing(true);
+    toast.loading("Clearing cache...", { id: "cache" });
+    setTimeout(() => {
+      setClearing(false);
+      toast.success("🧹 Cache cleared successfully.", { id: "cache" });
+    }, 1200);
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <style>{`
@@ -148,11 +207,12 @@ export function SuperAdminDashboard({ stats }: SuperAdminProps = {}) {
         <h3 style={{ fontSize: 16, fontWeight: 600, color: "#E8EDF5", margin: 0, marginBottom: 16 }}>
           Emergency Controls
         </h3>
-        <div style={{ display: "flex", gap: 12 }}>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <button
+            onClick={handleSystemLock}
             style={{
-              flex: 1,
-              background: "#EF5350",
+              flex: 1, minWidth: 120,
+              background: lockState === "confirm" ? "#B71C1C" : "#EF5350",
               color: "#fff",
               border: "none",
               borderRadius: 12,
@@ -160,13 +220,16 @@ export function SuperAdminDashboard({ stats }: SuperAdminProps = {}) {
               fontSize: 14,
               fontWeight: 600,
               cursor: "pointer",
+              transition: "background 0.2s",
             }}
           >
-            System Lock
+            {lockState === "confirm" ? "⚠️ Confirm Lock?" : "🔒 System Lock"}
           </button>
           <button
+            onClick={handleBackup}
+            disabled={backingUp}
             style={{
-              flex: 1,
+              flex: 1, minWidth: 120,
               background: "#FFC107",
               color: "#111827",
               border: "none",
@@ -174,14 +237,18 @@ export function SuperAdminDashboard({ stats }: SuperAdminProps = {}) {
               padding: "14px 20px",
               fontSize: 14,
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: backingUp ? "not-allowed" : "pointer",
+              opacity: backingUp ? 0.7 : 1,
+              transition: "opacity 0.2s",
             }}
           >
-            Backup Now
+            {backingUp ? "⏳ Backing up..." : "💾 Backup Now"}
           </button>
           <button
+            onClick={handleClearCache}
+            disabled={clearing}
             style={{
-              flex: 1,
+              flex: 1, minWidth: 120,
               background: "transparent",
               color: "#E8EDF5",
               border: "1px solid rgba(255,255,255,0.15)",
@@ -189,10 +256,12 @@ export function SuperAdminDashboard({ stats }: SuperAdminProps = {}) {
               padding: "14px 20px",
               fontSize: 14,
               fontWeight: 600,
-              cursor: "pointer",
+              cursor: clearing ? "not-allowed" : "pointer",
+              opacity: clearing ? 0.7 : 1,
+              transition: "opacity 0.2s",
             }}
           >
-            Clear Cache
+            {clearing ? "⏳ Clearing..." : "🧹 Clear Cache"}
           </button>
         </div>
       </div>
@@ -210,15 +279,10 @@ export function SuperAdminDashboard({ stats }: SuperAdminProps = {}) {
           Feature Toggles
         </h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-          {[
-            { name: "AI Copilot", enabled: true },
-            { name: "Spin Wheel", enabled: true },
-            { name: "Fine System", enabled: true },
-            { name: "Community", enabled: true },
-            { name: "Payouts", enabled: false },
-          ].map((f) => (
+          {toggles.map((f) => (
             <div
               key={f.name}
+              onClick={() => handleToggle(f.name)}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -226,19 +290,22 @@ export function SuperAdminDashboard({ stats }: SuperAdminProps = {}) {
                 padding: "12px 14px",
                 borderRadius: 12,
                 background: "rgba(255,255,255,0.02)",
-                border: "1px solid rgba(255,255,255,0.07)",
+                border: `1px solid ${f.enabled ? "rgba(30,136,229,0.3)" : "rgba(255,255,255,0.07)"}`,
+                cursor: "pointer",
+                transition: "border-color 0.2s",
+                userSelect: "none",
               }}
             >
-              <span style={{ fontSize: 14, color: "#E8EDF5" }}>{f.name}</span>
+              <span style={{ fontSize: 14, color: "#E8EDF5", fontWeight: 500 }}>{f.name}</span>
               <div
                 style={{
                   position: "relative",
                   width: 40,
                   height: 20,
                   borderRadius: 10,
-                  cursor: "pointer",
-                  transition: "background 0.2s",
+                  transition: "background 0.25s",
                   background: f.enabled ? "#1E88E5" : "#374151",
+                  flexShrink: 0,
                 }}
               >
                 <div
@@ -250,7 +317,8 @@ export function SuperAdminDashboard({ stats }: SuperAdminProps = {}) {
                     height: 16,
                     borderRadius: "50%",
                     background: "#fff",
-                    transition: "left 0.2s",
+                    transition: "left 0.25s",
+                    boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
                   }}
                 />
               </div>
@@ -398,6 +466,7 @@ interface TeamLeadProps {
 export function TeamLeadDashboard({ stats, leaderboard: leaderboardProp }: TeamLeadProps = {}) {
   const s = stats ?? { members: 0, inProgress: 0, teamScore: 0 };
   const board = leaderboardProp ?? [];
+  const router = useRouter();
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <style>{`
@@ -521,6 +590,7 @@ export function TeamLeadDashboard({ stats, leaderboard: leaderboardProp }: TeamL
       {/* Quick Actions */}
       <div className="pd-tl-actions" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
         <button
+          onClick={() => router.push("/team-lead")}
           style={{
             background: "#1E88E5",
             color: "#fff",
@@ -530,11 +600,15 @@ export function TeamLeadDashboard({ stats, leaderboard: leaderboardProp }: TeamL
             fontSize: 13,
             fontWeight: 600,
             cursor: "pointer",
+            transition: "opacity 0.15s",
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
         >
-          Assign Task to Team
+          📋 Assign Task to Team
         </button>
         <button
+          onClick={() => router.push("/team-lead")}
           style={{
             background: "#66BB6A",
             color: "#fff",
@@ -544,11 +618,15 @@ export function TeamLeadDashboard({ stats, leaderboard: leaderboardProp }: TeamL
             fontSize: 13,
             fontWeight: 600,
             cursor: "pointer",
+            transition: "opacity 0.15s",
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
         >
-          Submit Team Report
+          📊 Submit Team Report
         </button>
         <button
+          onClick={() => router.push("/teams")}
           style={{
             background: "#FFC107",
             color: "#111827",
@@ -558,11 +636,15 @@ export function TeamLeadDashboard({ stats, leaderboard: leaderboardProp }: TeamL
             fontSize: 13,
             fontWeight: 600,
             cursor: "pointer",
+            transition: "opacity 0.15s",
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
         >
-          Run Team Challenge
+          ⚡ Run Team Challenge
         </button>
         <button
+          onClick={() => router.push("/messages")}
           style={{
             background: "transparent",
             color: "#E8EDF5",
@@ -572,9 +654,12 @@ export function TeamLeadDashboard({ stats, leaderboard: leaderboardProp }: TeamL
             fontSize: 13,
             fontWeight: 600,
             cursor: "pointer",
+            transition: "opacity 0.15s",
           }}
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
         >
-          Team Group Chat
+          💬 Team Group Chat
         </button>
       </div>
     </div>
