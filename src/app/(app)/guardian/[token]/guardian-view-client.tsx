@@ -199,7 +199,7 @@ export function GuardianViewClient({ intern }: Props) {
           <div>
             <div style={{ fontSize: 12, color: MUTED }}>Last Active</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: TEXT }}>
-              {intern.last_active_at ? `Active ${relativeTime(intern.last_active_at)}` : "No activity recorded"}
+              {intern.last_seen ? `Active ${relativeTime(intern.last_seen)}` : "No activity recorded"}
             </div>
           </div>
         </div>

@@ -19,6 +19,6 @@ export interface InternSummary {
   streak: number;
   tasks_completed: number;
   tasks_total: number;
-  last_active_at: string | null;
+  last_seen: string | null;
   role: string;
 }

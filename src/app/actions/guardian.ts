@@ -43,10 +43,10 @@ export async function getInternSummaryByToken(token: string): Promise<R<{ intern
     await sb.from("guardian_invites").update({ last_viewed_at: new Date().toISOString() }).eq("id", inv.id);
 
     // Get intern data
-    const { data: user } = await sb.from("users")
-      .select("id, name, avatar_url, xp, level, performance, streak, last_active_at, role")
+    const { data: user, error: userError } = await sb.from("users")
+      .select("id, name, avatar_url, xp, level, performance, streak, last_seen, role")
       .eq("id", inv.intern_id).maybeSingle();
-    if (!user) return { ok: false, error: "Intern not found" };
+    if (!user) return { ok: false, error: userError?.message || "Intern not found" };
     const u = user as Record<string, unknown>;
 
     // Get task stats
@@ -63,7 +63,7 @@ export async function getInternSummaryByToken(token: string): Promise<R<{ intern
       streak: (u.streak as number) || 0,
       tasks_completed: tasksDone || 0,
       tasks_total: tasksTotal || 0,
-      last_active_at: u.last_active_at as string | null,
+      last_seen: u.last_seen as string | null,
       role: u.role as string,
     };
 
