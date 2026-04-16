@@ -635,14 +635,14 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
             border-radius: 0 !important;
             border: none !important;
             position: fixed !important;
-            top: 56px !important;
+            top: ${activeRoomId ? "0" : "56px"} !important;
             left: 0 !important;
             right: 0 !important;
-            bottom: ${activeRoomId ? "0" : "64px"} !important;
+            bottom: 0 !important;
             height: auto !important;
             min-height: 0 !important;
             margin: 0 !important;
-            z-index: ${activeRoomId ? "850" : "50"};
+            z-index: ${activeRoomId ? "900" : "50"};
           }
           .cios-messages-root aside.cios-room-list {
             width: 100% !important;
@@ -694,8 +694,15 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
             height: 100% !important;
             flex: 1 !important;
           }
-          /* Hide bottom-nav only inside an active chat thread (composer replaces it). */
-          ${activeRoomId ? ".bottom-nav-mobile { display: none !important; }" : ""}
+          /* Thread header: always fixed at top — never scrolls */
+          .cios-messages-root main.cios-thread .cios-thread-header {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 10 !important;
+            flex-shrink: 0 !important;
+          }
+          /* Bottom nav hidden on entire messages page — back arrow handles navigation */
+          .bottom-nav-mobile { display: none !important; }
         }
       `}</style>
       {/* ── Sidebar: rooms list ── */}
