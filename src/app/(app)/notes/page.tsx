@@ -665,8 +665,11 @@ function BottomNav({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) 
 
 function NewDocSheet({ onClose, onPick }: { onClose: () => void; onPick: (t: DocType) => void }) {
   const [desktopOnly, setDesktopOnly] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
-  const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
+  useEffect(() => {
+    setIsMobile(window.innerWidth <= 768);
+  }, []);
 
   const types: Array<{ k: DocType; label: string; color: string; letter: string; mobileOk: boolean }> = [
     { k: "doc",    label: "Docs",   color: "#2B5797", letter: "W", mobileOk: true  },

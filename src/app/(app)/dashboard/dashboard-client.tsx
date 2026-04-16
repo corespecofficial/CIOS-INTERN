@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useAppStore } from "@/store/use-app-store";
 import { PromotionProgressCard } from "@/components/promotion-progress-card";
 import { DailyQuestCard } from "@/components/engagement/daily-quest-card";
 import { StreakFreezeCard } from "@/components/engagement/streak-freeze-card";
@@ -660,8 +659,8 @@ function InternDashboard({ stats }: { stats: InternStats }) {
 }
 
 /* ── Main Dashboard ── */
-export default function DashboardClient({ stats }: { stats: InternStats }) {
-  const role = useAppStore((s) => s.role);
+export default function DashboardClient({ stats, role }: { stats: InternStats; role: string }) {
+  // role is passed directly from the server page — no store lookup, no hydration mismatch
 
   if (role === "admin") return <AdminDashboard />;
   if (role === "super_admin") return <SuperAdminDashboard />;

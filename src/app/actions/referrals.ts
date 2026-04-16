@@ -106,6 +106,57 @@ export async function linkReferredUser(referredEmail: string, newUserId: string)
   } catch { /* non-fatal */ }
 }
 
+/** Look up who owns a referral code (for the /join welcome page). No auth required. */
+export async function getReferrerByCode(code: string): Promise<{ name: string; avatarUrl: string | null } | null> {
+  try {
+    const sb = supabaseAdmin();
+    const { data } = await sb.from("users").select("name, avatar_url").eq("referral_code", code).maybeSingle();
+    if (!data) return null;
+    const row = data as { name: string | null; avatar_url: string | null };
+    return { name: row.name || "A CIOS Member", avatarUrl: row.avatar_url };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Called from /post-auth when ?ref=CODE is present.
+ * Creates the referral record (status = "joined") and awards 100 XP to the new user.
+ * Referrer's 500 XP is awarded separately via rewardReferral() once new user is active.
+ */
+export async function processReferralJoin(referralCode: string): Promise<void> {
+  try {
+    const me = await getCurrentDbUser();
+    if (!me || !me.email) return;
+    const sb = supabaseAdmin();
+
+    // Look up referrer
+    const { data: referrer } = await sb.from("users").select("id").eq("referral_code", referralCode).maybeSingle();
+    if (!referrer) return;
+    const referrerId = (referrer as { id: string }).id;
+
+    // Prevent self-referral
+    if (referrerId === me.id) return;
+
+    // Prevent duplicate referrals
+    const { data: existing } = await sb.from("referrals").select("id").eq("referred_user_id", me.id).maybeSingle();
+    if (existing) return;
+
+    // Create referral record as "joined" (user is already confirmed)
+    await sb.from("referrals").insert({
+      referrer_id: referrerId,
+      referred_email: me.email,
+      referred_user_id: me.id,
+      status: "joined",
+    });
+
+    // Award 100 XP welcome bonus to the new user
+    await sb.from("users").update({ xp: (me.xp ?? 0) + 100 } as Record<string, unknown>).eq("id", me.id);
+
+    revalidatePath("/dashboard");
+  } catch { /* non-fatal */ }
+}
+
 /** Call when a referred user completes their first active week (streak ≥ 7 or 5+ tasks done). Awards 500 XP to referrer. */
 export async function rewardReferral(referredUserId: string): Promise<void> {
   try {

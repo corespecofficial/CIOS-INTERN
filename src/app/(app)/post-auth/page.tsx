@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCurrentUser, getRoleHomePath } from "@/lib/use-current-user";
 import { ensureCurrentDbUser } from "@/app/actions/ensure-db-user";
+import { processReferralJoin } from "@/app/actions/referrals";
 
 export default function PostAuthPage() {
   const router = useRouter();
@@ -24,6 +25,18 @@ export default function PostAuthPage() {
         console.error("[post-auth] ensureCurrentDbUser failed:", result.error);
       } else if (result.created) {
         console.log("[post-auth] Supabase user row created");
+      }
+
+      // Process referral if user arrived via /join?ref=CODE
+      const params = new URLSearchParams(window.location.search);
+      const refCode = params.get("ref");
+      if (refCode) {
+        try {
+          await processReferralJoin(refCode);
+          console.log("[post-auth] referral processed:", refCode);
+        } catch (e) {
+          console.warn("[post-auth] referral processing failed (non-fatal):", e);
+        }
       }
 
       let onboardingDone = false;

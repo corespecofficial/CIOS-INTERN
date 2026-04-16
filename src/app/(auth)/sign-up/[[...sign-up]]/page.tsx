@@ -1,17 +1,24 @@
 /* eslint-disable @next/next/no-img-element */
 import { SignUp } from "@clerk/nextjs";
 
-export default function SignUpPage() {
+interface Props {
+  searchParams: { ref?: string };
+}
+
+export default function SignUpPage({ searchParams }: Props) {
+  const ref = searchParams.ref?.trim().toUpperCase();
+  const redirectUrl = ref ? `/post-auth?ref=${encodeURIComponent(ref)}` : "/post-auth";
+
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, width: "100%" }}>
       <div style={{ textAlign: "center" }}>
         <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 24, fontWeight: 700, marginBottom: 4, color: "#E8EDF5" }}>
           Create Account
         </h1>
-        <p style={{ fontSize: 14, color: "#8892A4" }}>Join the CIOS Internship Program</p>
+        <p style={{ fontSize: 14, color: "#8892A4" }}>{ref ? "You were invited — create your account to claim your XP!" : "Join the CIOS Internship Program"}</p>
       </div>
       <SignUp
-        fallbackRedirectUrl="/post-auth"
+        fallbackRedirectUrl={redirectUrl}
         appearance={{
           elements: {
             rootBox: "w-full",

@@ -81,5 +81,5 @@ export default async function DashboardPage() {
     } : null,
   };
 
-  return <DashboardClient stats={stats} />;
+  return <DashboardClient stats={stats} role={dbUser?.role ?? "intern"} />;
 }
