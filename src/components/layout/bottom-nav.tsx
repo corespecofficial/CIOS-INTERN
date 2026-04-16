@@ -17,8 +17,8 @@ export function BottomNav() {
   return (
     <nav className="bottom-nav-mobile" style={{
       position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 800,
-      height: 64, background: "rgba(17,24,39,0.97)", backdropFilter: "blur(16px)",
-      borderTop: "1px solid rgba(255,255,255,0.07)", display: "flex",
+      height: 64, background: "var(--bg-secondary)", backdropFilter: "blur(16px)",
+      borderTop: "1px solid var(--border-default)", display: "flex",
       alignItems: "center", justifyContent: "space-around", padding: "0 8px",
     }}>
       {ITEMS.map((item) => {
@@ -27,7 +27,7 @@ export function BottomNav() {
           <Link key={item.href} href={item.href} style={{
             display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
             padding: "8px 12px", borderRadius: 12, textDecoration: "none",
-            color: active ? "#1E88E5" : "#5A6478", fontSize: 10, fontWeight: 700,
+            color: active ? "var(--accent-blue, #1E88E5)" : "var(--text-muted)", fontSize: 10, fontWeight: 700,
             transition: "color 0.2s", minWidth: 56,
           }}>
             <span style={{ fontSize: 20 }}>{item.icon}</span>
@@ -41,7 +41,7 @@ export function BottomNav() {
         style={{
           display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
           padding: "8px 12px", borderRadius: 12, background: "transparent", border: "none",
-          color: "#5A6478", fontSize: 10, fontWeight: 700, cursor: "pointer", minWidth: 56,
+          color: "var(--text-muted)", fontSize: 10, fontWeight: 700, cursor: "pointer", minWidth: 56,
         }}
       >
         <span style={{ fontSize: 20 }}>⋯</span>

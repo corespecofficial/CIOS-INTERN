@@ -203,8 +203,8 @@ export function Sidebar() {
         height: "100vh",
         display: "flex",
         flexDirection: "column",
-        background: "#0A0E1A",
-        borderRight: "1px solid rgba(255,255,255,0.07)",
+        background: "var(--bg-primary)",
+        borderRight: "1px solid var(--border-default)",
         transition: "width 0.2s ease",
         overflow: "hidden",
         position: "fixed",
@@ -220,7 +220,7 @@ export function Sidebar() {
           alignItems: "center",
           gap: 10,
           padding: collapsed ? "16px 14px" : "16px",
-          borderBottom: "1px solid rgba(255,255,255,0.07)",
+          borderBottom: "1px solid var(--border-default)",
         }}
       >
         <img
@@ -240,7 +240,7 @@ export function Sidebar() {
               style={{
                 fontSize: 14,
                 fontWeight: 700,
-                color: "#E8EDF5",
+                color: "var(--text-primary)",
                 whiteSpace: "nowrap",
               }}
             >
@@ -249,7 +249,7 @@ export function Sidebar() {
             <div
               style={{
                 fontSize: 10,
-                color: "#5A6478",
+                color: "var(--text-muted)",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -266,7 +266,7 @@ export function Sidebar() {
         <div
           style={{
             padding: "12px 16px",
-            borderBottom: "1px solid rgba(255,255,255,0.07)",
+            borderBottom: "1px solid var(--border-default)",
           }}
         >
           <div
@@ -275,7 +275,7 @@ export function Sidebar() {
               fontWeight: 600,
               textTransform: "uppercase",
               letterSpacing: "0.08em",
-              color: "#5A6478",
+              color: "var(--text-muted)",
               marginBottom: 6,
             }}
           >
@@ -301,7 +301,7 @@ export function Sidebar() {
               title="Super Admin: switch portal view for preview"
             >
               {ROLES.map((r) => (
-                <option key={r} value={r} style={{ background: "#1A2332", color: "#AB47BC" }}>
+                <option key={r} value={r} style={{ background: "var(--bg-tertiary)", color: "#AB47BC" }}>
                   {getRoleLabel(r)}
                 </option>
               ))}
@@ -347,7 +347,7 @@ export function Sidebar() {
                   fontWeight: 600,
                   textTransform: "uppercase",
                   letterSpacing: "0.08em",
-                  color: "#5A6478",
+                  color: "var(--text-muted)",
                   padding: "8px 10px 4px",
                 }}
               >
@@ -374,7 +374,7 @@ export function Sidebar() {
                     textDecoration: "none",
                     fontSize: 13,
                     fontWeight: isActive ? 600 : 400,
-                    color: isActive ? "#1E88E5" : "#8892A4",
+                    color: isActive ? "var(--accent-blue, #1E88E5)" : "var(--text-secondary)",
                     background: isActive ? "rgba(30,136,229,0.08)" : "transparent",
                     borderLeft: isActive ? "3px solid #1E88E5" : "3px solid transparent",
                     transition: "background 0.15s, color 0.15s",
@@ -384,13 +384,13 @@ export function Sidebar() {
                   onMouseEnter={(e) => {
                     if (!isActive) {
                       (e.currentTarget as HTMLElement).style.background = "rgba(30,136,229,0.05)";
-                      (e.currentTarget as HTMLElement).style.color = "#E8EDF5";
+                      (e.currentTarget as HTMLElement).style.color = "var(--text-primary)";
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isActive) {
                       (e.currentTarget as HTMLElement).style.background = "transparent";
-                      (e.currentTarget as HTMLElement).style.color = "#8892A4";
+                      (e.currentTarget as HTMLElement).style.color = "var(--text-secondary)";
                     }
                   }}
                 >
@@ -400,7 +400,7 @@ export function Sidebar() {
                       <span style={{
                         position: "absolute", top: -4, right: -8, minWidth: 16, height: 16, padding: "0 4px",
                         background: "#EF5350", color: "#fff", borderRadius: 99, fontSize: 9, fontWeight: 800,
-                        display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #0A0E1A",
+                        display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--bg-primary)",
                       }}>{badgeFor(item.href) > 99 ? "99+" : badgeFor(item.href)}</span>
                     )}
                   </span>
@@ -425,7 +425,7 @@ export function Sidebar() {
       <div
         style={{
           padding: "8px 10px",
-          borderTop: "1px solid rgba(255,255,255,0.07)",
+          borderTop: "1px solid var(--border-default)",
         }}
       >
         <button
@@ -438,9 +438,9 @@ export function Sidebar() {
             gap: 8,
             padding: "8px 0",
             borderRadius: 8,
-            border: "1px solid rgba(255,255,255,0.07)",
+            border: "1px solid var(--border-default)",
             background: "transparent",
-            color: "#8892A4",
+            color: "var(--text-secondary)",
             fontSize: 13,
             cursor: "pointer",
             transition: "background 0.15s",
@@ -461,7 +461,7 @@ export function Sidebar() {
       <div
         style={{
           padding: collapsed ? "12px 8px" : "12px 16px",
-          borderTop: "1px solid rgba(255,255,255,0.07)",
+          borderTop: "1px solid var(--border-default)",
           display: "flex",
           alignItems: "center",
           gap: 10,
@@ -490,7 +490,7 @@ export function Sidebar() {
               style={{
                 fontSize: 13,
                 fontWeight: 600,
-                color: "#E8EDF5",
+                color: "var(--text-primary)",
                 whiteSpace: "nowrap",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -501,7 +501,7 @@ export function Sidebar() {
             <div
               style={{
                 fontSize: 10,
-                color: "#8892A4",
+                color: "var(--text-secondary)",
                 whiteSpace: "nowrap",
               }}
             >

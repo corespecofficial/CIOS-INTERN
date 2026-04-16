@@ -71,6 +71,10 @@
   --z-modal: 300;
   --z-toast: 400;
   --z-tooltip: 500;
+
+  /* Accent colours */
+  --accent-blue: #1E88E5;
+  --accent-purple: #AB47BC;
 }
 
 [data-theme="light"] {
@@ -97,6 +101,10 @@
   --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.12);
   --shadow-glow: 0 0 20px rgba(30, 136, 229, 0.15);
   --shadow-gold: 0 0 20px rgba(255, 193, 7, 0.15);
+
+  /* Accent colours */
+  --accent-blue: #1565C0;
+  --accent-purple: #8E24AA;
 }
 
 /* ============================================
@@ -845,3 +853,158 @@ html[data-theme="light"] [style*="border: 1px solid rgba(255,255,255,0.07)"],
 html[data-theme="light"] [style*="border: 1px solid rgba(255,255,255,0.06)"],
 html[data-theme="light"] [style*="border: 1px solid rgba(255,255,255,0.05)"],
 html[data-theme="light"] [style*="border: 1px solid rgba(255,255,255,0.08)"] { border-color: rgba(15,21,36,0.1) !important; }
+
+/* ============================================
+   LIGHT THEME — COMPREHENSIVE COVERAGE v2
+   Covers all border-direction, rgba, and surface
+   patterns not caught by the rules above.
+   ============================================ */
+
+/* ── Directional border overrides (not caught by shorthand selectors) ── */
+[data-theme="light"] [style*="borderTop: 1px solid rgba(255,255,255"],
+[data-theme="light"] [style*="border-top: 1px solid rgba(255,255,255"],
+[data-theme="light"] [style*="borderBottom: 1px solid rgba(255,255,255"],
+[data-theme="light"] [style*="border-bottom: 1px solid rgba(255,255,255"],
+[data-theme="light"] [style*="borderLeft: 1px solid rgba(255,255,255"],
+[data-theme="light"] [style*="border-left: 1px solid rgba(255,255,255"],
+[data-theme="light"] [style*="borderRight: 1px solid rgba(255,255,255"],
+[data-theme="light"] [style*="border-right: 1px solid rgba(255,255,255"] {
+  border-color: rgba(15,21,36,0.1) !important;
+}
+
+/* ── Stronger rgba borders (0.15, 0.2, 0.25) ── */
+[data-theme="light"] [style*="rgba(255,255,255,0.15)"],
+[data-theme="light"] [style*="rgba(255, 255, 255, 0.15)"],
+[data-theme="light"] [style*="rgba(255,255,255,0.2)"],
+[data-theme="light"] [style*="rgba(255, 255, 255, 0.2)"],
+[data-theme="light"] [style*="rgba(255,255,255,0.25)"],
+[data-theme="light"] [style*="rgba(255, 255, 255, 0.25)"],
+[data-theme="light"] [style*="rgba(255,255,255,0.3)"],
+[data-theme="light"] [style*="rgba(255, 255, 255, 0.3)"] {
+  border-color: rgba(15,21,36,0.18) !important;
+}
+
+/* ── Transparent white surfaces → light grey tint ── */
+[data-theme="light"] [style*="background: rgba(255,255,255,0.04)"],
+[data-theme="light"] [style*="background:rgba(255,255,255,0.04)"],
+[data-theme="light"] [style*="background: rgba(255, 255, 255, 0.04)"],
+[data-theme="light"] [style*="background: rgba(255,255,255,0.05)"],
+[data-theme="light"] [style*="background:rgba(255,255,255,0.05)"],
+[data-theme="light"] [style*="background: rgba(255,255,255,0.06)"],
+[data-theme="light"] [style*="background:rgba(255,255,255,0.06)"],
+[data-theme="light"] [style*="background: rgba(255,255,255,0.08)"],
+[data-theme="light"] [style*="background:rgba(255,255,255,0.08)"] {
+  background: rgba(15,21,36,0.04) !important;
+}
+
+/* ── Kbd / shortcut chips — visible in both themes ── */
+[data-theme="light"] [style*="background: rgba(255,255,255,0.04)"][style*="borderRadius: 4"],
+[data-theme="light"] [style*="background:rgba(255,255,255,0.04)"][style*="borderRadius: 4"] {
+  background: #E2E8F0 !important;
+  color: #475569 !important;
+}
+
+/* ── Additional dark background surfaces ── */
+[data-theme="light"] [style*="background: #374151"],
+[data-theme="light"] [style*="background:#374151"],
+[data-theme="light"] [style*="background-color: #374151"] {
+  background: #F1F5F9 !important;
+}
+[data-theme="light"] [style*="background: #2D3748"],
+[data-theme="light"] [style*="background:#2D3748"],
+[data-theme="light"] [style*="background: #4B5563"],
+[data-theme="light"] [style*="background:#4B5563"] {
+  background: #E2E8F0 !important;
+}
+
+/* ── Very light text colours that become invisible on white ── */
+[data-theme="light"] [style*="color: #CBD5E1"],
+[data-theme="light"] [style*="color:#CBD5E1"],
+[data-theme="light"] [style*="color: #D1D5DB"],
+[data-theme="light"] [style*="color:#D1D5DB"],
+[data-theme="light"] [style*="color: #9CA3AF"],
+[data-theme="light"] [style*="color:#9CA3AF"],
+[data-theme="light"] [style*="color: #E2E8F0"],
+[data-theme="light"] [style*="color:#E2E8F0"],
+[data-theme="light"] [style*="color: #F1F5F9"],
+[data-theme="light"] [style*="color:#F1F5F9"],
+[data-theme="light"] [style*="color: #F8FAFC"],
+[data-theme="light"] [style*="color:#F8FAFC"] {
+  color: #475569 !important;
+}
+
+/* ── Dark gradient backgrounds → replace with clean white/near-white ── */
+[data-theme="light"] [style*="background: linear-gradient(135deg, #0A0E1A"],
+[data-theme="light"] [style*="background:linear-gradient(135deg, #0A0E1A"],
+[data-theme="light"] [style*="background: linear-gradient(135deg, #111827"],
+[data-theme="light"] [style*="background:linear-gradient(135deg, #111827"],
+[data-theme="light"] [style*="background: linear-gradient(180deg, #0A0E1A"],
+[data-theme="light"] [style*="background:linear-gradient(180deg, #0A0E1A"],
+[data-theme="light"] [style*="background: linear-gradient(180deg, #111827"],
+[data-theme="light"] [style*="background:linear-gradient(180deg, #111827"] {
+  background: #F8FAFC !important;
+}
+
+/* ── rgba-background surfaces used as card/panel fills ── */
+[data-theme="light"] [style*="background: rgba(255,255,255,0.03)"],
+[data-theme="light"] [style*="background:rgba(255,255,255,0.03)"] {
+  background: rgba(15,21,36,0.02) !important;
+}
+
+/* ── Page-level containers / section wrappers that use dark bg ── */
+[data-theme="light"] [style*="minHeight: 100vh"][style*="background: #0A0E1A"],
+[data-theme="light"] [style*="minHeight: \"100vh\""][style*="background: #0A0E1A"],
+[data-theme="light"] [style*="minHeight: 100vh"][style*="background: #111827"] {
+  background: #F5F7FB !important;
+}
+
+/* ── Overlay tints on dark backgrounds ── */
+[data-theme="light"] [style*="rgba(0,0,0,0.3)"][style*="borderRadius"],
+[data-theme="light"] [style*="rgba(0, 0, 0, 0.3)"][style*="borderRadius"] {
+  background: rgba(15,21,36,0.06) !important;
+}
+
+/* ── Bottom-nav (mobile) ── */
+[data-theme="light"] .bottom-nav-mobile {
+  background: #FFFFFF !important;
+  border-top: 1px solid #E2E8F0 !important;
+}
+[data-theme="light"] .bottom-nav-mobile a,
+[data-theme="light"] .bottom-nav-mobile button {
+  color: #64748B !important;
+}
+[data-theme="light"] .bottom-nav-mobile a[aria-current="page"],
+[data-theme="light"] .bottom-nav-mobile a.active {
+  color: #1565C0 !important;
+}
+
+/* ── Command palette ── */
+[data-theme="light"] [style*="background: #111827"][style*="position: fixed"],
+[data-theme="light"] [style*="background:#111827"][style*="position: fixed"] {
+  background: #FFFFFF !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.12) !important;
+}
+
+/* ── Toasts / snackbar containers ── */
+[data-theme="light"] [class*="go-toast"],
+[data-theme="light"] [class*="toast"] {
+  background: #FFFFFF !important;
+  color: #0F172A !important;
+  border: 1px solid #E2E8F0 !important;
+}
+
+/* ── Scrollbar track in light mode ── */
+[data-theme="light"] ::-webkit-scrollbar-track { background: #F1F5F9; }
+
+/* ── Table header rows ── */
+[data-theme="light"] [style*="background: #1F2937"][style*="fontWeight"],
+[data-theme="light"] [style*="background:#1F2937"][style*="fontWeight"] {
+  background: #F1F5F9 !important;
+  color: #334155 !important;
+}
+
+/* ── Active/selected state rings ── */
+[data-theme="light"] [style*="outline: 2px solid #1E88E5"],
+[data-theme="light"] [style*="outline:2px solid #1E88E5"] {
+  outline-color: #1565C0 !important;
+}

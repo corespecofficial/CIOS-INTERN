@@ -42,8 +42,8 @@ export function Header() {
         alignItems: "center",
         justifyContent: "space-between",
         padding: "0 20px",
-        background: "#111827",
-        borderBottom: "1px solid rgba(255,255,255,0.07)",
+        background: "var(--bg-secondary)",
+        borderBottom: "1px solid var(--border-default)",
       }}
     >
       {/* Left: Search — opens Cmd+K palette */}
@@ -58,9 +58,9 @@ export function Header() {
             width: "100%",
             padding: "8px 70px 8px 14px",
             borderRadius: 8,
-            border: "1px solid rgba(255,255,255,0.07)",
-            background: "#1A2332",
-            color: "#E8EDF5",
+            border: "1px solid var(--border-default)",
+            background: "var(--bg-tertiary)",
+            color: "var(--text-primary)",
             fontSize: 13,
             outline: "none",
             cursor: "pointer",
@@ -73,8 +73,8 @@ export function Header() {
             top: "50%",
             transform: "translateY(-50%)",
             fontSize: 10,
-            color: "#5A6478",
-            border: "1px solid rgba(255,255,255,0.1)",
+            color: "var(--text-muted)",
+            border: "1px solid var(--border-default)",
             borderRadius: 4,
             padding: "2px 6px",
             background: "rgba(255,255,255,0.04)",
@@ -107,13 +107,13 @@ export function Header() {
             borderRadius: 8,
             border: "none",
             background: "transparent",
-            color: "#8892A4",
+            color: "var(--text-secondary)",
             fontSize: 18,
             cursor: "pointer",
             transition: "background 0.15s",
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)";
+            (e.currentTarget as HTMLElement).style.background = "rgba(128,128,128,0.1)";
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -191,14 +191,14 @@ export function Header() {
               `}</style>
             <div className="cios-notif-panel" style={{
               position: "absolute", top: 46, right: 0, width: 360, maxHeight: 480,
-              background: "#111827", border: "1px solid rgba(255,255,255,0.1)",
-              borderRadius: 12, boxShadow: "0 12px 48px rgba(0,0,0,0.5)",
+              background: "var(--bg-secondary)", border: "1px solid var(--border-default)",
+              borderRadius: 12, boxShadow: "0 12px 48px rgba(0,0,0,0.15)",
               zIndex: 1000, display: "flex", flexDirection: "column",
               overflow: "hidden",
             }}>
               {/* Header */}
-              <div style={{ padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                <span style={{ fontSize: 15, fontWeight: 700, color: "#E8EDF5" }}>Notifications</span>
+              <div style={{ padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border-default)" }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Notifications</span>
                 <button onClick={() => markAllRead()} style={{ background: "none", border: "none", color: "#1E88E5", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                   Mark all read
                 </button>
@@ -210,7 +210,7 @@ export function Header() {
               {/* List */}
               <div style={{ flex: 1, overflowY: "auto", maxHeight: 380 }}>
                 {notifsList.length === 0 ? (
-                  <div style={{ padding: 32, textAlign: "center", color: "#8892A4", fontSize: 13 }}>No notifications</div>
+                  <div style={{ padding: 32, textAlign: "center", color: "var(--text-secondary)", fontSize: 13 }}>No notifications</div>
                 ) : notifsList.map(n => {
                   const icon = { message: "💬", task: "📋", achievement: "🏆", fine: "💸", info: "🔔", success: "✅", warning: "⚠️", error: "🚨", system: "⚙️" }[n.type] || "🔔";
                   const color = { message: "#1E88E5", task: "#AB47BC", achievement: "#FFC107", fine: "#EF5350", info: "#1E88E5", success: "#66BB6A", warning: "#FFC107", error: "#EF5350", system: "#8892A4" }[n.type] || "#1E88E5";
@@ -227,7 +227,7 @@ export function Header() {
                       style={{
                         padding: "12px 16px", display: "flex", gap: 12, alignItems: "flex-start",
                         background: n.is_read ? "transparent" : "rgba(30,136,229,0.06)",
-                        borderBottom: "1px solid rgba(255,255,255,0.04)",
+                        borderBottom: "1px solid var(--border-default)",
                         cursor: "pointer", transition: "background 0.15s",
                       }}
                       onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
@@ -240,12 +240,12 @@ export function Header() {
                         fontSize: 16, flexShrink: 0,
                       }}>{icon}</div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "#E8EDF5", marginBottom: 2, display: "flex", alignItems: "center", gap: 6 }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 2, display: "flex", alignItems: "center", gap: 6 }}>
                           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.title}</span>
                           {!n.is_read && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#1E88E5", flexShrink: 0 }} />}
                         </div>
-                        {n.message && <div style={{ fontSize: 12, color: "#8892A4", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{n.message}</div>}
-                        <div style={{ fontSize: 10, color: "#5A6478", marginTop: 4 }}>{time}</div>
+                        {n.message && <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{n.message}</div>}
+                        <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>{time}</div>
                       </div>
                     </div>
                   );
@@ -254,7 +254,7 @@ export function Header() {
 
               {/* Footer */}
               <Link href="/notifications" onClick={() => setShowDropdown(false)} style={{
-                padding: "12px 16px", textAlign: "center", borderTop: "1px solid rgba(255,255,255,0.07)",
+                padding: "12px 16px", textAlign: "center", borderTop: "1px solid var(--border-default)",
                 color: "#1E88E5", fontSize: 13, fontWeight: 600, textDecoration: "none",
               }}>
                 View all notifications
@@ -329,7 +329,7 @@ function BrowserPermNudge({ onEnable }: { onEnable: () => Promise<NotificationPe
   if (perm === "granted") {
     // Show a tiny confirmation row with a test button
     return (
-      <div style={{ padding: "8px 14px", background: "rgba(102,187,106,0.06)", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", gap: 8, alignItems: "center", fontSize: 11 }}>
+      <div style={{ padding: "8px 14px", background: "rgba(102,187,106,0.06)", borderBottom: "1px solid var(--border-default)", display: "flex", gap: 8, alignItems: "center", fontSize: 11 }}>
         <span style={{ color: "#66BB6A" }}>✓ Desktop notifications enabled</span>
         <div style={{ flex: 1 }} />
         <button onClick={test} style={{ background: "transparent", color: "#66BB6A", border: "1px solid rgba(102,187,106,0.3)", borderRadius: 6, padding: "3px 10px", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>Test</button>
@@ -339,18 +339,18 @@ function BrowserPermNudge({ onEnable }: { onEnable: () => Promise<NotificationPe
 
   if (perm === "denied") {
     return (
-      <div style={{ padding: "10px 14px", background: "rgba(239,83,80,0.08)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+      <div style={{ padding: "10px 14px", background: "rgba(239,83,80,0.08)", borderBottom: "1px solid var(--border-default)" }}>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <span style={{ fontSize: 18 }}>🔕</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#E8EDF5" }}>Notifications blocked</div>
-            <div style={{ fontSize: 10, color: "#8892A4" }}>You&apos;ll miss alerts for messages & activity.</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>Notifications blocked</div>
+            <div style={{ fontSize: 10, color: "var(--text-secondary)" }}>You&apos;ll miss alerts for messages & activity.</div>
           </div>
           <button onClick={() => setHelpOpen(!helpOpen)} style={{ background: "#EF5350", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Re-enable</button>
         </div>
         {helpOpen && (
-          <div style={{ marginTop: 10, padding: 10, background: "rgba(0,0,0,0.25)", borderRadius: 8, fontSize: 11, color: "#B0BEC5", lineHeight: 1.55 }}>
-            <strong style={{ color: "#E8EDF5" }}>How to re-enable</strong>
+          <div style={{ marginTop: 10, padding: 10, background: "var(--bg-tertiary)", borderRadius: 8, fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.55 }}>
+            <strong style={{ color: "var(--text-primary)" }}>How to re-enable</strong>
             <ol style={{ margin: "6px 0 0 16px", padding: 0 }}>
               <li>Click the <strong>🔒 lock icon</strong> in your browser&apos;s address bar</li>
               <li>Find <strong>Notifications</strong> → switch to <strong>Allow</strong></li>
@@ -364,11 +364,11 @@ function BrowserPermNudge({ onEnable }: { onEnable: () => Promise<NotificationPe
 
   // default / not asked yet
   return (
-    <div style={{ padding: "10px 14px", background: "rgba(30,136,229,0.08)", borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", gap: 10, alignItems: "center" }}>
+    <div style={{ padding: "10px 14px", background: "rgba(30,136,229,0.08)", borderBottom: "1px solid var(--border-default)", display: "flex", gap: 10, alignItems: "center" }}>
       <span style={{ fontSize: 18 }}>🔔</span>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#E8EDF5" }}>Enable desktop notifications</div>
-        <div style={{ fontSize: 10, color: "#8892A4" }}>Get alerts when the tab is in the background.</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)" }}>Enable desktop notifications</div>
+        <div style={{ fontSize: 10, color: "var(--text-secondary)" }}>Get alerts when the tab is in the background.</div>
       </div>
       <button onClick={async () => setPerm(await onEnable())} style={{ background: "#1E88E5", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>Enable</button>
     </div>
