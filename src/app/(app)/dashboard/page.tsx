@@ -8,28 +8,38 @@ import {
   listTeamMembers,
   countTasksInProgressForUsers,
   rankForLevel,
+  getMyCoursesAsInstructor,
+  getInstructorUpcomingClasses,
+  getInstructorRecentGrades,
 } from "@/lib/db";
 import DashboardClient from "./dashboard-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
+  const dbUser = await getCurrentDbUser();
+  const isInstructor = dbUser?.role === "instructor";
+
   const [
-    dbUser,
     todaysTasks,
     upcomingClasses,
     leaderboard,
     weekly,
     activity,
     teamMembers,
+    instructorCourses,
+    instructorUpcoming,
+    instructorGrades,
   ] = await Promise.all([
-    getCurrentDbUser(),
     getTodaysTasksForCurrentUser(3),
     getUpcomingClasses(2),
     getTopLeaderboard(3),
     getWeeklyPerformance(),
     getRecentActivityForCurrentUser(4),
     listTeamMembers(),
+    isInstructor ? getMyCoursesAsInstructor() : Promise.resolve([]),
+    isInstructor ? getInstructorUpcomingClasses(3) : Promise.resolve([]),
+    isInstructor ? getInstructorRecentGrades(5) : Promise.resolve([]),
   ]);
 
   const inProgress = await countTasksInProgressForUsers(teamMembers.map((m) => m.id));
@@ -56,6 +66,19 @@ export default async function DashboardPage() {
     activity,
     teamStats: { members: teamMembers.length, inProgress, teamScore },
     teamLeaderboard,
+    instructorData: isInstructor ? {
+      courses: instructorCourses.map((c) => ({
+        id: c.id,
+        title: c.title,
+        category: c.category || "General",
+        difficulty: c.difficulty || "Beginner",
+        totalEnrolled: c.total_enrolled || 0,
+        totalModules: c.total_modules || 0,
+        thumbnailUrl: c.thumbnail_url || null,
+      })),
+      upcomingClasses: instructorUpcoming,
+      recentGrades: instructorGrades,
+    } : null,
   };
 
   return <DashboardClient stats={stats} />;

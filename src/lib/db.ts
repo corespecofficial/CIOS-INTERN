@@ -1906,3 +1906,105 @@ export async function safeQuery<T>(
     return null;
   }
 }
+
+/* ── Instructor Dashboard: upcoming classes they are teaching ── */
+export interface InstructorUpcomingClass {
+  id: string;
+  title: string;
+  startLabel: string;
+  enrolledCount: number;
+  isLive: boolean;
+}
+
+export async function getInstructorUpcomingClasses(limit = 3): Promise<InstructorUpcomingClass[]> {
+  const me = await getCurrentDbUser();
+  if (!me) return [];
+  const now = new Date(Date.now() - 30 * 60000).toISOString(); // allow 30min grace
+  const { data, error } = await supabase()
+    .from("class_sessions")
+    .select("id, title, scheduled_at, status, attendee_count")
+    .eq("instructor_id", me.id)
+    .neq("status", "cancelled")
+    .gte("scheduled_at", now)
+    .order("scheduled_at", { ascending: true })
+    .limit(limit);
+  if (error || !data) return [];
+  const today = new Date().toDateString();
+  return (data as { id: string; title: string; scheduled_at: string; status: string; attendee_count: number }[]).map((r) => {
+    const d = new Date(r.scheduled_at);
+    const label =
+      d.toDateString() === today
+        ? `Today, ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+        : `${d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}, ${d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+    return {
+      id: r.id,
+      title: r.title,
+      startLabel: label,
+      enrolledCount: r.attendee_count || 0,
+      isLive: r.status === "live",
+    };
+  });
+}
+
+/* ── Instructor Dashboard: recently graded submissions ── */
+export interface InstructorRecentGrade {
+  id: string;
+  studentName: string;
+  moduleTitle: string;
+  grade: number;
+  maxScore: number;
+  gradeLetter: string;
+}
+
+function toGradeLetter(score: number, max: number): string {
+  const pct = max > 0 ? (score / max) * 100 : 0;
+  if (pct >= 93) return "A";
+  if (pct >= 90) return "A-";
+  if (pct >= 87) return "B+";
+  if (pct >= 83) return "B";
+  if (pct >= 80) return "B-";
+  if (pct >= 77) return "C+";
+  if (pct >= 73) return "C";
+  if (pct >= 70) return "C-";
+  if (pct >= 60) return "D";
+  return "F";
+}
+
+export async function getInstructorRecentGrades(limit = 5): Promise<InstructorRecentGrade[]> {
+  const me = await getCurrentDbUser();
+  if (!me) return [];
+  // Get instructor's course IDs first
+  const { data: myCourses } = await supabase().from("courses").select("id").eq("instructor_id", me.id);
+  const courseIds = (myCourses || []).map((c: { id: string }) => c.id);
+  if (courseIds.length === 0) return [];
+  const { data, error } = await supabase()
+    .from("module_submissions")
+    .select("id, grade, submitted_at, module:course_modules!module_submissions_module_id_fkey(title, assignment_max_score, course_id), user:users!module_submissions_user_id_fkey(name)")
+    .eq("status", "graded")
+    .order("submitted_at", { ascending: false })
+    .limit(limit * 3); // over-fetch to filter by courseIds
+  if (error || !data) return [];
+  type Row = {
+    id: string; grade: number | null; submitted_at: string;
+    module?: { title: string; assignment_max_score: number; course_id: string } | { title: string; assignment_max_score: number; course_id: string }[] | null;
+    user?: { name: string } | { name: string }[] | null;
+  };
+  return (data as unknown as Row[])
+    .map((r) => {
+      const mod = Array.isArray(r.module) ? r.module[0] : r.module;
+      const u = Array.isArray(r.user) ? r.user[0] : r.user;
+      const maxScore = mod?.assignment_max_score || 100;
+      const grade = r.grade ?? 0;
+      return {
+        id: r.id,
+        studentName: u?.name || "Student",
+        moduleTitle: mod?.title || "Assignment",
+        grade,
+        maxScore,
+        gradeLetter: toGradeLetter(grade, maxScore),
+        courseId: mod?.course_id || "",
+      };
+    })
+    .filter((r) => courseIds.includes(r.courseId))
+    .slice(0, limit);
+}

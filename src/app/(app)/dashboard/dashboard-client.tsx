@@ -78,6 +78,11 @@ interface InternStats {
   activity: { id: string; text: string; value: string; color: string; timeLabel: string }[];
   teamStats: { members: number; inProgress: number; teamScore: number };
   teamLeaderboard: { rank: number; name: string; xp: number; avatarUrl: string | null }[];
+  instructorData?: {
+    courses: { id: string; title: string; category: string; difficulty: string; totalEnrolled: number; totalModules: number; thumbnailUrl: string | null }[];
+    upcomingClasses: { id: string; title: string; startLabel: string; enrolledCount: number; isLive: boolean }[];
+    recentGrades: { id: string; studentName: string; moduleTitle: string; grade: number; maxScore: number; gradeLetter: string }[];
+  } | null;
 }
 
 const PRIORITY_DOT: Record<InternStats["todaysTasks"][number]["priority"], string> = {
@@ -661,7 +666,13 @@ export default function DashboardClient({ stats }: { stats: InternStats }) {
   if (role === "admin") return <AdminDashboard />;
   if (role === "super_admin") return <SuperAdminDashboard />;
   if (role === "team_lead") return <TeamLeadDashboard stats={stats.teamStats} leaderboard={stats.teamLeaderboard} />;
-  if (role === "instructor") return <InstructorDashboard />;
+  if (role === "instructor") return (
+    <InstructorDashboard
+      courses={stats.instructorData?.courses}
+      upcomingClasses={stats.instructorData?.upcomingClasses}
+      recentGrades={stats.instructorData?.recentGrades}
+    />
+  );
   if (role === "moderator") return <ModeratorDashboard />;
   if (role === "finance") return <FinanceDashboard />;
   if (role === "support") return <SupportDashboard />;

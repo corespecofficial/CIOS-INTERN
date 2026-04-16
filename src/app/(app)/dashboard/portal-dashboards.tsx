@@ -680,9 +680,28 @@ interface InstructorCourse {
   thumbnailUrl: string | null;
 }
 
+interface InstructorUpcomingClass {
+  id: string;
+  title: string;
+  startLabel: string;
+  enrolledCount: number;
+  isLive: boolean;
+}
+
+interface InstructorRecentGrade {
+  id: string;
+  studentName: string;
+  moduleTitle: string;
+  grade: number;
+  maxScore: number;
+  gradeLetter: string;
+}
+
 interface InstructorProps {
   courses?: InstructorCourse[];
   name?: string;
+  upcomingClasses?: InstructorUpcomingClass[];
+  recentGrades?: InstructorRecentGrade[];
 }
 
 const COURSE_GRADIENTS = [
@@ -698,8 +717,10 @@ const COURSE_ICONS: Record<string, string> = {
   Marketing: "\u{1F4E2}", General: "\u{1F4DA}",
 };
 
-export function InstructorDashboard({ courses: coursesProp, name }: InstructorProps = {}) {
+export function InstructorDashboard({ courses: coursesProp, name, upcomingClasses: upcomingProp, recentGrades: gradesProp }: InstructorProps = {}) {
   const courses = coursesProp ?? [];
+  const upcomingClasses = upcomingProp ?? [];
+  const recentGrades = gradesProp ?? [];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <style>{`
@@ -808,12 +829,13 @@ export function InstructorDashboard({ courses: coursesProp, name }: InstructorPr
             Upcoming Classes
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {[
-              { title: "Prompt Engineering \u2013 Module 7", time: "Today, 3:00 PM", enrolled: 32 },
-              { title: "Design Sprint Workshop", time: "Tomorrow, 10:00 AM", enrolled: 28 },
-            ].map((cls) => (
+            {upcomingClasses.length === 0 ? (
+              <div style={{ padding: "24px 0", textAlign: "center", color: "#8892A4", fontSize: 13 }}>
+                No upcoming classes scheduled.
+              </div>
+            ) : upcomingClasses.map((cls) => (
               <div
-                key={cls.title}
+                key={cls.id}
                 style={{
                   padding: "12px 14px",
                   borderRadius: 12,
@@ -828,16 +850,16 @@ export function InstructorDashboard({ courses: coursesProp, name }: InstructorPr
                       fontSize: 10,
                       fontWeight: 600,
                       color: "#fff",
-                      background: "#66BB6A",
+                      background: cls.isLive ? "#EF5350" : "#66BB6A",
                       padding: "2px 8px",
                       borderRadius: 999,
                     }}
                   >
-                    Starting Soon
+                    {cls.isLive ? "Live Now" : "Upcoming"}
                   </span>
                 </div>
                 <div style={{ fontSize: 12, color: "#8892A4" }}>
-                  {cls.time} &middot; {cls.enrolled} enrolled
+                  {cls.startLabel} &middot; {cls.enrolledCount} enrolled
                 </div>
               </div>
             ))}
@@ -857,13 +879,13 @@ export function InstructorDashboard({ courses: coursesProp, name }: InstructorPr
             Recent Grades
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {[
-              { student: "Grace Adebayo", grade: "A", score: "95/100" },
-              { student: "Chukwuemeka Obi", grade: "B+", score: "87/100" },
-              { student: "Fatima Usman", grade: "A-", score: "91/100" },
-            ].map((g) => (
+            {recentGrades.length === 0 ? (
+              <div style={{ padding: "24px 0", textAlign: "center", color: "#8892A4", fontSize: 13 }}>
+                No graded submissions yet.
+              </div>
+            ) : recentGrades.map((g) => (
               <div
-                key={g.student}
+                key={g.id}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -874,10 +896,13 @@ export function InstructorDashboard({ courses: coursesProp, name }: InstructorPr
                   border: "1px solid rgba(255,255,255,0.07)",
                 }}
               >
-                <span style={{ fontSize: 14, color: "#E8EDF5", fontWeight: 500 }}>{g.student}</span>
-                <div style={{ textAlign: "right" }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#FFC107" }}>{g.grade}</span>
-                  <span style={{ fontSize: 12, color: "#8892A4", marginLeft: 8 }}>{g.score}</span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 14, color: "#E8EDF5", fontWeight: 500 }}>{g.studentName}</div>
+                  <div style={{ fontSize: 11, color: "#8892A4", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.moduleTitle}</div>
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 8 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#FFC107" }}>{g.gradeLetter}</span>
+                  <span style={{ fontSize: 12, color: "#8892A4", marginLeft: 8 }}>{g.grade}/{g.maxScore}</span>
                 </div>
               </div>
             ))}
