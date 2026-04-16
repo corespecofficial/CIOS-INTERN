@@ -664,13 +664,6 @@ function BottomNav({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) 
    ═════════════════════════════════════════════════════════════ */
 
 function NewDocSheet({ onClose, onPick }: { onClose: () => void; onPick: (t: DocType) => void }) {
-  const [desktopOnly, setDesktopOnly] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    setIsMobile(window.innerWidth <= 768);
-  }, []);
-
   const types: Array<{ k: DocType; label: string; color: string; letter: string; mobileOk: boolean }> = [
     { k: "doc",    label: "Docs",   color: "#2B5797", letter: "W", mobileOk: true  },
     { k: "slides", label: "Slides", color: "#D24726", letter: "P", mobileOk: false },
@@ -678,69 +671,56 @@ function NewDocSheet({ onClose, onPick }: { onClose: () => void; onPick: (t: Doc
     { k: "pdf",    label: "PDF",    color: "#CC3333", letter: "🗎", mobileOk: false },
   ];
 
-  const handlePick = (t: typeof types[number]) => {
-    if (isMobile && !t.mobileOk) {
-      setDesktopOnly(t.label);
-      return;
-    }
-    onPick(t.k);
-  };
-
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 150, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      {/* CSS-enforced mobile restrictions — no JavaScript detection needed */}
+      <style>{`
+        @media (max-width: 768px) {
+          .ndoc-restricted        { pointer-events: none !important; opacity: 0.38 !important; }
+          .ndoc-desktop-badge     { display: block !important; }
+          .ndoc-mobile-tip        { display: flex !important; }
+        }
+        @media (min-width: 769px) {
+          .ndoc-desktop-badge { display: none; }
+          .ndoc-mobile-tip    { display: none; }
+        }
+      `}</style>
+
       <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 520, background: "#0D1220", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: "#E8EDF5" }}>{desktopOnly ? "Desktop Only" : "New"}</div>
-          <button onClick={desktopOnly ? () => setDesktopOnly(null) : onClose} style={{ ...iconGhost, color: "#E8EDF5" }}>✕</button>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#E8EDF5" }}>New</div>
+          <button onClick={onClose} style={{ ...iconGhost, color: "#E8EDF5" }}>✕</button>
         </div>
 
-        {desktopOnly ? (
-          /* ── Desktop-only notice ── */
-          <div style={{ textAlign: "center", padding: "24px 8px 16px" }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🖥️</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: "#E8EDF5", marginBottom: 8 }}>
-              {desktopOnly} is desktop only
-            </div>
-            <div style={{ fontSize: 13, color: "#8892A4", lineHeight: 1.6, marginBottom: 20 }}>
-              {desktopOnly} editing requires a larger screen for the best experience.
-              Please open CIOS on a desktop or laptop to create {desktopOnly.toLowerCase()} documents.
-            </div>
-            <button onClick={() => setDesktopOnly(null)} style={{
-              padding: "10px 24px", borderRadius: 10, border: "none",
-              background: "linear-gradient(135deg,#EF5350,#C62828)",
-              color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
-            }}>
-              ← Go back
-            </button>
-          </div>
-        ) : (
-          /* ── Normal doc type picker ── */
-          <>
-            <div style={{ fontSize: 11, color: "#8892A4", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Office Documents</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-              {types.map((t) => {
-                const dimmed = isMobile && !t.mobileOk;
-                return (
-                  <button key={t.k} onClick={() => handlePick(t)} style={{ background: "none", border: "none", cursor: "pointer", textAlign: "center", position: "relative" }}>
-                    <div style={{ width: 54, height: 54, margin: "0 auto 6px", borderRadius: 10, background: t.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 20, fontWeight: 800, opacity: dimmed ? 0.5 : 1 }}>{t.letter}</div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: dimmed ? "#5A6478" : "#E8EDF5" }}>{t.label}</div>
-                    {dimmed && (
-                      <div style={{ position: "absolute", top: 2, right: 6, fontSize: 9, fontWeight: 800, color: "#FFC107", background: "rgba(255,193,7,0.12)", border: "1px solid rgba(255,193,7,0.3)", borderRadius: 4, padding: "1px 4px", letterSpacing: 0.3 }}>DESKTOP</div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            {isMobile && (
-              <div style={{ marginTop: 14, padding: "10px 12px", background: "rgba(255,193,7,0.06)", border: "1px solid rgba(255,193,7,0.2)", borderRadius: 10, display: "flex", gap: 8, alignItems: "flex-start" }}>
-                <span style={{ fontSize: 14, flexShrink: 0 }}>💡</span>
-                <span style={{ fontSize: 11, color: "#B0BEC5", lineHeight: 1.5 }}>
-                  <strong style={{ color: "#FFC107" }}>Slides, Table & PDF</strong> are available on desktop. On mobile, only <strong style={{ color: "#E8EDF5" }}>Docs</strong> is fully supported.
-                </span>
+        <div style={{ fontSize: 11, color: "#8892A4", fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>Office Documents</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+          {types.map((t) => (
+            <button
+              key={t.k}
+              onClick={() => onPick(t.k)}
+              className={t.mobileOk ? "" : "ndoc-restricted"}
+              style={{ background: "none", border: "none", cursor: "pointer", textAlign: "center", position: "relative" }}
+            >
+              <div style={{ width: 54, height: 54, margin: "0 auto 6px", borderRadius: 10, background: t.color, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 20, fontWeight: 800 }}>
+                {t.letter}
               </div>
-            )}
-          </>
-        )}
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#E8EDF5" }}>{t.label}</div>
+              {!t.mobileOk && (
+                <div className="ndoc-desktop-badge" style={{ display: "none", position: "absolute", top: 2, right: 6, fontSize: 9, fontWeight: 800, color: "#FFC107", background: "rgba(255,193,7,0.12)", border: "1px solid rgba(255,193,7,0.3)", borderRadius: 4, padding: "1px 4px", letterSpacing: 0.3 }}>
+                  DESKTOP
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Mobile tip — hidden on desktop, shown on mobile via CSS */}
+        <div className="ndoc-mobile-tip" style={{ display: "none", marginTop: 14, padding: "10px 12px", background: "rgba(255,193,7,0.06)", border: "1px solid rgba(255,193,7,0.2)", borderRadius: 10, gap: 8, alignItems: "flex-start" }}>
+          <span style={{ fontSize: 14, flexShrink: 0 }}>🖥️</span>
+          <span style={{ fontSize: 11, color: "#B0BEC5", lineHeight: 1.5 }}>
+            <strong style={{ color: "#FFC107" }}>Slides, Table & PDF</strong> are only available on desktop. On mobile, only <strong style={{ color: "#E8EDF5" }}>Docs</strong> is supported.
+          </span>
+        </div>
       </div>
     </div>
   );

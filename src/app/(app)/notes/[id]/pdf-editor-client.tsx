@@ -358,6 +358,26 @@ export function PdfEditorClient({ initialNote }: { initialNote: DbNote }) {
 
   return (
     <>
+      {/* ── MOBILE GATE: CSS-enforced, no JS needed ── */}
+      <style>{`
+        @media (max-width: 768px) { .cios-desktop-gate { display: flex !important; } }
+      `}</style>
+      <div className="cios-desktop-gate" style={{
+        display: "none", position: "fixed", inset: 0, zIndex: 99999,
+        background: "#0A0E1A", flexDirection: "column", alignItems: "center",
+        justifyContent: "center", padding: 32, textAlign: "center", gap: 16,
+      }}>
+        <div style={{ fontSize: 72 }}>🖥️</div>
+        <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 24, fontWeight: 800, color: "#E8EDF5" }}>Desktop Only</div>
+        <div style={{ fontSize: 14, color: "#8892A4", lineHeight: 1.7, maxWidth: 320 }}>
+          PDF editing requires a larger screen for the best experience.<br />
+          Please open CIOS on a <strong style={{ color: "#E8EDF5" }}>desktop or laptop</strong>.
+        </div>
+        <a href="/notes" style={{ marginTop: 8, padding: "12px 28px", borderRadius: 12, background: "linear-gradient(135deg,#1E88E5,#1565C0)", color: "#fff", textDecoration: "none", fontWeight: 700, fontSize: 14 }}>
+          ← Back to Notes
+        </a>
+      </div>
+
       <input ref={photoRef} type="file" accept="image/*" style={{ display: "none" }}
         onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) uploadAndInsertImage(f); }} />
       <input ref={watermarkImgRef} type="file" accept="image/*" style={{ display: "none" }}
