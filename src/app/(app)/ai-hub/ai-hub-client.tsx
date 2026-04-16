@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import toast from "react-hot-toast";
+import Link from "next/link";
 import { sendChat, type ChatMessage } from "@/app/actions/ai-chat";
 import {
   ConversationStore, MemoryStore, newId, autoTitle, conversationToMarkdown,
@@ -319,6 +320,12 @@ export default function AIHubClient() {
               border: "none", marginBottom: 2,
             }}>{t.label}</button>
           ))}
+          {/* Interview Prep — standalone page */}
+          <Link href="/ai-hub/interview-prep" style={{
+            display: "block", width: "100%", textAlign: "left", padding: "7px 10px", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer",
+            color: "#1E88E5", textDecoration: "none", marginBottom: 2,
+            background: "rgba(30,136,229,0.06)", border: "1px solid rgba(30,136,229,0.15)",
+          }}>🎤 Interview Prep ↗</Link>
         </div>
 
         {/* Conversations */}

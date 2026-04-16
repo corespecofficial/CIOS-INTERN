@@ -35,7 +35,7 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export function OpportunitiesClient({ opps, applications, savedIds, userRole }: { opps: Opp[]; applications: App[]; savedIds: string[]; userRole: string }) {
-  const [tab, setTab] = useState<"browse" | "applications" | "saved">("browse");
+  const [tab, setTab] = useState<"browse" | "gigs" | "applications" | "saved">("browse");
   const [kind, setKind] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [remoteOnly, setRemoteOnly] = useState(false);
@@ -52,6 +52,16 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
       return true;
     });
   }, [opps, kind, remoteOnly, search]);
+
+  const gigs = useMemo(() => {
+    const q = search.toLowerCase();
+    return opps.filter((o) => {
+      if (o.kind !== "gig") return false;
+      if (remoteOnly && !o.remote) return false;
+      if (q && !(o.title.toLowerCase().includes(q) || o.description.toLowerCase().includes(q) || o.skills.some((s) => s.toLowerCase().includes(q)))) return false;
+      return true;
+    });
+  }, [opps, remoteOnly, search]);
 
   const savedList = opps.filter((o) => saved.has(o.id));
   const canPost = userRole === "recruiter" || userRole === "admin" || userRole === "super_admin";
@@ -77,34 +87,51 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 4, background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: 4, marginBottom: 14 }}>
+      <div style={{ display: "flex", gap: 4, background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: 4, marginBottom: 14, flexWrap: "wrap" }}>
         {[
           { k: "browse", label: `🔍 Browse (${filtered.length})` },
-          { k: "applications", label: `📨 My applications (${applications.length})` },
+          { k: "gigs", label: `⚡ Gig Board (${gigs.length})` },
+          { k: "applications", label: `📨 Applications (${applications.length})` },
           { k: "saved", label: `🔖 Saved (${saved.size})` },
         ].map((t) => (
-          <button key={t.k} onClick={() => setTab(t.k as "browse" | "applications" | "saved")} style={{
+          <button key={t.k} onClick={() => setTab(t.k as "browse" | "gigs" | "applications" | "saved")} style={{
             flex: 1, padding: "9px 12px", borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: "pointer",
-            background: tab === t.k ? "rgba(255,112,67,0.15)" : "transparent",
-            color: tab === t.k ? "#FF7043" : "#8892A4",
-            border: "none",
+            background: tab === t.k ? (t.k === "gigs" ? "rgba(38,198,218,0.15)" : "rgba(255,112,67,0.15)") : "transparent",
+            color: tab === t.k ? (t.k === "gigs" ? "#26C6DA" : "#FF7043") : "#8892A4",
+            border: "none", whiteSpace: "nowrap",
           }}>{t.label}</button>
         ))}
       </div>
 
-      {tab === "browse" && (
-        <>
-          <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="🔍 Search title, skills, description…" style={{ ...input, flex: 1, minWidth: 200 }} />
+      {/* Search + filter bar (shared for browse + gigs) */}
+      {(tab === "browse" || tab === "gigs") && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="🔍 Search title, skills, description…" style={{ ...input, flex: 1, minWidth: 200 }} />
+          {tab === "browse" && (
             <select value={kind} onChange={(e) => setKind(e.target.value)} style={input}>
               <option value="all">All kinds</option>
               {Object.entries(KIND_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
             </select>
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#E8EDF5", padding: "8px 10px", background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, cursor: "pointer" }}>
-              <input type="checkbox" checked={remoteOnly} onChange={(e) => setRemoteOnly(e.target.checked)} /> Remote only
-            </label>
+          )}
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#E8EDF5", padding: "8px 10px", background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, cursor: "pointer" }}>
+            <input type="checkbox" checked={remoteOnly} onChange={(e) => setRemoteOnly(e.target.checked)} /> Remote only
+          </label>
+        </div>
+      )}
+
+      {tab === "browse" && renderList(filtered)}
+
+      {tab === "gigs" && (
+        <>
+          {/* Gig board header */}
+          <div style={{ background: "rgba(38,198,218,0.08)", border: "1px solid rgba(38,198,218,0.2)", borderRadius: 12, padding: "12px 16px", marginBottom: 12, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 20 }}>⚡</span>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: "#26C6DA" }}>Gig Board</div>
+              <div style={{ fontSize: 11, color: "#8892A4" }}>Short-term freelance projects · Apply fast · Get paid</div>
+            </div>
           </div>
-          {renderList(filtered)}
+          {renderGigList(gigs)}
         </>
       )}
 
@@ -132,6 +159,63 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
       {applying && <ApplyModal opp={applying} onClose={() => setApplying(null)} onApplied={(id) => { setAppliedIds((prev) => new Set(prev).add(id)); setApplying(null); }} />}
     </div>
   );
+
+  function renderGigList(list: Opp[]) {
+    if (list.length === 0) return <Empty text="No gigs available right now. Check back soon." />;
+    return (
+      <div style={{ display: "grid", gap: 10 }}>
+        {list.map((o) => {
+          const logo = o.recruiter_profile?.company_logo_url || o.recruiter?.avatar_url;
+          const company = o.recruiter_profile?.company_name || o.recruiter?.name || "Client";
+          const isApplied = appliedIds.has(o.id);
+          const isSaved = saved.has(o.id);
+          const salary = o.salary_min || o.salary_max
+            ? `${o.salary_currency || "NGN"} ${[o.salary_min, o.salary_max].filter(Boolean).join("–")}`
+            : null;
+          return (
+            <div key={o.id} style={{ background: "#111827", border: "1px solid rgba(38,198,218,0.15)", borderRadius: 14, padding: 16, display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 14, alignItems: "start" }}>
+              {/* Logo */}
+              <div style={{ width: 44, height: 44, borderRadius: 10, background: "#0A0E1A", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                {logo ? <img src={logo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 18 }}>⚡</span>}
+              </div>
+              {/* Body */}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 3 }}>
+                  <h3 style={{ fontSize: 14, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>{o.title}</h3>
+                  {o.featured && <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 4, background: "rgba(255,193,7,0.2)", color: "#FFC107", fontWeight: 700 }}>★ FEATURED</span>}
+                  {o.remote && <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 4, background: "rgba(102,187,106,0.15)", color: "#66BB6A", fontWeight: 700 }}>REMOTE</span>}
+                </div>
+                <div style={{ fontSize: 11, color: "#8892A4", marginBottom: 5 }}>
+                  {company}
+                  {salary && <span style={{ color: "#26C6DA", fontWeight: 700, marginLeft: 6 }}>{salary}</span>}
+                  {o.deadline && <span> · Deadline {new Date(o.deadline).toLocaleDateString()}</span>}
+                </div>
+                <div style={{ fontSize: 12, color: "#E8EDF5", lineHeight: 1.5, marginBottom: 6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                  {o.description}
+                </div>
+                {o.skills?.length > 0 && (
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    {o.skills.slice(0, 5).map((s) => (
+                      <span key={s} style={{ fontSize: 10, padding: "2px 7px", background: "rgba(38,198,218,0.08)", border: "1px solid rgba(38,198,218,0.2)", borderRadius: 4, color: "#26C6DA" }}>{s}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* Actions */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
+                {isApplied
+                  ? <span style={{ ...btnSmall, background: "rgba(102,187,106,0.15)", color: "#66BB6A", borderColor: "rgba(102,187,106,0.3)", cursor: "default", whiteSpace: "nowrap" }}>✓ Applied</span>
+                  : <button onClick={() => setApplying(o)} style={{ ...btnSmallPrimary, background: "#26C6DA", borderColor: "transparent", whiteSpace: "nowrap" }}>⚡ Apply</button>}
+                <button onClick={() => onToggleSave(o.id)} style={{ ...btnSmall, background: isSaved ? "rgba(255,193,7,0.15)" : "transparent", color: isSaved ? "#FFC107" : "#8892A4", borderColor: isSaved ? "rgba(255,193,7,0.3)" : "rgba(255,255,255,0.1)" }}>
+                  {isSaved ? "★" : "☆"}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   function renderList(list: Opp[]) {
     if (list.length === 0) return <Empty text="No opportunities match." />;

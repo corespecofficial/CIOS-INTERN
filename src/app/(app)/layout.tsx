@@ -19,11 +19,27 @@ import { claimDailyLogin } from "@/app/actions/daily-login";
 // for inquiries/support. Inside the portal users can use AI Hub directly.
 const AI_COPILOT_ROUTES: string[] = [];
 
+// These routes are public (no auth required) and should render WITHOUT the
+// portal chrome (no sidebar, no header). They handle their own layout.
+const STANDALONE_PUBLIC_ROUTES = ["/investors", "/guardian/"];
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const collapsed = useAppStore((s) => s.sidebarCollapsed);
   const setTheme = useAppStore((s) => s.setTheme);
   const showCopilot = AI_COPILOT_ROUTES.some((r) => pathname === r || pathname.startsWith(r + "/"));
+
+  // Render public standalone pages without any portal chrome
+  const isStandalone = STANDALONE_PUBLIC_ROUTES.some(
+    (r) => pathname === r || pathname.startsWith(r)
+  );
+  if (isStandalone) {
+    return (
+      <div style={{ minHeight: "100vh", background: "#0A0E1A", color: "#E8EDF5", fontFamily: "'Nunito', sans-serif" }}>
+        {children}
+      </div>
+    );
+  }
   const sidebarWidth = collapsed ? 64 : 240;
 
   // Daily login bonus — fires once per day per user (idempotent server-side)

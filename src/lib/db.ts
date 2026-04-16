@@ -59,6 +59,11 @@ export interface DbUser {
   intern_id: string | null;
   created_at: string;
   updated_at: string;
+  // p331 — referral system
+  referral_code: string | null;
+  // p334 — alumni
+  graduated_at: string | null;
+  cohort_number: number | null;
 }
 
 /* ───────────── User helpers ───────────── */

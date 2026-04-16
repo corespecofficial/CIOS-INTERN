@@ -20,6 +20,8 @@ const ROLES: Role[] = [
   "finance",
   "support",
   "recruiter",
+  "mentor",
+  "alumni",
 ];
 
 interface NavItem {
@@ -61,12 +63,17 @@ const NAV_ITEMS: NavItem[] = [
   { emoji: "\u{1F3AF}", label: "Focus mode", href: "/focus-mode", section: "PROGRESS", dataRole: ["intern", "team_lead", "admin", "super_admin", "instructor"] },
   { emoji: "\u{1F4DD}", label: "Notes", href: "/notes", section: "PROGRESS", dataRole: ["intern", "team_lead"] },
   { emoji: "\u{1F4C8}", label: "Performance", href: "/performance", section: "PROGRESS", dataRole: ["intern", "team_lead"] },
+  { emoji: "💚", label: "Wellness", href: "/wellness", section: "PROGRESS", dataRole: ["intern", "team_lead"] },
+  { emoji: "👨‍👩‍👧", label: "Guardian Access", href: "/guardian", section: "PROGRESS", dataRole: ["intern", "team_lead"] },
   // TEAM LEAD
   { emoji: "\u{1F465}", label: "Team Management", href: "/team-lead", section: "MANAGEMENT", dataRole: ["team_lead"] },
   // ADMIN
   { emoji: "\u{1F6E1}", label: "Admin Panel", href: "/admin", section: "ADMIN", dataRole: ["admin", "super_admin"] },
+  { emoji: "🏆", label: "Hackathons", href: "/admin/hackathons", section: "ADMIN", dataRole: ["admin", "super_admin"] },
   { emoji: "\u{1F3AF}", label: "Engagement controls", href: "/admin/engagement", section: "ADMIN", dataRole: ["admin", "super_admin", "moderator"] },
   { emoji: "\u{1F4D1}", label: "Note templates", href: "/admin/note-templates", section: "ADMIN", dataRole: ["admin", "super_admin"] },
+  { emoji: "🏫", label: "Creative Spaces", href: "/admin/creative-spaces", section: "ADMIN", dataRole: ["admin", "super_admin"] },
+  { emoji: "💚", label: "Wellness", href: "/admin/wellness", section: "ADMIN", dataRole: ["admin", "super_admin"] },
   // SUPER ADMIN
   { emoji: "\u{1F451}", label: "Super Admin", href: "/super-admin", section: "ADMIN", dataRole: ["super_admin"] },
   { emoji: "\u{1F465}", label: "Manage Users", href: "/super-admin/users", section: "ADMIN", dataRole: ["super_admin"] },
@@ -87,16 +94,24 @@ const NAV_ITEMS: NavItem[] = [
   { emoji: "\u{1F4C8}", label: "Activity Monitor", href: "/admin/activity-monitor", section: "ADMIN", dataRole: ["admin", "super_admin"] },
   { emoji: "\u{1F4E4}", label: "Compliance", href: "/admin/compliance-reports", section: "ADMIN", dataRole: ["admin", "super_admin"] },
   { emoji: "\u{1FA7A}", label: "Observability", href: "/admin/observability", section: "ADMIN", dataRole: ["admin", "super_admin"] },
+  { emoji: "🏆", label: "Hackathons", href: "/hackathons", section: "TOOLS", dataRole: ["intern", "team_lead", "admin", "super_admin", "mentor", "alumni"] },
+  { emoji: "🚀", label: "My Startup", href: "/startup", section: "TOOLS", dataRole: ["intern", "team_lead", "alumni"] },
+  { emoji: "📈", label: "Investor Portal", href: "/investors", section: "TOOLS", dataRole: ["admin", "super_admin"] },
+  { emoji: "🛒", label: "Marketplace", href: "/marketplace", section: "TOOLS", dataRole: ["intern", "team_lead", "admin", "super_admin", "mentor", "alumni"] },
+  { emoji: "🏫", label: "Creative Spaces", href: "/creative-space", section: "TOOLS", dataRole: ["intern", "team_lead", "admin", "super_admin", "mentor", "alumni", "instructor"] },
   { emoji: "\u{1F916}", label: "AI Hub", href: "/ai-hub", section: "TOOLS", dataRole: ["intern", "team_lead", "admin", "super_admin", "instructor"] },
   { emoji: "\u{1F4C1}", label: "Documents", href: "/documents", section: "TOOLS", dataRole: ["intern", "team_lead", "admin", "super_admin", "instructor"] },
   { emoji: "\u{1F4BC}", label: "Opportunities", href: "/opportunities", section: "TOOLS", dataRole: ["intern", "team_lead", "admin", "super_admin", "recruiter"] },
   { emoji: "\u{1F3E2}", label: "Recruiter Portal", href: "/recruiter", section: "TOOLS", dataRole: ["recruiter", "admin", "super_admin"] },
   { emoji: "\u{1F31F}", label: "Talent Pool", href: "/talent", section: "TOOLS", dataRole: ["recruiter", "admin", "super_admin"] },
+  { emoji: "💼", label: "Placements", href: "/recruiter/placements", section: "RECRUITER", dataRole: ["recruiter", "admin", "super_admin"] },
   { emoji: "\u{1F6E1}", label: "System Status", href: "/status", section: "SYSTEM", dataRole: ["super_admin", "admin"] },
   // INSTRUCTOR
   { emoji: "\u{1F4D6}", label: "My Courses", href: "/instructor", section: "INSTRUCTOR", dataRole: ["instructor"] },
   { emoji: "\u2795", label: "Create Course", href: "/instructor/create-course", section: "INSTRUCTOR", dataRole: ["instructor", "admin", "super_admin"] },
   { emoji: "\u{1F465}", label: "Students", href: "/instructor/students", section: "INSTRUCTOR", dataRole: ["instructor"] },
+  { emoji: "🎓", label: "Host a Space", href: "/creative-space/apply", section: "INSTRUCTOR", dataRole: ["instructor"] },
+  { emoji: "📋", label: "Manage Spaces", href: "/creative-space/manage", section: "INSTRUCTOR", dataRole: ["instructor"] },
   { emoji: "\u{1F3C6}", label: "Certificates", href: "/certificates", section: "ACHIEVEMENTS", dataRole: ["intern", "team_lead", "instructor", "admin", "super_admin"] },
   { emoji: "\u{1F4CA}", label: "My Analytics", href: "/my-analytics", section: "ACHIEVEMENTS", dataRole: ["intern", "team_lead", "instructor", "admin", "super_admin"] },
   // MODERATOR
@@ -105,6 +120,15 @@ const NAV_ITEMS: NavItem[] = [
   { emoji: "\u{1F4B3}", label: "Transactions", href: "/finance", section: "FINANCE", dataRole: ["finance"] },
   // SUPPORT
   { emoji: "\u{1F3AB}", label: "Support Tickets", href: "/support", section: "SUPPORT", dataRole: ["support"] },
+  // MENTOR
+  { emoji: "\u{1F9D1}\u200D\u{1F3EB}", label: "Mentor Hub", href: "/mentor", section: "MENTOR", dataRole: ["mentor"] },
+  { emoji: "\u{1F4C5}", label: "Sessions", href: "/mentor/sessions", section: "MENTOR", dataRole: ["mentor"] },
+  { emoji: "\u{1F465}", label: "Find a Mentor", href: "/mentorship", section: "MENTOR", dataRole: ["mentor", "intern", "team_lead"] },
+  // ALUMNI
+  { emoji: "\u{1F393}", label: "Alumni Hub", href: "/alumni", section: "ALUMNI", dataRole: ["alumni"] },
+  { emoji: "\u{1F4BC}", label: "Opportunities", href: "/opportunities", section: "ALUMNI", dataRole: ["alumni"] },
+  { emoji: "\u{1F4AC}", label: "Community", href: "/community", section: "ALUMNI", dataRole: ["alumni"] },
+  { emoji: "\u{1F310}", label: "Alumni Directory", href: "/alumni/directory", section: "ALUMNI", dataRole: ["alumni"] },
 ];
 
 function isItemVisible(item: NavItem, currentRole: Role): boolean {

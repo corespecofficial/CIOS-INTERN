@@ -3,11 +3,13 @@ import { NextResponse } from 'next/server';
 
 type Role =
   | "intern" | "team_lead" | "admin" | "super_admin"
-  | "instructor" | "moderator" | "finance" | "support" | "recruiter";
+  | "instructor" | "moderator" | "finance" | "support" | "recruiter"
+  | "mentor" | "alumni";
 
 const VALID_ROLES: Role[] = [
   "intern", "team_lead", "admin", "super_admin",
   "instructor", "moderator", "finance", "support", "recruiter",
+  "mentor", "alumni",
 ];
 
 // Role → home path
@@ -21,6 +23,8 @@ const ROLE_HOME: Record<Role, string> = {
   finance: "/finance",
   support: "/support",
   recruiter: "/recruiter",
+  mentor: "/mentor",
+  alumni: "/alumni",
 };
 
 // Shared routes everyone can access
@@ -28,19 +32,23 @@ const SHARED_ROUTES = ["/profile", "/settings", "/notifications", "/post-auth", 
 
 // Per-role allowed route prefixes
 const ROLE_ACCESS: Record<Role, string[]> = {
-  intern: ["/dashboard", "/classroom", "/courses", "/tasks", "/messages", "/community", "/wallet", "/gamification", "/notes", "/performance", "/calendar", "/ai-hub", "/documents", "/recruitment", "/productivity", "/certificates", "/my-analytics", "/announcements"],
-  team_lead: ["/team-lead", "/dashboard", "/classroom", "/courses", "/tasks", "/messages", "/community", "/wallet", "/gamification", "/notes", "/performance", "/calendar", "/ai-hub", "/documents", "/recruitment", "/productivity", "/certificates", "/my-analytics", "/announcements"],
-  admin: ["/admin", "/dashboard", "/analytics", "/status", "/documents", "/productivity", "/courses", "/instructor", "/certificates"],
+  intern: ["/dashboard", "/classroom", "/courses", "/tasks", "/messages", "/community", "/wallet", "/gamification", "/notes", "/performance", "/calendar", "/ai-hub", "/documents", "/recruitment", "/productivity", "/certificates", "/my-analytics", "/announcements", "/mentorship", "/marketplace", "/creative-space", "/wellness", "/guardian", "/hackathons", "/startup"],
+  team_lead: ["/team-lead", "/dashboard", "/classroom", "/courses", "/tasks", "/messages", "/community", "/wallet", "/gamification", "/notes", "/performance", "/calendar", "/ai-hub", "/documents", "/recruitment", "/productivity", "/certificates", "/my-analytics", "/announcements", "/mentorship", "/marketplace", "/creative-space", "/wellness", "/guardian", "/hackathons", "/startup"],
+  admin: ["/admin", "/dashboard", "/analytics", "/status", "/documents", "/productivity", "/courses", "/instructor", "/certificates", "/marketplace", "/creative-space", "/wellness", "/hackathons", "/startup", "/investors", "/mentorship", "/alumni", "/opportunities"],
   super_admin: [
     "/dashboard","/classroom","/courses","/tasks","/messages","/community","/wallet","/gamification","/notes","/performance","/calendar",
     "/admin","/super-admin","/team-lead","/instructor","/moderator","/finance","/support",
     "/analytics","/documents","/ai-hub","/recruitment","/status","/productivity",
+    "/mentor","/mentorship","/alumni","/marketplace","/creative-space","/wellness","/guardian",
+    "/hackathons","/startup",
   ],
-  instructor: ["/instructor", "/courses", "/messages", "/community", "/calendar", "/productivity", "/certificates"],
+  instructor: ["/instructor", "/courses", "/messages", "/community", "/calendar", "/productivity", "/certificates", "/creative-space"],
   moderator: ["/moderator", "/community", "/messages"],
   finance: ["/finance", "/wallet"],
   support: ["/support", "/messages"],
-  recruiter: ["/recruiter", "/opportunities", "/talent", "/messages", "/notifications"],
+  recruiter: ["/recruiter", "/opportunities", "/talent", "/messages", "/notifications", "/marketplace", "/creative-space", "/hackathons", "/investors", "/mentorship", "/alumni"],
+  mentor: ["/mentor", "/mentorship", "/messages", "/community", "/notes", "/calendar", "/productivity", "/certificates", "/announcements", "/alumni", "/marketplace", "/creative-space", "/hackathons"],
+  alumni: ["/alumni", "/community", "/opportunities", "/messages", "/notes", "/calendar", "/mentorship", "/announcements", "/marketplace", "/creative-space", "/hackathons", "/startup"],
 };
 
 const isProtectedRoute = createRouteMatcher([
@@ -54,6 +62,15 @@ const isProtectedRoute = createRouteMatcher([
   '/onboarding(.*)', '/productivity(.*)', '/certificates(.*)', '/my-analytics(.*)',
   '/recruiter', '/recruiter/(.*)', '/opportunities', '/opportunities/(.*)', '/talent', '/talent/(.*)',
   '/announcements', '/announcements/(.*)',
+  '/marketplace', '/marketplace/(.*)',
+  '/creative-space', '/creative-space/(.*)',
+  '/wellness', '/wellness/(.*)',
+  // Mentor portal requires auth (interactive dashboard); alumni + mentorship are public-browseable
+  '/mentor', '/mentor/(.*)',
+  // Guardian management page (intern only); /guardian/[token] is intentionally public
+  '/guardian',
+  '/hackathons', '/hackathons/(.*)',
+  '/startup', '/startup/(.*)',
 ]);
 
 function extractRole(source: unknown): Role | null {

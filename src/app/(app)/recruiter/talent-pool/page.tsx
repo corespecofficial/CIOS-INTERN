@@ -1,5 +1,6 @@
 import { listTalent } from "@/app/actions/talent";
 import { TalentClient } from "@/app/(app)/talent/talent-client";
+import { TalentAlertsPanel } from "@/components/recruiter/talent-alerts-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,10 @@ export default async function RecruiterTalentPoolPage() {
         <h1 style={{ fontSize: 22, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>🌟 Talent Pool</h1>
         <p style={{ fontSize: 12, color: "#8892A4", margin: "2px 0 0 0" }}>Search verified CIOS interns ranked by real performance</p>
       </div>
-      <TalentClient initial={res.ok ? res.data! : []} />
+      <TalentAlertsPanel />
+      <div style={{ marginTop: 20 }}>
+        <TalentClient initial={res.ok ? res.data! : []} />
+      </div>
     </div>
   );
 }

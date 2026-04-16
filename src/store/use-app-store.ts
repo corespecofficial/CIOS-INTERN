@@ -21,7 +21,9 @@ export type Role =
   | "moderator"
   | "finance"
   | "support"
-  | "recruiter";
+  | "recruiter"
+  | "mentor"
+  | "alumni";
 
 export function getRoleColor(role: Role): string {
   const colors: Record<Role, string> = {
@@ -34,6 +36,8 @@ export function getRoleColor(role: Role): string {
     finance: "#FB8C00",
     support: "#26C6DA",
     recruiter: "#AB47BC",
+    mentor: "#26C6DA",
+    alumni: "#FFC107",
   };
   return colors[role] ?? "#1E88E5";
 }
@@ -49,6 +53,8 @@ export function getRoleLabel(role: Role): string {
     finance: "Finance",
     support: "Support",
     recruiter: "Recruiter",
+    mentor: "Mentor",
+    alumni: "Alumni",
   };
   return labels[role] ?? "Intern";
 }

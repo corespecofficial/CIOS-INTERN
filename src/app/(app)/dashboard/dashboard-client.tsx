@@ -13,6 +13,8 @@ import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
 import { StreakNudge } from "@/components/engagement/streak-nudge";
 import { ResumeCard } from "@/components/engagement/resume-card";
 import { WeeklyRecapCard } from "@/components/engagement/weekly-recap-card";
+import { ProgressRing } from "@/components/ui/progress-ring";
+import { ReferralCard } from "@/components/engagement/referral-card";
 import {
   SuperAdminDashboard,
   TeamLeadDashboard,
@@ -20,6 +22,8 @@ import {
   ModeratorDashboard,
   FinanceDashboard,
   SupportDashboard,
+  MentorDashboard,
+  AlumniDashboard,
 } from "./portal-dashboards";
 
 /* ── Animated Counter Hook ── */
@@ -212,6 +216,36 @@ function InternDashboard({ stats }: { stats: InternStats }) {
             );
           })}
         </div>
+      </div>
+
+      {/* ── 2.5 Program Progress Rings ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 14, marginBottom: 20 }}>
+        {/* Program Completion */}
+        <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: 20, display: "flex", alignItems: "center", gap: 20 }}>
+          <ProgressRing percent={Math.min(100, Math.round((stats.level / 50) * 100))} size={110} strokeWidth={9} color="#1E88E5" label="Program" sublabel="Progress" />
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#E8EDF5", marginBottom: 4 }}>Program Completion</div>
+            <div style={{ fontSize: 12, color: "#8892A4", lineHeight: 1.6 }}>Level {stats.level} of 50 milestones completed.</div>
+            <div style={{ marginTop: 8 }}>
+              <a href="/levels" style={{ fontSize: 12, color: "#1E88E5", textDecoration: "none", fontWeight: 700 }}>View roadmap →</a>
+            </div>
+          </div>
+        </div>
+        {/* Performance Score */}
+        <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: 20, display: "flex", alignItems: "center", gap: 20 }}>
+          <ProgressRing percent={stats.performance} size={110} strokeWidth={9} color={stats.performance >= 80 ? "#66BB6A" : stats.performance >= 60 ? "#FFC107" : "#EF5350"} label="Performance" sublabel="Score" />
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: "#E8EDF5", marginBottom: 4 }}>Performance Score</div>
+            <div style={{ fontSize: 12, color: "#8892A4", lineHeight: 1.6 }}>
+              {stats.performance >= 80 ? "Excellent — you're in the top tier! 🌟" : stats.performance >= 60 ? "Good — keep pushing for 80+." : "Needs improvement — complete more tasks."}
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <a href="/performance" style={{ fontSize: 12, color: "#66BB6A", textDecoration: "none", fontWeight: 700 }}>View breakdown →</a>
+            </div>
+          </div>
+        </div>
+        {/* Referral Card */}
+        <ReferralCard />
       </div>
 
       {/* ── 3. Stats Row ── */}
@@ -631,6 +665,8 @@ export default function DashboardClient({ stats }: { stats: InternStats }) {
   if (role === "moderator") return <ModeratorDashboard />;
   if (role === "finance") return <FinanceDashboard />;
   if (role === "support") return <SupportDashboard />;
+  if (role === "mentor") return <MentorDashboard />;
+  if (role === "alumni") return <AlumniDashboard />;
 
   return <InternDashboard stats={stats} />;
 }

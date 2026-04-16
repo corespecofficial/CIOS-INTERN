@@ -64,6 +64,12 @@ export function SuperAdminDashboard({ stats }: SuperAdminProps = {}) {
   const display = stats ?? { totalUsers: 0, totalRevenue: 0, orgs: 1, systemHealth: 100 };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <style>{`
+        @media (max-width: 600px) {
+          .pd-sa-stats { grid-template-columns: repeat(2, 1fr) !important; }
+          .pd-portals-grid { grid-template-columns: 1fr 1fr !important; }
+        }
+      `}</style>
       {/* Banner */}
       <div
         style={{
@@ -107,7 +113,7 @@ export function SuperAdminDashboard({ stats }: SuperAdminProps = {}) {
       </div>
 
       {/* 4 Stat Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+      <div className="pd-sa-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
         {[
           { value: display.totalUsers.toLocaleString(), label: "Total Users", color: "#1E88E5" },
           { value: display.orgs.toString(), label: "Organizations", color: "#AB47BC" },
@@ -303,6 +309,79 @@ export function SuperAdminDashboard({ stats }: SuperAdminProps = {}) {
           ))}
         </div>
       </div>
+
+      {/* Platform Portals */}
+      <div
+        style={{
+          background: "#111827",
+          borderRadius: 16,
+          padding: 24,
+          border: "1px solid rgba(255,255,255,0.07)",
+        }}
+      >
+        <h3 style={{ fontSize: 16, fontWeight: 600, color: "#E8EDF5", margin: 0, marginBottom: 4 }}>
+          Platform Portals
+        </h3>
+        <p style={{ fontSize: 13, color: "#8892A4", margin: "0 0 20px 0" }}>
+          Quick access to all major portals and admin panels.
+        </p>
+        <div className="pd-portals-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+          {[
+            { emoji: "🛒", label: "Marketplace", sub: "Products & seller earnings", href: "/marketplace", color: "#1E88E5" },
+            { emoji: "🎨", label: "Creative Spaces", sub: "Hosted learning spaces", href: "/creative-space", color: "#AB47BC" },
+            { emoji: "💚", label: "Wellness", sub: "Intern mood & wellbeing", href: "/admin/wellness", color: "#66BB6A" },
+            { emoji: "⚡", label: "Hackathons", sub: "Events, teams & judging", href: "/hackathons", color: "#FF7043" },
+            { emoji: "🚀", label: "Investor Portal", sub: "Traction & startup pitches", href: "/investors", color: "#7C4DFF" },
+            { emoji: "💼", label: "Placements", sub: "Hire confirmations & fees", href: "/recruiter/placements", color: "#43A047" },
+            { emoji: "🎓", label: "Alumni Hub", sub: "Graduates & success stories", href: "/alumni", color: "#FFC107" },
+            { emoji: "🧑‍🏫", label: "Mentor Hub", sub: "Mentors, sessions & mentees", href: "/mentor", color: "#26C6DA" },
+            { emoji: "👨‍👩‍👧", label: "Guardian Portal", sub: "Parent read-only access", href: "/admin", color: "#8892A4" },
+            { emoji: "🏆", label: "Admin Hackathons", sub: "Create & manage events", href: "/admin/hackathons", color: "#FF7043" },
+            { emoji: "🏫", label: "Admin Spaces", sub: "Approve creative spaces", href: "/admin/creative-spaces", color: "#AB47BC" },
+            { emoji: "👥", label: "Admin Alumni", sub: "Manage graduates", href: "/admin/alumni", color: "#FFC107" },
+          ].map((portal) => (
+            <a
+              key={portal.label}
+              href={portal.href}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                padding: "14px 16px",
+                borderRadius: 12,
+                background: "rgba(255,255,255,0.02)",
+                border: `1px solid ${portal.color}33`,
+                textDecoration: "none",
+                transition: "border-color 0.2s",
+              }}
+            >
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  background: `${portal.color}22`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 20,
+                  flexShrink: 0,
+                }}
+              >
+                {portal.emoji}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "#E8EDF5", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {portal.label}
+                </p>
+                <p style={{ fontSize: 11, color: "#8892A4", margin: 0, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {portal.sub}
+                </p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -321,6 +400,12 @@ export function TeamLeadDashboard({ stats, leaderboard: leaderboardProp }: TeamL
   const board = leaderboardProp ?? [];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <style>{`
+        @media (max-width: 600px) {
+          .pd-tl-stats { grid-template-columns: 1fr 1fr !important; }
+          .pd-tl-actions { grid-template-columns: 1fr 1fr !important; }
+        }
+      `}</style>
       {/* Banner */}
       <div
         style={{
@@ -364,7 +449,7 @@ export function TeamLeadDashboard({ stats, leaderboard: leaderboardProp }: TeamL
       </div>
 
       {/* 3 Stat Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+      <div className="pd-tl-stats" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
         {[
           { value: s.members.toString(), label: "Team Members", color: "#1E88E5" },
           { value: s.inProgress.toString(), label: "In Progress", color: "#FFC107" },
@@ -434,7 +519,7 @@ export function TeamLeadDashboard({ stats, leaderboard: leaderboardProp }: TeamL
       </div>
 
       {/* Quick Actions */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+      <div className="pd-tl-actions" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
         <button
           style={{
             background: "#1E88E5",
@@ -532,6 +617,12 @@ export function InstructorDashboard({ courses: coursesProp, name }: InstructorPr
   const courses = coursesProp ?? [];
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <style>{`
+        @media (max-width: 600px) {
+          .pd-inst-courses { grid-template-columns: 1fr !important; }
+          .pd-inst-2col { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
       {/* Banner */}
       <div
         style={{
@@ -596,7 +687,7 @@ export function InstructorDashboard({ courses: coursesProp, name }: InstructorPr
             </p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+          <div className="pd-inst-courses" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
             {courses.map((c, i) => (
               <div key={c.id} style={{ background: "#111827", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(255,255,255,0.07)" }}>
                 <div style={{ height: 140, background: COURSE_GRADIENTS[i % COURSE_GRADIENTS.length], display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
@@ -618,7 +709,7 @@ export function InstructorDashboard({ courses: coursesProp, name }: InstructorPr
       </div>
 
       {/* Two-column: Upcoming Classes + Recent Grades */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div className="pd-inst-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         {/* Upcoming Classes */}
         <div
           style={{
@@ -726,6 +817,11 @@ export function ModeratorDashboard({ stats, posts: postsProp }: ModProps = {}) {
   const posts = postsProp ?? [];
   return (
     <div>
+      <style>{`
+        @media (max-width: 600px) {
+          .pd-mod-stats { grid-template-columns: 1fr 1fr !important; }
+        }
+      `}</style>
       <div style={{
         background: "linear-gradient(135deg, rgba(171,71,188,0.15), rgba(171,71,188,0.05))",
         border: "1px solid rgba(171,71,188,0.2)",
@@ -740,7 +836,7 @@ export function ModeratorDashboard({ stats, posts: postsProp }: ModProps = {}) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
+      <div className="pd-mod-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
         {[
           { value: s.pending.toString(), label: "Recent Posts", color: "#EF5350" },
           { value: s.warnings.toString(), label: "Warnings Issued", color: "#FFC107" },
@@ -795,6 +891,11 @@ export function FinanceDashboard({ stats, transactions: txProp }: FinanceProps =
   const fmt = (n: number) => `\u20A6${Math.abs(n).toLocaleString()}`;
   return (
     <div>
+      <style>{`
+        @media (max-width: 600px) {
+          .pd-fin-stats { grid-template-columns: 1fr 1fr !important; }
+        }
+      `}</style>
       <div style={{
         background: "linear-gradient(135deg, rgba(102,187,106,0.12), rgba(102,187,106,0.04))",
         border: "1px solid rgba(102,187,106,0.2)",
@@ -809,7 +910,7 @@ export function FinanceDashboard({ stats, transactions: txProp }: FinanceProps =
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
+      <div className="pd-fin-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
         {[
           { value: fmt(s.totalRevenue), label: "Total Revenue", color: "#66BB6A" },
           { value: fmt(s.totalPayouts), label: "Payouts Made", color: "#1E88E5" },
@@ -825,6 +926,8 @@ export function FinanceDashboard({ stats, transactions: txProp }: FinanceProps =
 
       <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: "#E8EDF5", padding: "20px 20px 16px" }}>Recent Transactions</h3>
+        <div style={{ overflowX: "auto" }}>
+        <div style={{ minWidth: 480 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 1fr 1fr 1fr", padding: "12px 20px", background: "rgba(255,255,255,0.03)", fontSize: 11, fontWeight: 700, color: "#8892A4", textTransform: "uppercase", letterSpacing: 0.5 }}>
           <div>Date</div><div>User</div><div>Type</div><div>Amount</div><div>Status</div>
         </div>
@@ -858,6 +961,8 @@ export function FinanceDashboard({ stats, transactions: txProp }: FinanceProps =
             </div>
           );
         })}
+        </div>
+        </div>
       </div>
     </div>
   );
@@ -871,11 +976,120 @@ interface SupportProps {
   tickets?: { id: string; priority: "Urgent" | "Medium" | "Low"; title: string; user: string; time: string }[];
 }
 
+export function MentorDashboard() {
+  return (
+    <div>
+      <style>{`
+        @media (max-width: 600px) {
+          .pd-ment-stats { grid-template-columns: 1fr 1fr !important; }
+          .pd-ment-2col { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
+      <div style={{
+        background: "linear-gradient(135deg, rgba(38,198,218,0.15), rgba(38,198,218,0.05))",
+        border: "1px solid rgba(38,198,218,0.2)",
+        borderRadius: 16, padding: 24, marginBottom: 20,
+        display: "flex", alignItems: "center", gap: 16,
+      }}>
+        <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(38,198,218,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, flexShrink: 0 }}>🧑‍🏫</div>
+        <div>
+          <span style={{ display: "inline-block", padding: "4px 12px", background: "rgba(38,198,218,0.2)", color: "#26C6DA", fontSize: 11, fontWeight: 700, borderRadius: 20, letterSpacing: 0.5, marginBottom: 6 }}>MENTOR</span>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#E8EDF5", fontFamily: "'Space Grotesk', sans-serif", marginBottom: 4 }}>Mentor Hub</h1>
+          <p style={{ fontSize: 13, color: "#8892A4" }}>Guide interns, manage sessions, and track your mentees' progress.</p>
+        </div>
+      </div>
+
+      <div className="pd-ment-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
+        {[
+          { value: "0", label: "Active Mentees", color: "#26C6DA" },
+          { value: "0", label: "Sessions Done", color: "#43A047" },
+          { value: "—", label: "Avg Rating", color: "#FFC107" },
+        ].map(s => (
+          <div key={s.label} style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: 20, textAlign: "center" }}>
+            <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 32, fontWeight: 800, color: s.color, marginBottom: 6 }}>{s.value}</div>
+            <div style={{ fontSize: 13, color: "#8892A4", fontWeight: 600 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="pd-ment-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <a href="/mentor" style={{ display: "block", background: "#111827", border: "1px solid rgba(38,198,218,0.2)", borderRadius: 14, padding: 20, textDecoration: "none", transition: "border-color 0.2s" }}>
+          <div style={{ fontSize: 22, marginBottom: 8 }}>📋</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#E8EDF5", marginBottom: 4 }}>Mentor Dashboard</div>
+          <div style={{ fontSize: 13, color: "#8892A4" }}>Manage mentee requests, sessions, and your profile.</div>
+        </a>
+        <a href="/mentor/sessions" style={{ display: "block", background: "#111827", border: "1px solid rgba(38,198,218,0.2)", borderRadius: 14, padding: 20, textDecoration: "none" }}>
+          <div style={{ fontSize: 22, marginBottom: 8 }}>📅</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#E8EDF5", marginBottom: 4 }}>Sessions</div>
+          <div style={{ fontSize: 13, color: "#8892A4" }}>Schedule and review your mentoring sessions.</div>
+        </a>
+      </div>
+    </div>
+  );
+}
+
+export function AlumniDashboard() {
+  return (
+    <div>
+      <style>{`
+        @media (max-width: 600px) {
+          .pd-alum-stats { grid-template-columns: 1fr 1fr !important; }
+          .pd-alum-2col { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
+      <div style={{
+        background: "linear-gradient(135deg, rgba(255,193,7,0.15), rgba(255,193,7,0.05))",
+        border: "1px solid rgba(255,193,7,0.2)",
+        borderRadius: 16, padding: 24, marginBottom: 20,
+        display: "flex", alignItems: "center", gap: 16,
+      }}>
+        <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(255,193,7,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, flexShrink: 0 }}>🎓</div>
+        <div>
+          <span style={{ display: "inline-block", padding: "4px 12px", background: "rgba(255,193,7,0.2)", color: "#FFC107", fontSize: 11, fontWeight: 700, borderRadius: 20, letterSpacing: 0.5, marginBottom: 6 }}>ALUMNI</span>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#E8EDF5", fontFamily: "'Space Grotesk', sans-serif", marginBottom: 4 }}>Alumni Hub</h1>
+          <p style={{ fontSize: 13, color: "#8892A4" }}>Share your journey, connect with graduates, and give back to the community.</p>
+        </div>
+      </div>
+
+      <div className="pd-alum-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
+        {[
+          { value: "🎓", label: "Graduate", color: "#FFC107" },
+          { value: "💼", label: "Hire-Ready", color: "#43A047" },
+          { value: "🌍", label: "Global Network", color: "#1E88E5" },
+        ].map(s => (
+          <div key={s.label} style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: 20, textAlign: "center" }}>
+            <div style={{ fontSize: 32, marginBottom: 6 }}>{s.value}</div>
+            <div style={{ fontSize: 13, color: "#8892A4", fontWeight: 600 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="pd-alum-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <a href="/alumni" style={{ display: "block", background: "#111827", border: "1px solid rgba(255,193,7,0.2)", borderRadius: 14, padding: 20, textDecoration: "none" }}>
+          <div style={{ fontSize: 22, marginBottom: 8 }}>🏆</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#E8EDF5", marginBottom: 4 }}>Alumni Hub</div>
+          <div style={{ fontSize: 13, color: "#8892A4" }}>Browse success stories, directory, and submit your own story.</div>
+        </a>
+        <a href="/opportunities" style={{ display: "block", background: "#111827", border: "1px solid rgba(255,193,7,0.2)", borderRadius: 14, padding: 20, textDecoration: "none" }}>
+          <div style={{ fontSize: 22, marginBottom: 8 }}>💼</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#E8EDF5", marginBottom: 4 }}>Opportunities</div>
+          <div style={{ fontSize: 13, color: "#8892A4" }}>Jobs, gigs, and scholarships for CIOS alumni.</div>
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export function SupportDashboard({ stats, tickets: ticketsProp }: SupportProps = {}) {
   const s = stats ?? { open: 0, inProgress: 0, resolved: 0 };
   const tickets = ticketsProp ?? [];
   return (
     <div>
+      <style>{`
+        @media (max-width: 600px) {
+          .pd-sup-stats { grid-template-columns: 1fr 1fr !important; }
+        }
+      `}</style>
       <div style={{
         background: "linear-gradient(135deg, rgba(171,71,188,0.15), rgba(171,71,188,0.05))",
         border: "1px solid rgba(171,71,188,0.2)",
@@ -890,7 +1104,7 @@ export function SupportDashboard({ stats, tickets: ticketsProp }: SupportProps =
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
+      <div className="pd-sup-stats" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 20 }}>
         {[
           { value: s.open.toString(), label: "Open Tickets", color: "#EF5350" },
           { value: s.inProgress.toString(), label: "In Progress", color: "#FFC107" },
