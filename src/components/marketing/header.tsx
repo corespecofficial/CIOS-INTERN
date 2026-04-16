@@ -277,7 +277,7 @@ export function MarketingHeader() {
           /* ensure absolute-positioned nav doesn't bleed through */
           .cios-hdr-row { overflow: visible; }
         }
-        @media (max-width: 440px) { .cios-actions { display: none !important; } }
+        @media (max-width: 440px) { .cios-actions { display: none !important; } .cios-ham { margin-left: auto !important; } }
         /* drawer */
         .cios-bkdp { position: fixed; inset: 62px 0 0 0; background: rgba(0,0,0,0.55); z-index: 55; }
         .cios-drw {
