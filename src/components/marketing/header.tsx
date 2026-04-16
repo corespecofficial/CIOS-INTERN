@@ -31,12 +31,12 @@ const NAV: NavItem[] = [
   {
     label: "Solutions",
     dropdown: [
-      { href: "/about#tracks",       label: "AI & Machine Learning",  icon: "🤖", desc: "Build real AI products" },
-      { href: "/about#tracks",       label: "Digital Marketing",      icon: "📣", desc: "Growth & brand strategy" },
-      { href: "/about#tracks",       label: "UI/UX Design",           icon: "🎨", desc: "Product & interface design" },
-      { href: "/about#tracks",       label: "Web Development",        icon: "💻", desc: "Full-stack engineering" },
-      { href: "/about#tracks",       label: "Data Analytics",         icon: "📊", desc: "Insights and BI" },
-      { href: "/about#tracks",       label: "Content Creation",       icon: "✍️",  desc: "Media & storytelling" },
+      { href: "/solutions/ai-machine-learning",  label: "AI & Machine Learning", icon: "🤖", desc: "Build real AI products" },
+      { href: "/solutions/digital-marketing",    label: "Digital Marketing",     icon: "📣", desc: "Growth & brand strategy" },
+      { href: "/solutions/ui-ux-design",         label: "UI/UX Design",          icon: "🎨", desc: "Product & interface design" },
+      { href: "/solutions/web-development",      label: "Web Development",       icon: "💻", desc: "Full-stack engineering" },
+      { href: "/solutions/data-analytics",       label: "Data Analytics",        icon: "📊", desc: "Insights and BI" },
+      { href: "/solutions/content-creation",     label: "Content Creation",      icon: "✍️",  desc: "Media & storytelling" },
     ],
   },
   { label: "How It Works", href: "/#how-it-works" },
@@ -44,11 +44,11 @@ const NAV: NavItem[] = [
   {
     label: "Portals",
     dropdown: [
-      { href: "/sign-in", label: "Creator Admin",    icon: "👑", desc: "Super admin & owner dashboard" },
-      { href: "/mentor",  label: "Mentor Portal",    icon: "🎓", desc: "Mentor sessions & mentees" },
-      { href: "/recruiters", label: "Company Portal", icon: "🏢", desc: "Post jobs, find talent" },
-      { href: "/recruiters", label: "Recruiter Portal", icon: "🔍", desc: "Search intern profiles" },
-      { href: "/marketplace", label: "Marketplace",  icon: "🛒", desc: "Buy & sell digital products" },
+      { href: "/portals/creator-admin",    label: "Creator Admin",    icon: "👑", desc: "Super admin & owner dashboard" },
+      { href: "/portals/mentor-portal",    label: "Mentor Portal",    icon: "🎓", desc: "Mentor sessions & mentees" },
+      { href: "/portals/company-portal",   label: "Company Portal",   icon: "🏢", desc: "Post jobs, find talent" },
+      { href: "/portals/recruiter-portal", label: "Recruiter Portal", icon: "🔍", desc: "Search intern profiles" },
+      { href: "/portals/marketplace",      label: "Marketplace",      icon: "🛒", desc: "Buy & sell digital products" },
     ],
   },
 ];
