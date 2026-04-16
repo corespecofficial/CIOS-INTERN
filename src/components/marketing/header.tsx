@@ -151,8 +151,9 @@ export function MarketingHeader() {
         }
         .cios-hdr-row {
           max-width: 1280px; margin: 0 auto;
+          position: relative;
           display: flex; align-items: center; height: 62px;
-          padding: 0 20px; gap: 4px;
+          padding: 0 24px;
         }
         /* brand */
         .cios-brand {
@@ -166,8 +167,13 @@ export function MarketingHeader() {
           -webkit-background-clip: text; -webkit-text-fill-color: transparent;
           background-clip: text; white-space: nowrap;
         }
-        /* desktop nav */
-        .cios-nav { display: flex; align-items: center; gap: 2px; flex: 1; }
+        /* desktop nav — absolutely centered so it stays in the middle
+           regardless of logo/CTA width differences */
+        .cios-nav {
+          position: absolute; left: 50%; transform: translateX(-50%);
+          display: flex; align-items: center; gap: 2px;
+          pointer-events: auto;
+        }
         .cios-ng  { position: relative; }
         .cios-nl, .cios-nb {
           display: inline-flex; align-items: center; gap: 4px;
@@ -206,7 +212,7 @@ export function MarketingHeader() {
         .cios-drop-sub  { display: block; font-size: 11px; color: #5A6478; margin-top: 1px; }
         .cios-drop-row:hover .cios-drop-sub { color: #8892A4; }
         /* cta */
-        .cios-actions { display: flex; align-items: center; gap: 8px; margin-left: 12px; flex-shrink: 0; }
+        .cios-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
         .cios-btn-in {
           font-size: 13px; font-weight: 700; padding: 8px 16px; border-radius: 10px;
           color: #8892A4; border: 1px solid rgba(255,255,255,0.1);
@@ -239,6 +245,8 @@ export function MarketingHeader() {
           .cios-nav { display: none !important; }
           .cios-ham { display: inline-flex !important; }
           .cios-btn-in { display: none; }
+          /* ensure absolute-positioned nav doesn't bleed through */
+          .cios-hdr-row { overflow: visible; }
         }
         @media (max-width: 440px) { .cios-actions { display: none !important; } }
         /* drawer */
