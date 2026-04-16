@@ -2,90 +2,166 @@
 import Link from "next/link";
 import { PricingSection } from "@/components/marketing/pricing-section";
 import { MarketingHeader } from "@/components/marketing/header";
+import { MarketingFooter } from "@/components/marketing/footer";
+import { getPlatformSettings, getLandingTestimonials } from "@/app/actions/landing-content";
+
+export const dynamic = "force-dynamic";
 
 const LOGO = "https://res.cloudinary.com/detsk6uql/image/upload/v1775646964/Adobe_Express_-_file_lydnbc.png";
 
-export default function LandingPage() {
+function getYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/]+)/);
+  if (m) return m[1];
+  // bare ID (11 chars)
+  if (/^[A-Za-z0-9_-]{11}$/.test(url)) return url;
+  return null;
+}
+
+export default async function LandingPage() {
+  const [settings, testimonials] = await Promise.all([
+    getPlatformSettings(),
+    getLandingTestimonials(),
+  ]);
+
+  const videoId = getYouTubeId(settings.homepage_video_url);
+
   return (
     <div style={{ minHeight: "100vh", background: "#0A0E1A", color: "#E8EDF5", fontFamily: "'Nunito', system-ui, sans-serif", overflowX: "hidden" }}>
-      {/* Stars */}
+      <style>{`
+        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .hero-cta { transition: transform 0.2s, box-shadow 0.2s; }
+        .hero-cta:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(30,136,229,0.5) !important; }
+        .feature-card { transition: border-color 0.2s, transform 0.2s; }
+        .feature-card:hover { border-color: rgba(30,136,229,0.3) !important; transform: translateY(-2px); }
+        .step-card { transition: transform 0.2s; }
+        .step-card:hover { transform: scale(1.04); }
+      `}</style>
+
+      {/* Stars background */}
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
         {Array.from({ length: 60 }).map((_, i) => (
           <div key={i} style={{
             position: "absolute", width: 2, height: 2, background: "#fff", borderRadius: "50%",
             left: `${(i * 37 + 13) % 100}%`, top: `${(i * 53 + 7) % 100}%`,
-            opacity: 0.1 + (i % 5) * 0.1,
+            opacity: 0.06 + (i % 5) * 0.06,
             animation: `pulse ${2 + (i % 4)}s ease-in-out infinite ${(i % 7) * 0.5}s`,
           }} />
         ))}
       </div>
 
-      {/* NAV — shared marketing header (responsive with mobile drawer) */}
       <MarketingHeader />
 
-      {/* HERO */}
-      <section style={{ position: "relative", padding: "80px 24px 60px", textAlign: "center", zIndex: 1 }}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 30%, rgba(30,136,229,0.12), transparent 60%)", pointerEvents: "none" }} />
+      {/* ═══════════════════════════════════════════════════
+          HERO
+      ═══════════════════════════════════════════════════ */}
+      <section style={{ position: "relative", padding: "100px 24px 80px", textAlign: "center", zIndex: 1 }}>
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 30%, rgba(30,136,229,0.15), transparent 60%)", pointerEvents: "none" }} />
         <div style={{ position: "relative", maxWidth: 900, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <img src={LOGO} alt="Mascot" width={160} height={160} style={{
-            borderRadius: "50%", marginBottom: 32,
+          <img src={LOGO} alt="CIOS Mascot" width={140} height={140} style={{
+            borderRadius: "50%", marginBottom: 28,
             animation: "float 3.5s ease-in-out infinite",
-            filter: "drop-shadow(0 20px 50px rgba(30,136,229,0.45))",
+            filter: "drop-shadow(0 20px 50px rgba(30,136,229,0.5))",
           }} />
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 20px", marginBottom: 28,
-            borderRadius: 99, background: "rgba(30,136,229,0.1)", border: "1px solid rgba(30,136,229,0.25)",
-            color: "#42A5F5", fontSize: 14, fontWeight: 600,
-          }}>
+
+          {/* Live badge */}
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 20px", marginBottom: 24, borderRadius: 99, background: "rgba(30,136,229,0.1)", border: "1px solid rgba(30,136,229,0.25)", color: "#42A5F5", fontSize: 13, fontWeight: 600 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#66BB6A", animation: "pulse 1.5s ease-in-out infinite" }} />
-            COSPRONOS Media AI Internship Program
+            COSPRONOS Media × Corespec Engineering
           </div>
-          <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(36px, 6vw, 64px)", fontWeight: 800, lineHeight: 1.1, marginBottom: 20 }}>
+
+          <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(38px, 6vw, 68px)", fontWeight: 800, lineHeight: 1.1, marginBottom: 20 }}>
             The Complete Internship<br />
             <span style={{ background: "linear-gradient(135deg, #1E88E5, #42A5F5, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Operating System</span>
           </h1>
-          <p style={{ fontSize: 18, color: "#8892A4", maxWidth: 600, margin: "0 auto 36px", lineHeight: 1.7 }}>
-            A transformative 6-month AI-powered internship experience designed to build real-world skills, accountability, and career-ready professionals across Africa.
+          <p style={{ fontSize: 18, color: "#8892A4", maxWidth: 620, margin: "0 auto 40px", lineHeight: 1.8 }}>
+            A transformative 6-month AI-powered internship experience. Build real-world skills, earn rewards, and launch your career across Africa and beyond.
           </p>
-          <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginBottom: 48 }}>
-            <Link href="/sign-up" style={{
-              padding: "16px 40px", borderRadius: 14, fontSize: 16, fontWeight: 700, textDecoration: "none",
-              background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff",
-              boxShadow: "0 8px 30px rgba(30,136,229,0.35)",
-            }}>Get Started</Link>
-            <Link href="/sign-in" style={{
-              padding: "16px 40px", borderRadius: 14, fontSize: 16, fontWeight: 600, textDecoration: "none",
-              border: "1px solid rgba(255,255,255,0.15)", color: "#B0BEC5",
-            }}>Sign In</Link>
+
+          <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginBottom: 64 }}>
+            <Link href="/sign-up" className="hero-cta" style={{ padding: "16px 44px", borderRadius: 14, fontSize: 16, fontWeight: 700, textDecoration: "none", background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff", boxShadow: "0 8px 30px rgba(30,136,229,0.35)" }}>
+              Apply Now — It&rsquo;s Free
+            </Link>
+            <Link href="/demo" style={{ padding: "16px 36px", borderRadius: 14, fontSize: 16, fontWeight: 600, textDecoration: "none", border: "1px solid rgba(255,255,255,0.15)", color: "#B0BEC5" }}>
+              Book a Demo →
+            </Link>
           </div>
-          <div style={{ display: "flex", justifyContent: "center", gap: 48, flexWrap: "wrap" }}>
-            {[{ v: "120+", l: "Interns" }, { v: "48", l: "Courses" }, { v: "15", l: "Mentors" }, { v: "6", l: "Months" }].map(s => (
+
+          {/* Stats */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 48, flexWrap: "wrap", padding: "32px 40px", background: "rgba(255,255,255,0.02)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.06)" }}>
+            {[
+              { v: settings.homepage_stats_interns,   l: "Interns Trained" },
+              { v: settings.homepage_stats_courses,   l: "Courses" },
+              { v: settings.homepage_stats_countries, l: "Countries" },
+              { v: settings.homepage_stats_partners,  l: "Hiring Partners" },
+            ].map(s => (
               <div key={s.l} style={{ textAlign: "center" }}>
                 <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 36, fontWeight: 800, background: "linear-gradient(135deg, #1E88E5, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{s.v}</div>
-                <div style={{ fontSize: 12, color: "#607D8B", textTransform: "uppercase", letterSpacing: 2, fontWeight: 700, marginTop: 4 }}>{s.l}</div>
+                <div style={{ fontSize: 11, color: "#607D8B", textTransform: "uppercase", letterSpacing: 2, fontWeight: 700, marginTop: 4 }}>{s.l}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* WHY COSPRONOS */}
-      <section style={{ padding: "80px 24px", position: "relative", zIndex: 1 }}>
+      {/* ═══════════════════════════════════════════════════
+          VIDEO SECTION (only shown when a video is set)
+      ═══════════════════════════════════════════════════ */}
+      {videoId ? (
+        <section style={{ padding: "60px 24px 80px", position: "relative", zIndex: 1 }}>
+          <div style={{ maxWidth: 860, margin: "0 auto", textAlign: "center" }}>
+            <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(239,83,80,0.1)", border: "1px solid rgba(239,83,80,0.2)", color: "#EF5350", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>▶ Platform Demo</div>
+            <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(24px, 3vw, 36px)", fontWeight: 800, marginBottom: 12 }}>See CIOS in action</h2>
+            <p style={{ color: "#8892A4", marginBottom: 32, fontSize: 15 }}>Watch how interns learn, earn, and grow on the platform.</p>
+            <div style={{ borderRadius: 20, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)", boxShadow: "0 24px 80px rgba(0,0,0,0.6)", aspectRatio: "16/9" }}>
+              <iframe
+                src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`}
+                style={{ width: "100%", height: "100%", border: "none" }}
+                allowFullScreen
+                title="CIOS Platform Demo"
+              />
+            </div>
+          </div>
+        </section>
+      ) : (
+        /* Placeholder shown when no video is uploaded yet */
+        <section style={{ padding: "60px 24px 80px", position: "relative", zIndex: 1 }}>
+          <div style={{ maxWidth: 860, margin: "0 auto", textAlign: "center" }}>
+            <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(239,83,80,0.1)", border: "1px solid rgba(239,83,80,0.2)", color: "#EF5350", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>▶ Platform Demo</div>
+            <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(24px, 3vw, 36px)", fontWeight: 800, marginBottom: 12 }}>See CIOS in action</h2>
+            <p style={{ color: "#8892A4", marginBottom: 32, fontSize: 15 }}>Watch how interns learn, earn, and grow on the platform.</p>
+            <div style={{ borderRadius: 20, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)", aspectRatio: "16/9", background: "#111827", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
+              <div style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(239,83,80,0.15)", border: "1px solid rgba(239,83,80,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>▶</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#E8EDF5" }}>Demo Video Coming Soon</div>
+              <div style={{ fontSize: 13, color: "#5A6478" }}>Upload a YouTube link in Super Admin → Landing Settings</div>
+              <Link href="/sign-up" style={{ padding: "12px 28px", borderRadius: 12, background: "linear-gradient(135deg,#1E88E5,#1565C0)", color: "#fff", textDecoration: "none", fontWeight: 700, fontSize: 13 }}>
+                Start for free instead →
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ═══════════════════════════════════════════════════
+          WHY COSPRONOS
+      ═══════════════════════════════════════════════════ */}
+      <section style={{ padding: "80px 24px", position: "relative", zIndex: 1, borderTop: "1px solid rgba(255,255,255,0.04)" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 800, marginBottom: 12 }}>Why COSPRONOS?</h2>
+          <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(30,136,229,0.1)", border: "1px solid rgba(30,136,229,0.2)", color: "#42A5F5", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>Why Choose Us</div>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, marginBottom: 12 }}>Why COSPRONOS?</h2>
           <p style={{ color: "#8892A4", maxWidth: 560, margin: "0 auto 48px", fontSize: 16, lineHeight: 1.7 }}>We are not just an internship. We are a launchpad for the next generation of African tech leaders.</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
             {[
-              { icon: "🎯", title: "Learn Real Skills", desc: "Master AI tools, design, development, content creation, and business strategy with hands-on projects and live mentorship." },
-              { icon: "💼", title: "Build Your Portfolio", desc: "Work on live client projects that you can showcase to employers. Graduate with a portfolio that stands out." },
-              { icon: "🏆", title: "Earn Rewards", desc: "Get XP, climb the leaderboard, earn real money through performance bonuses, and unlock exclusive opportunities." },
-              { icon: "👨‍🏫", title: "Get Mentored", desc: "Learn directly from industry professionals including the CEO, Joshua Agbo, and senior leads from Corespec Engineering." },
+              { icon: "🎯", title: "Learn Real Skills", desc: "Master AI tools, design, development, content creation, and business strategy with hands-on projects and live mentorship.", color: "#1E88E5" },
+              { icon: "💼", title: "Build Your Portfolio", desc: "Work on live client projects that you can showcase to employers. Graduate with a portfolio that stands out globally.", color: "#FFC107" },
+              { icon: "🏆", title: "Earn Rewards", desc: "Get XP, climb the leaderboard, earn real money through performance bonuses, and unlock exclusive career opportunities.", color: "#66BB6A" },
+              { icon: "👨‍🏫", title: "Get Mentored", desc: "Learn directly from industry professionals including the CEO, Joshua Agbo, and senior leads from Corespec Engineering.", color: "#AB47BC" },
             ].map(c => (
-              <div key={c.title} style={{
-                background: "#111827", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20,
-                padding: 28, textAlign: "center", transition: "all 0.3s",
-              }}>
-                <div style={{ fontSize: 40, marginBottom: 16 }}>{c.icon}</div>
+              <div key={c.title} className="feature-card" style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20, padding: 28, textAlign: "center" }}>
+                <div style={{ width: 64, height: 64, borderRadius: 16, background: `${c.color}18`, border: `1px solid ${c.color}30`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, margin: "0 auto 16px" }}>{c.icon}</div>
                 <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 17, fontWeight: 700, marginBottom: 10 }}>{c.title}</h3>
                 <p style={{ fontSize: 14, color: "#8892A4", lineHeight: 1.7 }}>{c.desc}</p>
               </div>
@@ -94,101 +170,142 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* PLATFORM FEATURES */}
-      <section id="features" style={{ padding: "80px 24px", position: "relative", zIndex: 1 }}>
+      {/* ═══════════════════════════════════════════════════
+          PLATFORM FEATURES
+      ═══════════════════════════════════════════════════ */}
+      <section id="features" style={{ padding: "80px 24px", position: "relative", zIndex: 1, borderTop: "1px solid rgba(255,255,255,0.04)" }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", textAlign: "center" }}>
           <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(255,193,7,0.1)", border: "1px solid rgba(255,193,7,0.2)", color: "#FFC107", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>Platform Features</div>
-          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 800, marginBottom: 12 }}>
-            Everything you need for a <span style={{ background: "linear-gradient(135deg, #1E88E5, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>world-class</span> internship
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, marginBottom: 12 }}>
+            Everything for a <span style={{ background: "linear-gradient(135deg, #1E88E5, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>world-class</span> internship
           </h2>
-          <p style={{ color: "#8892A4", maxWidth: 520, margin: "0 auto 48px", fontSize: 15 }}>Nine powerful modules working together in one integrated system.</p>
+          <p style={{ color: "#8892A4", maxWidth: 520, margin: "0 auto 48px", fontSize: 15 }}>Nine powerful modules working together in one integrated operating system.</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16 }}>
             {[
-              { emoji: "📚", title: "Classroom", desc: "Live and recorded classes with attendance tracking, schedules, and real-time participation." },
-              { emoji: "🎓", title: "Courses", desc: "Structured learning paths across AI, Design, Marketing, Development, and Business tracks." },
-              { emoji: "✅", title: "Tasks", desc: "Daily and weekly tasks with deadlines, submissions, grading, and performance tracking." },
-              { emoji: "💬", title: "Messaging", desc: "Real-time messaging between interns, mentors, and team leads with group channels." },
-              { emoji: "🌐", title: "Community", desc: "Discussion forums, project showcases, resource sharing, and peer-to-peer collaboration." },
-              { emoji: "🏆", title: "Gamification", desc: "XP system, leaderboards, streaks, missions, achievement badges, and a spin-the-wheel bonus game." },
-              { emoji: "💰", title: "Wallet", desc: "Track earnings, fines, bonuses, and payouts. Transparent financial management for every intern." },
-              { emoji: "🤖", title: "AI Copilot", desc: "Built-in AI assistant to help with tasks, answer questions, and provide personalized study guidance." },
-              { emoji: "📈", title: "Performance", desc: "Detailed analytics on your progress, promotion readiness score, and improvement suggestions." },
+              { emoji: "📚", title: "Live Classroom", desc: "Live and recorded classes with attendance tracking, schedules, and real-time participation scoring.", color: "#1E88E5" },
+              { emoji: "🎓", title: "Structured Courses", desc: "Learning paths across AI, Design, Marketing, Development, and Business tracks with completion certificates.", color: "#AB47BC" },
+              { emoji: "✅", title: "Task Management", desc: "Daily and weekly tasks with deadlines, submissions, grading, and performance tracking.", color: "#66BB6A" },
+              { emoji: "💬", title: "Messaging", desc: "Real-time messaging between interns, mentors, and team leads with group channels and DMs.", color: "#26C6DA" },
+              { emoji: "🌐", title: "Community Feed", desc: "Discussion forums, project showcases, resource sharing, and peer-to-peer collaboration.", color: "#FFC107" },
+              { emoji: "🏆", title: "Gamification", desc: "XP system, leaderboards, streaks, missions, achievement badges, and a spin-the-wheel bonus game.", color: "#FF7043" },
+              { emoji: "💰", title: "Wallet & Earnings", desc: "Track earnings, fines, bonuses, and payouts. Transparent financial management for every intern.", color: "#66BB6A" },
+              { emoji: "🤖", title: "AI Copilot", desc: "Built-in AI assistant with 8 tools to help with tasks, CV generation, interview prep, and more.", color: "#1E88E5" },
+              { emoji: "📈", title: "Performance Analytics", desc: "Detailed analytics on progress, promotion readiness score, and AI-powered improvement suggestions.", color: "#FFC107" },
             ].map(f => (
-              <div key={f.title} style={{
-                background: "#111827", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16,
-                padding: "24px 20px", textAlign: "left", transition: "all 0.3s",
-              }}>
-                <div style={{ fontSize: 28, marginBottom: 12 }}>{f.emoji}</div>
+              <div key={f.title} className="feature-card" style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: "24px 20px", textAlign: "left" }}>
+                <div style={{ fontSize: 28, marginBottom: 12, width: 48, height: 48, borderRadius: 12, background: `${f.color}15`, display: "flex", alignItems: "center", justifyContent: "center" }}>{f.emoji}</div>
                 <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{f.title}</h3>
-                <p style={{ fontSize: 13, color: "#8892A4", lineHeight: 1.7 }}>{f.desc}</p>
+                <p style={{ fontSize: 13, color: "#8892A4", lineHeight: 1.7, margin: 0 }}>{f.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
-      <section style={{ padding: "80px 24px", borderTop: "1px solid rgba(255,255,255,0.04)", position: "relative", zIndex: 1 }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 800, marginBottom: 12 }}>
-            How It <span style={{ background: "linear-gradient(135deg, #1E88E5, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Works</span>
-          </h2>
-          <p style={{ color: "#8892A4", marginBottom: 48, fontSize: 15 }}>Four simple steps to transform your career trajectory.</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 32 }}>
+      {/* ═══════════════════════════════════════════════════
+          PLATFORM SCREENSHOTS / MOCKUP
+      ═══════════════════════════════════════════════════ */}
+      <section style={{ padding: "80px 24px", position: "relative", zIndex: 1, borderTop: "1px solid rgba(255,255,255,0.04)", background: "linear-gradient(180deg, transparent, rgba(30,136,229,0.04), transparent)" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", textAlign: "center" }}>
+          <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(171,71,188,0.1)", border: "1px solid rgba(171,71,188,0.2)", color: "#AB47BC", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>Inside the Platform</div>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, marginBottom: 12 }}>A platform built for <span style={{ background: "linear-gradient(135deg, #AB47BC, #1E88E5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>real work</span></h2>
+          <p style={{ color: "#8892A4", maxWidth: 520, margin: "0 auto 48px", fontSize: 15 }}>Every module is live and used by our interns every single day.</p>
+
+          {/* Mockup cards */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20 }}>
             {[
-              { n: "1", t: "Apply", d: "Submit your application and complete the onboarding process to join the cohort.", c: "#1E88E5" },
-              { n: "2", t: "Learn", d: "Attend classes, complete courses, and engage with mentors through the platform.", c: "#FFC107" },
-              { n: "3", t: "Perform", d: "Complete daily tasks, build projects, and contribute to real client deliverables.", c: "#66BB6A" },
-              { n: "4", t: "Get Rewarded", d: "Earn XP, climb ranks, receive payouts, and graduate with a strong portfolio.", c: "#AB47BC" },
-            ].map(s => (
-              <div key={s.n} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-                <div style={{
-                  width: 64, height: 64, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
-                  background: `linear-gradient(135deg, ${s.c}, ${s.c}cc)`, fontSize: 24, fontWeight: 800,
-                  fontFamily: "'Space Grotesk', sans-serif", boxShadow: `0 8px 24px ${s.c}44`,
-                }}>{s.n}</div>
-                <h4 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 700 }}>{s.t}</h4>
-                <p style={{ fontSize: 13, color: "#8892A4", lineHeight: 1.7 }}>{s.d}</p>
+              { title: "Intern Dashboard", desc: "XP counter, streak tracker, today's tasks, upcoming classes — all in one view.", icon: "📊", accent: "#1E88E5", metrics: ["2,450 XP", "7-day streak", "3 tasks due"] },
+              { title: "AI Hub", desc: "CV generator, interview prep, plagiarism detector, and 5 more AI-powered tools.", icon: "🤖", accent: "#AB47BC", metrics: ["8 AI tools", "GPT-4 powered", "Instant results"] },
+              { title: "Leaderboard", desc: "Global, department, and team rankings updated in real-time every day.", icon: "🏆", accent: "#FFC107", metrics: ["Live rankings", "XP + performance", "Weekly reset"] },
+            ].map(m => (
+              <div key={m.title} style={{ background: "#111827", border: `1px solid ${m.accent}25`, borderRadius: 20, padding: 24, textAlign: "left", position: "relative", overflow: "hidden" }}>
+                <div style={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%", background: `radial-gradient(circle, ${m.accent}15, transparent 70%)`, pointerEvents: "none" }} />
+                <div style={{ fontSize: 36, marginBottom: 12 }}>{m.icon}</div>
+                <div style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 17, fontWeight: 800, color: "#E8EDF5", marginBottom: 8 }}>{m.title}</div>
+                <p style={{ fontSize: 13, color: "#8892A4", lineHeight: 1.7, marginBottom: 16 }}>{m.desc}</p>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {m.metrics.map(tag => (
+                    <span key={tag} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 99, background: `${m.accent}18`, color: m.accent, border: `1px solid ${m.accent}30`, fontWeight: 700 }}>{tag}</span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <Link href="/sign-up" style={{ display: "inline-block", marginTop: 40, padding: "14px 36px", borderRadius: 14, background: "linear-gradient(135deg,#1E88E5,#1565C0)", color: "#fff", textDecoration: "none", fontWeight: 700, fontSize: 15 }}>
+            Explore the full platform →
+          </Link>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════
+          HOW IT WORKS
+      ═══════════════════════════════════════════════════ */}
+      <section style={{ padding: "80px 24px", borderTop: "1px solid rgba(255,255,255,0.04)", position: "relative", zIndex: 1 }}>
+        <div style={{ maxWidth: 1000, margin: "0 auto", textAlign: "center" }}>
+          <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(102,187,106,0.1)", border: "1px solid rgba(102,187,106,0.2)", color: "#66BB6A", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>The Process</div>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, marginBottom: 12 }}>
+            How It <span style={{ background: "linear-gradient(135deg, #66BB6A, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Works</span>
+          </h2>
+          <p style={{ color: "#8892A4", marginBottom: 60, fontSize: 15 }}>Four clear steps to transform your career trajectory.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 24 }}>
+            {[
+              { n: "01", t: "Apply", d: "Submit your application and complete the onboarding process to join the current cohort.", c: "#1E88E5", icon: "📋" },
+              { n: "02", t: "Learn", d: "Attend live classes, complete courses, and engage with mentors through the platform.", c: "#FFC107", icon: "📚" },
+              { n: "03", t: "Perform", d: "Complete daily tasks, build real projects, and contribute to live client deliverables.", c: "#66BB6A", icon: "⚡" },
+              { n: "04", t: "Get Rewarded", d: "Earn XP, climb ranks, receive payouts, and graduate with a verified performance record.", c: "#AB47BC", icon: "🏆" },
+            ].map((s, i) => (
+              <div key={s.n} className="step-card" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "28px 20px", background: "#111827", border: `1px solid ${s.c}20`, borderRadius: 20 }}>
+                <div style={{ width: 72, height: 72, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: `linear-gradient(135deg, ${s.c}, ${s.c}aa)`, fontSize: 28, boxShadow: `0 8px 24px ${s.c}44` }}>{s.icon}</div>
+                <div style={{ fontSize: 10, color: s.c, fontWeight: 800, letterSpacing: 2 }}>STEP {s.n}</div>
+                <h4 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 18, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>{s.t}</h4>
+                <p style={{ fontSize: 13, color: "#8892A4", lineHeight: 1.7, margin: 0 }}>{s.d}</p>
+                {i < 3 && <div style={{ display: "none" }}>→</div>}
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* TESTIMONIALS */}
+      {/* ═══════════════════════════════════════════════════
+          TESTIMONIALS
+      ═══════════════════════════════════════════════════ */}
       <section style={{ padding: "80px 24px", borderTop: "1px solid rgba(255,255,255,0.04)", position: "relative", zIndex: 1 }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 800, marginBottom: 48 }}>
-            What Interns <span style={{ background: "linear-gradient(135deg, #1E88E5, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Say</span>
+          <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(38,198,218,0.1)", border: "1px solid rgba(38,198,218,0.2)", color: "#26C6DA", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>Social Proof</div>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, marginBottom: 12 }}>
+            Real interns. <span style={{ background: "linear-gradient(135deg, #26C6DA, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Real results.</span>
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20 }}>
-            {[
-              { name: "Adaeze Okonkwo", role: "Senior Intern · Lagos", quote: "CIOS transformed my internship experience. The gamification kept me motivated, and I built a real portfolio that got me freelance clients!", i: "AO", g: "linear-gradient(135deg, #1E88E5, #AB47BC)", stars: 5 },
-              { name: "Chukwuemeka Obi", role: "Team Lead · Abuja", quote: "The platform's structure and accountability system helped me develop leadership skills I never knew I had. Now I lead a team of 8!", i: "CO", g: "linear-gradient(135deg, #FFC107, #FF7043)", stars: 5 },
-              { name: "Folake Nwosu", role: "Top Performer · Ibadan", quote: "From zero experience to building websites in 3 months. The AI Copilot and community support made all the difference.", i: "FN", g: "linear-gradient(135deg, #66BB6A, #1E88E5)", stars: 5 },
-              { name: "Tunde Bakare", role: "AI Engineer Track · Port Harcourt", quote: "The fines kept me honest, the rewards kept me moving. I shipped 4 production AI projects before I even graduated.", i: "TB", g: "linear-gradient(135deg, #26C6DA, #1E88E5)", stars: 5 },
-              { name: "Ngozi Eze", role: "Department Lead · Enugu", quote: "Mentorship + real money rewards = no other internship comes close. Already hired 3 of my juniors at my agency.", i: "NE", g: "linear-gradient(135deg, #AB47BC, #EF5350)", stars: 5 },
-              { name: "Samuel Adeyemi", role: "Marketing Intern · Accra", quote: "I used the wallet payouts to fund my own micro-business while still in the program. CIOS doesn't just train — it pays.", i: "SA", g: "linear-gradient(135deg, #FF7043, #FFC107)", stars: 5 },
-            ].map(t => (
-              <div key={t.name} style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20, padding: 28, textAlign: "left", position: "relative" }}>
-                <span title="Verified intern" style={{ position: "absolute", top: 18, right: 18, fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 99, background: "rgba(38,198,218,0.15)", color: "#26C6DA" }}>✓ Verified</span>
-                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: "50%", background: t.g, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Space Grotesk', sans-serif", fontSize: 14, fontWeight: 700 }}>{t.i}</div>
+          <p style={{ color: "#8892A4", maxWidth: 500, margin: "0 auto 48px", fontSize: 15 }}>From zero to career-ready in 6 months. Here's what our graduates say.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20 }}>
+            {testimonials.map(t => (
+              <div key={t.id} style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20, padding: 28, textAlign: "left", position: "relative" }}>
+                <span style={{ position: "absolute", top: 18, right: 18, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 99, background: "rgba(38,198,218,0.12)", color: "#26C6DA", border: "1px solid rgba(38,198,218,0.2)" }}>✓ Verified</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: t.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Space Grotesk',sans-serif", fontSize: 14, fontWeight: 800, color: "#fff", flexShrink: 0, overflow: "hidden" }}>
+                    {t.avatar_url ? <img src={t.avatar_url} alt={t.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : t.initials}
+                  </div>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700 }}>{t.name}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: "#E8EDF5" }}>{t.name}</div>
                     <div style={{ fontSize: 12, color: "#1E88E5", fontWeight: 600 }}>{t.role}</div>
                   </div>
                 </div>
-                <div style={{ color: "#FFC107", letterSpacing: 2, fontSize: 13, marginBottom: 10 }}>{"★".repeat(t.stars)}<span style={{ color: "rgba(255,255,255,0.15)" }}>{"★".repeat(5 - t.stars)}</span></div>
-                <p style={{ fontSize: 14, color: "#8892A4", lineHeight: 1.7, fontStyle: "italic", margin: 0 }}>&ldquo;{t.quote}&rdquo;</p>
+                <div style={{ color: "#FFC107", letterSpacing: 2, fontSize: 12, marginBottom: 10 }}>
+                  {"★".repeat(t.stars)}<span style={{ color: "rgba(255,255,255,0.1)" }}>{"★".repeat(5 - t.stars)}</span>
+                </div>
+                <p style={{ fontSize: 14, color: "#8892A4", lineHeight: 1.8, fontStyle: "italic", margin: 0 }}>&ldquo;{t.quote}&rdquo;</p>
               </div>
             ))}
           </div>
 
-          {/* Trusted by partners */}
+          <Link href="/success-stories" style={{ display: "inline-block", marginTop: 32, fontSize: 14, color: "#1E88E5", textDecoration: "none", fontWeight: 700 }}>
+            Read full success stories →
+          </Link>
+
+          {/* Partners */}
           <div style={{ marginTop: 64, paddingTop: 32, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#5A6478", textTransform: "uppercase", letterSpacing: 2, marginBottom: 22 }}>Trusted by partners & employers</div>
-            <div style={{ display: "flex", gap: 28, alignItems: "center", justifyContent: "center", flexWrap: "wrap", opacity: 0.55 }}>
+            <div style={{ display: "flex", gap: 28, alignItems: "center", justifyContent: "center", flexWrap: "wrap", opacity: 0.6 }}>
               {[
                 { name: "COSPRONOS Media", g: "linear-gradient(135deg,#1E88E5,#AB47BC)" },
                 { name: "Corespec Engineering", g: "linear-gradient(135deg,#FFC107,#FF7043)" },
@@ -198,7 +315,7 @@ export default function LandingPage() {
                 { name: "RecruitNG", g: "linear-gradient(135deg,#FF7043,#FFC107)" },
               ].map(p => (
                 <div key={p.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 22, height: 22, borderRadius: 6, background: p.g, display: "inline-block" }} />
+                  <span style={{ width: 22, height: 22, borderRadius: 6, background: p.g, display: "inline-block", flexShrink: 0 }} />
                   <span style={{ fontSize: 13, fontWeight: 700, color: "#B0BEC5", letterSpacing: 0.3 }}>{p.name}</span>
                 </div>
               ))}
@@ -207,32 +324,36 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* PRICING — now uses shared component with regional detection */}
+      {/* PRICING */}
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
         <PricingSection condensed />
       </div>
 
-      {/* FAQ */}
+      {/* ═══════════════════════════════════════════════════
+          FAQ
+      ═══════════════════════════════════════════════════ */}
       <section id="faq" style={{ padding: "80px 24px", borderTop: "1px solid rgba(255,255,255,0.04)", position: "relative", zIndex: 1 }}>
-        <div style={{ maxWidth: 700, margin: "0 auto", textAlign: "center" }}>
-          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 800, marginBottom: 48 }}>
-            Frequently Asked <span style={{ background: "linear-gradient(135deg, #1E88E5, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Questions</span>
+        <div style={{ maxWidth: 740, margin: "0 auto", textAlign: "center" }}>
+          <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(255,112,67,0.1)", border: "1px solid rgba(255,112,67,0.2)", color: "#FF7043", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>FAQ</div>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, marginBottom: 48 }}>
+            Frequently Asked <span style={{ background: "linear-gradient(135deg, #FF7043, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Questions</span>
           </h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, textAlign: "left" }}>
             {[
               { q: "What is the CIOS Internship Program?", a: "CIOS is a 6-month AI-powered internship program by COSPRONOS Media × Corespec Engineering. You learn digital skills, complete real projects, earn rewards, and build your career." },
-              { q: "Is the program free?", a: "The basic program is free. Premium features like AI Copilot, advanced courses, and priority support are available with the Premium plan at ₦5,000/month." },
-              { q: "What skills will I learn?", a: "UI/UX Design, Web Development, Content Marketing, Video Editing, AI Tools, Cybersecurity, Graphic Design, and more." },
-              { q: "How does the reward system work?", a: "You earn XP for completing tasks, attending classes, and community participation. XP translates to levels, badges, and real monetary rewards." },
-              { q: "What happens if I miss a class?", a: "Missed classes result in a fine (₦500). Pay through the platform to regain access. Attendance affects your performance score." },
-              { q: "Can I get promoted during the internship?", a: "Yes! The career ladder goes from New Intern → Active → Senior → Team Lead → Department Lead → Trainer → Manager. Based on performance and leadership." },
+              { q: "Is the program free?", a: "The basic program is free. Premium features like AI Copilot, advanced courses, and priority support are available with the Premium plan." },
+              { q: "What skills will I learn?", a: "UI/UX Design, Web Development, Content Marketing, Video Editing, AI Tools, Cybersecurity, Graphic Design, Data Analysis, and more — across 48 structured courses." },
+              { q: "How does the reward system work?", a: "You earn XP for completing tasks, attending classes, and community participation. XP translates to levels, badges, and real monetary rewards paid to your wallet." },
+              { q: "What happens if I miss a class?", a: "Missed classes result in a fine (₦500). Pay through the platform to regain access. Attendance directly affects your performance score and promotion readiness." },
+              { q: "Can I get promoted during the internship?", a: "Yes! The career ladder goes: New Intern → Active → Senior → Team Lead → Department Lead → Trainer → Manager → Admin → Executive. All based on performance." },
+              { q: "Is this available outside Nigeria?", a: "Yes — we have interns across 12 countries including Ghana, Kenya, South Africa, and more. The platform is fully remote and supports multiple languages." },
             ].map(f => (
               <details key={f.q} style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, overflow: "hidden" }}>
-                <summary style={{ padding: "16px 20px", cursor: "pointer", fontWeight: 700, fontSize: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <summary style={{ padding: "18px 22px", cursor: "pointer", fontWeight: 700, fontSize: 14, display: "flex", justifyContent: "space-between", alignItems: "center", color: "#E8EDF5" }}>
                   {f.q}
-                  <span style={{ color: "#607D8B", fontSize: 20, marginLeft: 16 }}>+</span>
+                  <span style={{ color: "#1E88E5", fontSize: 20, marginLeft: 16, flexShrink: 0 }}>+</span>
                 </summary>
-                <div style={{ padding: "0 20px 16px", fontSize: 14, color: "#8892A4", lineHeight: 1.7, borderTop: "1px solid rgba(255,255,255,0.04)", paddingTop: 16 }}>
+                <div style={{ padding: "0 22px 18px", fontSize: 14, color: "#8892A4", lineHeight: 1.8, borderTop: "1px solid rgba(255,255,255,0.04)", paddingTop: 14 }}>
                   {f.a}
                 </div>
               </details>
@@ -241,37 +362,33 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* CTA */}
-      <section style={{ padding: "80px 24px", textAlign: "center", borderTop: "1px solid rgba(255,255,255,0.04)", position: "relative", zIndex: 1 }}>
-        <img src={LOGO} alt="CIOS" width={70} height={70} style={{ margin: "0 auto 24px", borderRadius: "50%", display: "block", filter: "drop-shadow(0 8px 24px rgba(30,136,229,0.4))" }} />
-        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 40px)", fontWeight: 800, marginBottom: 16 }}>Ready to Start Your Journey?</h2>
-        <p style={{ color: "#8892A4", marginBottom: 32, maxWidth: 500, margin: "0 auto 32px", fontSize: 15, lineHeight: 1.7 }}>Join hundreds of interns building real skills with COSPRONOS Media × Corespec Engineering Ltd.</p>
-        <Link href="/sign-up" style={{
-          display: "inline-flex", padding: "16px 40px", borderRadius: 14, fontSize: 16, fontWeight: 700, textDecoration: "none",
-          background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff",
-          boxShadow: "0 8px 30px rgba(30,136,229,0.35)",
-        }}>Apply Now →</Link>
+      {/* ═══════════════════════════════════════════════════
+          FINAL CTA
+      ═══════════════════════════════════════════════════ */}
+      <section style={{ padding: "100px 24px", textAlign: "center", borderTop: "1px solid rgba(255,255,255,0.04)", position: "relative", zIndex: 1, background: "radial-gradient(ellipse at 50% 50%, rgba(30,136,229,0.08), transparent 70%)" }}>
+        <img src={LOGO} alt="CIOS" width={80} height={80} style={{ margin: "0 auto 28px", borderRadius: "50%", display: "block", filter: "drop-shadow(0 8px 24px rgba(30,136,229,0.5))", animation: "float 3s ease-in-out infinite" }} />
+        <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 20, borderRadius: 99, background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.2)", color: "#66BB6A", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
+          Applications Open
+        </div>
+        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(30px, 5vw, 52px)", fontWeight: 800, marginBottom: 16 }}>Ready to Start Your Journey?</h2>
+        <p style={{ color: "#8892A4", marginBottom: 40, maxWidth: 520, margin: "0 auto 40px", fontSize: 16, lineHeight: 1.8 }}>
+          Join {settings.homepage_stats_interns} interns building real skills with COSPRONOS Media × Corespec Engineering Ltd.
+        </p>
+        <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
+          <Link href="/sign-up" className="hero-cta" style={{ display: "inline-flex", padding: "16px 44px", borderRadius: 14, fontSize: 16, fontWeight: 700, textDecoration: "none", background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff", boxShadow: "0 8px 30px rgba(30,136,229,0.35)" }}>
+            Apply Now — Free
+          </Link>
+          <Link href="/recruiters" style={{ display: "inline-flex", padding: "16px 36px", borderRadius: 14, fontSize: 16, fontWeight: 600, textDecoration: "none", border: "1px solid rgba(255,255,255,0.15)", color: "#B0BEC5" }}>
+            Hire from CIOS
+          </Link>
+        </div>
       </section>
 
-      {/* FOOTER */}
-      <footer style={{ borderTop: "1px solid rgba(255,255,255,0.04)", padding: "24px 32px", position: "relative", zIndex: 1 }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <img src={LOGO} alt="CIOS" width={28} height={28} style={{ borderRadius: "50%" }} />
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 14, fontWeight: 700, color: "#8892A4" }}>CIOS Platform</span>
-          </div>
-          <p style={{ fontSize: 12, color: "#4A5568" }}>© 2026 COSPRONOS Media × Corespec Engineering Ltd. All rights reserved.</p>
-        </div>
-      </footer>
+      <MarketingFooter />
 
-      {/* Floating Mascot Button */}
-      <Link href="/sign-up" style={{
-        position: "fixed", bottom: 24, right: 24, zIndex: 50,
-        width: 56, height: 56, borderRadius: "50%", overflow: "hidden",
-        boxShadow: "0 8px 32px rgba(30,136,229,0.4)", border: "2px solid rgba(30,136,229,0.3)",
-        animation: "float 3s ease-in-out infinite", textDecoration: "none",
-      }}>
-        <img src={LOGO} alt="AI" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+      {/* Floating CTA button */}
+      <Link href="/sign-up" style={{ position: "fixed", bottom: 24, right: 24, zIndex: 50, width: 56, height: 56, borderRadius: "50%", overflow: "hidden", boxShadow: "0 8px 32px rgba(30,136,229,0.5)", border: "2px solid rgba(30,136,229,0.4)", animation: "float 3s ease-in-out infinite", textDecoration: "none" }}>
+        <img src={LOGO} alt="Apply" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
       </Link>
     </div>
   );

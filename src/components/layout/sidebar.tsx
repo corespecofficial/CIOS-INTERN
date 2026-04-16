@@ -87,6 +87,7 @@ const NAV_ITEMS: NavItem[] = [
   { emoji: "\u26A1", label: "XP & Challenges", href: "/super-admin/xp-rules", section: "ADMIN", dataRole: ["super_admin"] },
   { emoji: "\u{1F916}", label: "AI Access", href: "/super-admin/ai-access", section: "ADMIN", dataRole: ["super_admin"] },
   { emoji: "\u{1F3E2}", label: "Recruiter Access", href: "/super-admin/recruiter-requests", section: "ADMIN", dataRole: ["super_admin"] },
+  { emoji: "\u{1F5BC}", label: "Landing Content", href: "/super-admin/landing-settings", section: "ADMIN", dataRole: ["super_admin"] },
   { emoji: "\u{1F4E2}", label: "Broadcast", href: "/admin/broadcast", section: "ADMIN", dataRole: ["admin", "super_admin"] },
   { emoji: "\u{1F4E3}", label: "Announcements", href: "/announcements", section: "MAIN", dataRole: ["all"] },
   { emoji: "\u{1F6E1}", label: "Announcement Control", href: "/admin/announcement-control", section: "ADMIN", dataRole: ["super_admin"] },

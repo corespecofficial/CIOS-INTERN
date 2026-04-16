@@ -17,12 +17,15 @@ export function MarketingFooter() {
           { href: "/recruiters", label: "For recruiters" },
           { href: "/talent-showcase", label: "Talent" },
           { href: "/pricing", label: "Pricing" },
+          { href: "/demo", label: "Book a demo" },
+          { href: "/success-stories", label: "Success stories" },
         ]} />
         <FooterCol title="Company" links={[
           { href: "/contact", label: "Contact" },
           { href: "/terms", label: "Terms" },
-          { href: "/contact?category=press", label: "Press" },
-          { href: "/contact?category=investor", label: "Investors" },
+          { href: "/privacy", label: "Privacy" },
+          { href: "/press", label: "Press" },
+          { href: "/careers", label: "Careers" },
         ]} />
         <FooterCol title="Account" links={[
           { href: "/sign-in", label: "Sign in" },
