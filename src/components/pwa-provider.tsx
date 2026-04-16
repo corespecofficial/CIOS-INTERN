@@ -72,12 +72,15 @@ export function PWAProvider() {
     const handler = (e: Event) => {
       e.preventDefault();
       setInstallPrompt(e as BeforeInstallPromptEvent);
+      // Mobile users get the full-screen onboarding (MobileInstallOnboarding component)
+      const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent) || window.innerWidth < 768;
+      if (isMobile) return;
       // Respect recent dismissal
       try {
         const last = localStorage.getItem(DISMISS_KEY);
         if (last && Date.now() - parseInt(last) < DISMISS_TTL_MS) return;
       } catch {}
-      // Don't prompt immediately on first page — wait 10 seconds so it doesn't interrupt
+      // Desktop: show small install banner after 10 seconds
       setTimeout(() => setShowInstall(true), 10000);
     };
     window.addEventListener("beforeinstallprompt", handler);

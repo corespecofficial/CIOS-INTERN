@@ -13,6 +13,7 @@ import { CommandPalette } from "@/components/command-palette";
 import { DailyMotivationPopup } from "@/components/daily-motivation-popup";
 import { ActivityTracker } from "@/components/activity-tracker";
 import { ComplianceGate } from "@/components/compliance/compliance-gate";
+import { MobileInstallOnboarding } from "@/components/pwa-install-onboarding";
 import { useAppStore } from "@/store/use-app-store";
 import { claimDailyLogin } from "@/app/actions/daily-login";
 
@@ -119,6 +120,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Compliance gate — checks for unpaid fines / suspensions on every page load */}
       <ComplianceGate />
+
+      {/* Mobile PWA install onboarding — shows full-screen sheet for mobile users who haven't installed */}
+      <MobileInstallOnboarding />
 
       <style>{`
         @media (max-width: 768px) {
