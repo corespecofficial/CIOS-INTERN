@@ -22,12 +22,21 @@ const QUOTES = [
   "Push yourself, because no one else is going to do it for you.",
 ];
 
+// Marketing paths that should never show the loader between each other.
+const MARKETING_PREFIXES = [
+  "/about", "/pricing", "/contact", "/recruiters", "/talent-showcase",
+  "/terms", "/verify", "/privacy", "/demo", "/success-stories", "/press",
+  "/careers", "/solutions", "/portals", "/join",
+];
+
+function isMarketingPath(p: string) {
+  return p === "/" || MARKETING_PREFIXES.some((prefix) => p === prefix || p.startsWith(prefix + "/"));
+}
+
 /**
- * Route-change loader. We intercept same-origin link clicks and popstate
- * (back/forward) to start a timer. If the pathname hasn't actually
- * changed within SHOW_AFTER_MS (meaning the network is slow), we show
- * the quote loader until the new route mounts. Fast transitions never
- * show anything — no flash, no friction.
+ * Route-change loader. Suppressed entirely when navigating between
+ * marketing/public pages so there's no interruption for visitors.
+ * Only shows for authenticated app pages where data loading is heavier.
  */
 export function RouteLoader() {
   const pathname = usePathname();
@@ -78,6 +87,8 @@ export function RouteLoader() {
         const url = new URL(href, window.location.origin);
         if (url.origin !== window.location.origin) return;
         if (url.pathname === window.location.pathname) return;
+        // Skip loader when both current and destination are marketing pages
+        if (isMarketingPath(window.location.pathname) && isMarketingPath(url.pathname)) return;
       } catch { return; }
       startNav();
     };
