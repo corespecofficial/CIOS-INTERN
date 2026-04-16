@@ -589,78 +589,39 @@ export function TeamLeadDashboard({ stats, leaderboard: leaderboardProp }: TeamL
 
       {/* Quick Actions */}
       <div className="pd-tl-actions" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
-        <button
-          onClick={() => router.push("/team-lead")}
-          style={{
-            background: "#1E88E5",
-            color: "#fff",
-            border: "none",
-            borderRadius: 12,
-            padding: "12px 16px",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "opacity 0.15s",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-        >
+        <a href="/team-lead" style={{
+            display: "block", textAlign: "center", textDecoration: "none",
+            background: "#1E88E5", color: "#fff",
+            borderRadius: 12, padding: "12px 16px",
+            fontSize: 13, fontWeight: 600, cursor: "pointer",
+          }}>
           📋 Assign Task to Team
-        </button>
-        <button
-          onClick={() => router.push("/team-lead")}
-          style={{
-            background: "#66BB6A",
-            color: "#fff",
-            border: "none",
-            borderRadius: 12,
-            padding: "12px 16px",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "opacity 0.15s",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-        >
+        </a>
+        <a href="/team-lead" style={{
+            display: "block", textAlign: "center", textDecoration: "none",
+            background: "#66BB6A", color: "#fff",
+            borderRadius: 12, padding: "12px 16px",
+            fontSize: 13, fontWeight: 600, cursor: "pointer",
+          }}>
           📊 Submit Team Report
-        </button>
-        <button
-          onClick={() => router.push("/teams")}
-          style={{
-            background: "#FFC107",
-            color: "#111827",
-            border: "none",
-            borderRadius: 12,
-            padding: "12px 16px",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "opacity 0.15s",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-        >
+        </a>
+        <a href="/teams" style={{
+            display: "block", textAlign: "center", textDecoration: "none",
+            background: "#FFC107", color: "#111827",
+            borderRadius: 12, padding: "12px 16px",
+            fontSize: 13, fontWeight: 600, cursor: "pointer",
+          }}>
           ⚡ Run Team Challenge
-        </button>
-        <button
-          onClick={() => router.push("/messages")}
-          style={{
-            background: "transparent",
-            color: "#E8EDF5",
+        </a>
+        <a href="/messages" style={{
+            display: "block", textAlign: "center", textDecoration: "none",
+            background: "transparent", color: "#E8EDF5",
             border: "1px solid rgba(255,255,255,0.15)",
-            borderRadius: 12,
-            padding: "12px 16px",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-            transition: "opacity 0.15s",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
-          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-        >
+            borderRadius: 12, padding: "12px 16px",
+            fontSize: 13, fontWeight: 600, cursor: "pointer",
+          }}>
           💬 Team Group Chat
-        </button>
+        </a>
       </div>
     </div>
   );
