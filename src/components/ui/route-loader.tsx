@@ -26,7 +26,7 @@ const QUOTES = [
 const MARKETING_PREFIXES = [
   "/about", "/pricing", "/contact", "/recruiters", "/talent-showcase",
   "/terms", "/verify", "/privacy", "/demo", "/success-stories", "/press",
-  "/careers", "/solutions", "/portals", "/join",
+  "/careers", "/solutions", "/portals", "/join", "/faq",
 ];
 
 function isMarketingPath(p: string) {
@@ -87,8 +87,8 @@ export function RouteLoader() {
         const url = new URL(href, window.location.origin);
         if (url.origin !== window.location.origin) return;
         if (url.pathname === window.location.pathname) return;
-        // Skip loader when both current and destination are marketing pages
-        if (isMarketingPath(window.location.pathname) && isMarketingPath(url.pathname)) return;
+        // Never show loader when navigating from any public/marketing page
+        if (isMarketingPath(window.location.pathname)) return;
       } catch { return; }
       startNav();
     };

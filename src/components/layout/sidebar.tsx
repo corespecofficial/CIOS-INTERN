@@ -78,6 +78,7 @@ const NAV_ITEMS: NavItem[] = [
   { emoji: "💚", label: "Wellness", href: "/admin/wellness", section: "ADMIN", dataRole: ["admin", "super_admin"] },
   { emoji: "🛡️", label: "Compliance Engine", href: "/admin/compliance", section: "ADMIN", dataRole: ["admin", "super_admin"] },
   { emoji: "📋", label: "Appeals Panel", href: "/admin/appeals", section: "ADMIN", dataRole: ["admin", "super_admin"] },
+  { emoji: "💸", label: "Withdrawals", href: "/admin/withdrawals", section: "ADMIN", dataRole: ["admin", "super_admin", "finance"] },
   // SUPER ADMIN
   { emoji: "\u{1F451}", label: "Super Admin", href: "/super-admin", section: "ADMIN", dataRole: ["super_admin"] },
   { emoji: "\u{1F465}", label: "Manage Users", href: "/super-admin/users", section: "ADMIN", dataRole: ["super_admin"] },
@@ -143,10 +144,22 @@ function isItemVisible(item: NavItem, currentRole: Role): boolean {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const collapsed = useAppStore((s) => s.sidebarCollapsed);
+  const toggleSidebar = useAppStore((s) => s.toggleSidebar);
+  const setSidebarCollapsed = useAppStore((s) => s.setSidebarCollapsed);
   const storeRole = useAppStore((s) => s.role);
   const setRole = useAppStore((s) => s.setRole);
   const user = useCurrentUser();
+
+  // Restore collapsed state from localStorage on first mount so the
+  // sidebar respects the user's last preference after a page refresh.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("cios-sidebar-collapsed");
+      if (saved !== null) setSidebarCollapsed(saved === "true");
+    } catch {}
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Real role comes from Clerk publicMetadata (source of truth)
   // Super admin can use the store role to "preview" other portals
@@ -430,7 +443,7 @@ export function Sidebar() {
         }}
       >
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={() => toggleSidebar()}
           style={{
             width: "100%",
             display: "flex",

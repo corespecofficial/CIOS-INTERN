@@ -137,7 +137,6 @@ export function PricingSection({ heading, subheading, condensed }: Props) {
         {!condensed && (
           <div style={{ marginTop: 40, maxWidth: 720, marginInline: "auto" }}>
             <h3 style={{ fontSize: 20, fontWeight: 800, color: "#E8EDF5", textAlign: "center", marginBottom: 16 }}>Common questions</h3>
-            <FAQ q="Why is Nigeria cheaper?" a={`Every region gets a purchasing-power-parity discount. Nigeria runs at 75% off vs USD baseline, plus real-time FX. ${region?.country === "NG" ? "You're seeing Nigeria pricing right now." : ""}`} />
             <FAQ q="How does the slider work?" a="Choose how many opportunities, seats, and applications you need. Price updates instantly. No hidden tiers." />
             <FAQ q="Is the Free plan really free?" a="Yes. 1 opportunity + 30 applications/month + community support. Forever. No credit card." />
             <FAQ q="Can I switch regions?" a="Click 📍 Precise for exact geolocation, or just travel — we auto-detect each visit." />

@@ -42,6 +42,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
   const sidebarWidth = collapsed ? 64 : 240;
+  // sidebarCollapsed is now sourced from the same Zustand store the Sidebar writes to,
+  // so marginLeft always stays in sync with the actual sidebar width.
 
   // Daily login bonus — fires once per day per user (idempotent server-side)
   useEffect(() => {

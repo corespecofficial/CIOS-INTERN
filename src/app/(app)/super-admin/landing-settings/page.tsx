@@ -29,6 +29,11 @@ export default function LandingSettingsPage() {
   const [settings, setSettings] = useState<PlatformSettings>({
     homepage_video_url: "", homepage_stats_interns: "500+", homepage_stats_courses: "48",
     homepage_stats_mentors: "15", homepage_stats_countries: "12", homepage_stats_partners: "80+",
+    homepage_screenshot_1_url: "", homepage_screenshot_1_label: "",
+    homepage_screenshot_2_url: "", homepage_screenshot_2_label: "",
+    homepage_screenshot_3_url: "", homepage_screenshot_3_label: "",
+    homepage_screenshot_4_url: "", homepage_screenshot_4_label: "",
+    demo_calendly_url: "",
   });
   const [testimonials, setTestimonials] = useState<LandingTestimonial[]>([]);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -208,9 +213,60 @@ export default function LandingSettingsPage() {
         </div>
       </div>
 
+      {/* CALENDLY / DEMO BOOKING */}
+      <div style={card}>
+        <h2 style={{ fontFamily: "'Space Grotesk',sans-serif", fontSize: 17, fontWeight: 800, color: "#E8EDF5", margin: "0 0 8px" }}>📅 Demo Booking (Calendly)</h2>
+        <p style={{ fontSize: 12, color: "#8892A4", marginBottom: 16, lineHeight: 1.6 }}>
+          Paste your Calendly (or Cal.com) scheduling link below. When set, the <strong style={{ color: "#E8EDF5" }}>/demo</strong> page
+          will show a live calendar so visitors can book a time slot directly — no email back-and-forth.
+          Leave blank to show the manual request form instead.
+        </p>
+
+        <div style={{ marginBottom: 14 }}>
+          <span style={label}>Calendly URL</span>
+          <input
+            style={input}
+            placeholder="https://calendly.com/your-username/cios-demo"
+            value={settings.demo_calendly_url ?? ""}
+            onChange={e => setSettings(s => ({ ...s, demo_calendly_url: e.target.value }))}
+          />
+        </div>
+
+        {/* Live status indicator */}
+        {settings.demo_calendly_url?.trim() ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: "rgba(102,187,106,0.1)", border: "1px solid rgba(102,187,106,0.25)" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#66BB6A", flexShrink: 0 }} />
+            <span style={{ fontSize: 12, color: "#66BB6A", fontWeight: 700 }}>Calendly embed will be shown on /demo</span>
+            <a
+              href={settings.demo_calendly_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ fontSize: 11, color: "#1E88E5", marginLeft: "auto", textDecoration: "none" }}
+            >
+              Test link ↗
+            </a>
+          </div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: "rgba(255,193,7,0.08)", border: "1px solid rgba(255,193,7,0.2)" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#FFC107", flexShrink: 0 }} />
+            <span style={{ fontSize: 12, color: "#FFC107", fontWeight: 700 }}>No link set — manual request form is shown on /demo</span>
+          </div>
+        )}
+
+        <div style={{ marginTop: 16, padding: "12px 14px", borderRadius: 10, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#5A6478", letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>How to get your Calendly link</div>
+          <ol style={{ fontSize: 12, color: "#8892A4", lineHeight: 1.9, margin: 0, paddingLeft: 18 }}>
+            <li>Go to <strong style={{ color: "#E8EDF5" }}>calendly.com</strong> and sign up free</li>
+            <li>Create a new event: <em>"CIOS Platform Demo"</em> → 30 minutes</li>
+            <li>Copy the event link (e.g. <code style={{ background: "#0D1220", padding: "1px 6px", borderRadius: 4 }}>https://calendly.com/yourname/cios-demo</code>)</li>
+            <li>Paste it above and click Save</li>
+          </ol>
+        </div>
+      </div>
+
       {/* SAVE SETTINGS */}
       <button onClick={saveSettings} disabled={savingSettings} style={btn("linear-gradient(135deg,#1E88E5,#1565C0)")}>
-        {savingSettings ? "Saving…" : "💾 Save Video, Stats & Screenshots"}
+        {savingSettings ? "Saving…" : "💾 Save All Settings"}
       </button>
 
       {/* TESTIMONIALS */}

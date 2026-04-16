@@ -209,7 +209,7 @@ export default async function PortalPage({ params }: { params: Promise<{ slug: s
   if (!portal) notFound();
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px 80px" }}>
+    <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px 48px" }}>
 
       {/* ── HERO ── */}
       <section style={{ textAlign: "center", marginBottom: 64 }}>
@@ -259,17 +259,24 @@ export default async function PortalPage({ params }: { params: Promise<{ slug: s
 
         {/* Stats row */}
         <div style={{
-          display: "inline-flex", borderRadius: 16, overflow: "hidden",
-          border: "1px solid rgba(255,255,255,0.08)", flexWrap: "wrap", justifyContent: "center",
+          display: "flex", borderRadius: 18, overflow: "hidden",
+          border: "1px solid rgba(255,255,255,0.10)",
+          background: "rgba(255,255,255,0.03)",
+          flexWrap: "wrap", justifyContent: "center",
+          maxWidth: 680, margin: "0 auto",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.3)",
         }}>
           {portal.stats.map((s, i) => (
             <div key={s.l} style={{
-              padding: "16px 28px", textAlign: "center",
-              borderRight: i < portal.stats.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
-              background: "rgba(255,255,255,0.03)",
+              padding: "20px 32px", textAlign: "center", flex: "1 1 120px",
+              borderRight: i < portal.stats.length - 1 ? "1px solid rgba(255,255,255,0.07)" : "none",
             }}>
-              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 800, background: portal.gradient, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{s.v}</div>
-              <div style={{ fontSize: 11, color: "#5A6478", fontWeight: 600, marginTop: 2 }}>{s.l}</div>
+              <div style={{
+                fontFamily: "'Space Grotesk', sans-serif", fontSize: 24, fontWeight: 800,
+                background: portal.gradient, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                lineHeight: 1.1,
+              }}>{s.v}</div>
+              <div style={{ fontSize: 11, color: "#5A6478", fontWeight: 600, marginTop: 4, letterSpacing: 0.3 }}>{s.l}</div>
             </div>
           ))}
         </div>
@@ -322,16 +329,26 @@ export default async function PortalPage({ params }: { params: Promise<{ slug: s
         <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 30, fontWeight: 800, color: "#E8EDF5", marginBottom: 24 }}>
           Get started in 4 steps
         </h2>
-        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        <div style={{
+          borderRadius: 20, overflow: "hidden",
+          border: "1px solid rgba(255,255,255,0.08)",
+          background: "rgba(255,255,255,0.02)",
+        }}>
           {portal.howToAccess.map((step, i) => (
-            <div key={i} style={{ display: "flex", gap: 20, padding: "20px 0", borderBottom: i < portal.howToAccess.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+            <div key={i} style={{
+              display: "flex", alignItems: "center", gap: 20,
+              padding: "22px 28px",
+              borderBottom: i < portal.howToAccess.length - 1 ? "1px solid rgba(255,255,255,0.06)" : "none",
+              background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)",
+            }}>
               <div style={{
-                width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                width: 44, height: 44, borderRadius: 14, flexShrink: 0,
                 background: portal.gradient,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: 16, color: "#fff",
+                fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: 18, color: "#fff",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
               }}>{i + 1}</div>
-              <div style={{ paddingTop: 10, fontSize: 15, color: "#B0BEC5", lineHeight: 1.6 }}>{step}</div>
+              <div style={{ fontSize: 15, color: "#C0CBD8", lineHeight: 1.6, fontWeight: 500 }}>{step}</div>
             </div>
           ))}
         </div>
@@ -369,23 +386,28 @@ export default async function PortalPage({ params }: { params: Promise<{ slug: s
       </section>
 
       {/* ── OTHER PORTALS ── */}
-      <section>
+      <section style={{ textAlign: "center", paddingBottom: 8 }}>
         <Badge color={portal.badgeColor}>EXPLORE OTHER PORTALS</Badge>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12, marginTop: 16 }}>
+        <div style={{
+          display: "flex", flexWrap: "wrap", gap: 12, marginTop: 16,
+          justifyContent: "center",
+        }}>
           {portal.otherPortals.map((s) => {
             const m = PORTAL_META[s];
             return (
               <Link key={s} href={`/portals/${s}`} style={{
-                display: "flex", alignItems: "center", gap: 12, padding: "14px 16px",
-                borderRadius: 12, background: "rgba(255,255,255,0.03)",
-                border: "1px solid rgba(255,255,255,0.07)", textDecoration: "none",
+                display: "flex", alignItems: "center", gap: 12, padding: "14px 20px",
+                borderRadius: 14, background: "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.09)", textDecoration: "none",
+                minWidth: 180, transition: "background 0.15s, border-color 0.15s",
               }}>
                 <div style={{
-                  width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                  width: 40, height: 40, borderRadius: 12, flexShrink: 0,
                   background: m.gradient,
-                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
+                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
                 }}>{m.icon}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#B0BEC5", lineHeight: 1.3 }}>{m.title}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#C0CBD8", lineHeight: 1.3, textAlign: "left" }}>{m.title}</div>
               </Link>
             );
           })}

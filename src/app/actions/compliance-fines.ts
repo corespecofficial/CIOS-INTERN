@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentDbUser, supabaseAdmin } from "@/lib/db";
+import { atomicWalletDebit } from "@/app/actions/payments/wallet-debit";
 import type {
   ComplianceFine,
   ComplianceSuspension,
@@ -183,15 +184,15 @@ export async function getMyFines(limit = 20): Promise<R<ComplianceFine[]>> {
 // payFine
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function payFine(fineId: string, paymentRef: string): Promise<R> {
+export async function payFine(fineId: string, paymentRef?: string): Promise<R> {
   try {
     const me = await requireMe();
     const sb = supabaseAdmin();
 
-    // Verify ownership
+    // Verify ownership + fetch fine amount
     const { data: fine } = await sb
       .from("compliance_fines")
-      .select("id, user_id, status")
+      .select("id, user_id, status, amount, task_id")
       .eq("id", fineId)
       .maybeSingle();
 
@@ -206,13 +207,29 @@ export async function payFine(fineId: string, paymentRef: string): Promise<R> {
       return { ok: false, error: "This fine has been waived" };
     }
 
+    const fineAmount = Number((fine as { amount: number }).amount);
+
+    // Debit wallet atomically
+    const debit = await atomicWalletDebit({
+      userId: me.id,
+      amount: fineAmount,
+      type: "fine",
+      description: `Compliance fine payment`,
+      idempotencyKey: `fine-${fineId}`,
+      gateway: "internal",
+      metadata: { fine_id: fineId },
+    });
+    if (!debit.ok) return { ok: false, error: debit.error };
+
+    const ref = paymentRef ?? `FINE-${fineId.slice(0, 8).toUpperCase()}`;
+
     // Mark fine as paid
     const { error } = await sb
       .from("compliance_fines")
       .update({
         status: "paid",
         paid_at: new Date().toISOString(),
-        payment_ref: paymentRef,
+        payment_ref: ref,
       })
       .eq("id", fineId);
 

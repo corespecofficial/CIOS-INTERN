@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PricingSection } from "@/components/marketing/pricing-section";
 import { MarketingHeader } from "@/components/marketing/header";
 import { MarketingFooter } from "@/components/marketing/footer";
+import { EmailCapture } from "@/components/marketing/email-capture";
 import { getPlatformSettings, getLandingTestimonials } from "@/app/actions/landing-content";
 
 export const dynamic = "force-dynamic";
@@ -84,9 +85,9 @@ export default async function LandingPage() {
           }} />
 
           {/* Live badge */}
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 20px", marginBottom: 24, borderRadius: 99, background: "rgba(30,136,229,0.1)", border: "1px solid rgba(30,136,229,0.25)", color: "#42A5F5", fontSize: 13, fontWeight: 600 }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 20px", marginBottom: 24, borderRadius: 99, background: "rgba(102,187,106,0.1)", border: "1px solid rgba(102,187,106,0.25)", color: "#66BB6A", fontSize: 13, fontWeight: 700 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#66BB6A", animation: "pulse 1.5s ease-in-out infinite" }} />
-            COSPRONOS Media × Corespec Engineering
+            500+ interns trained · 12 countries · 97% placement rate
           </div>
 
           <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(38px, 6vw, 68px)", fontWeight: 800, lineHeight: 1.1, marginBottom: 20 }}>
@@ -117,6 +118,42 @@ export default async function LandingPage() {
               <div key={s.l} style={{ textAlign: "center" }}>
                 <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 36, fontWeight: 800, background: "linear-gradient(135deg, #1E88E5, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{s.v}</div>
                 <div style={{ fontSize: 11, color: "#607D8B", textTransform: "uppercase", letterSpacing: 2, fontWeight: 700, marginTop: 4 }}>{s.l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════
+          TRUST LOGOS STRIP
+      ═══════════════════════════════════════════════════ */}
+      <section style={{ padding: "32px 24px 0", position: "relative", zIndex: 1 }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", textAlign: "center" }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#3A4256", textTransform: "uppercase", letterSpacing: 2, marginBottom: 20 }}>
+            Companies hiring from CIOS
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
+            {[
+              { name: "COSPRONOS Media",       g: "linear-gradient(135deg,#1E88E5,#AB47BC)", abbr: "CPM" },
+              { name: "Corespec Engineering",   g: "linear-gradient(135deg,#FFC107,#FF7043)", abbr: "CSE" },
+              { name: "Lagos Tech Hub",         g: "linear-gradient(135deg,#66BB6A,#1E88E5)", abbr: "LTH" },
+              { name: "AfriTalent",             g: "linear-gradient(135deg,#26C6DA,#1E88E5)", abbr: "AFT" },
+              { name: "Naija Devs",             g: "linear-gradient(135deg,#AB47BC,#EF5350)", abbr: "NJD" },
+              { name: "RecruitNG",              g: "linear-gradient(135deg,#FF7043,#FFC107)", abbr: "RNG" },
+              { name: "Andela Alumni Network",  g: "linear-gradient(135deg,#1565C0,#26C6DA)", abbr: "AAN" },
+              { name: "FlexHire Africa",        g: "linear-gradient(135deg,#66BB6A,#FFC107)", abbr: "FHA" },
+            ].map(p => (
+              <div key={p.name} style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "8px 16px", borderRadius: 10,
+                background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
+              }}>
+                <span style={{
+                  width: 24, height: 24, borderRadius: 6, background: p.g,
+                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 8, fontWeight: 800, color: "#fff", flexShrink: 0, letterSpacing: 0.3,
+                }}>{p.abbr}</span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#5A6478", whiteSpace: "nowrap" }}>{p.name}</span>
               </div>
             ))}
           </div>
@@ -321,6 +358,68 @@ export default async function LandingPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════
+          COMPARISON TABLE
+      ═══════════════════════════════════════════════════ */}
+      <section style={{ padding: "80px 24px", borderTop: "1px solid rgba(255,255,255,0.04)", position: "relative", zIndex: 1 }}>
+        <div style={{ maxWidth: 1000, margin: "0 auto", textAlign: "center" }}>
+          <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(30,136,229,0.1)", border: "1px solid rgba(30,136,229,0.2)", color: "#42A5F5", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>Why CIOS Wins</div>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, marginBottom: 12 }}>
+            CIOS vs. <span style={{ background: "linear-gradient(135deg, #1E88E5, #AB47BC)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>the alternatives</span>
+          </h2>
+          <p style={{ color: "#8892A4", marginBottom: 48, fontSize: 15 }}>Not all programs are created equal. Here&apos;s how we stack up.</p>
+
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, minWidth: 600 }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: "14px 20px", textAlign: "left", fontSize: 12, fontWeight: 700, color: "#5A6478", border: "none", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>Feature</th>
+                  {/* CIOS highlighted */}
+                  <th style={{ padding: "14px 20px", textAlign: "center", fontSize: 13, fontWeight: 800, color: "#42A5F5", borderRadius: "14px 14px 0 0", background: "rgba(30,136,229,0.1)", border: "1px solid rgba(30,136,229,0.2)", borderBottom: "none", minWidth: 160 }}>
+                    ✦ CIOS Platform
+                  </th>
+                  <th style={{ padding: "14px 20px", textAlign: "center", fontSize: 12, fontWeight: 700, color: "#5A6478", border: "none", borderBottom: "1px solid rgba(255,255,255,0.07)", minWidth: 140 }}>Bootcamp</th>
+                  <th style={{ padding: "14px 20px", textAlign: "center", fontSize: 12, fontWeight: 700, color: "#5A6478", border: "none", borderBottom: "1px solid rgba(255,255,255,0.07)", minWidth: 160 }}>Traditional Internship</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { feature: "Cost",              cios: "Free",           boot: "$500 – $5,000",  trad: "Unpaid / low pay" },
+                  { feature: "Duration",          cios: "6 months",       boot: "3–12 months",    trad: "1–3 months" },
+                  { feature: "Real client work",  cios: "✅ Every day",   boot: "Sometimes",      trad: "Maybe" },
+                  { feature: "Earn while learning",cios:"✅ XP + payouts",boot: "❌ No",           trad: "❌ Rarely" },
+                  { feature: "AI tools built-in", cios: "✅ 8 tools",     boot: "❌ No",           trad: "❌ No" },
+                  { feature: "Placement support", cios: "✅ 97% rate",    boot: "Not guaranteed", trad: "Not guaranteed" },
+                  { feature: "Verified certificate",cios:"✅ Blockchain-ready",boot:"✅ PDF",      trad: "❌ None" },
+                  { feature: "Performance score", cios: "✅ Live scoring", boot: "❌ No",          trad: "❌ No" },
+                  { feature: "Mentor access",     cios: "✅ Paid mentors", boot: "Limited",        trad: "No" },
+                  { feature: "Community",         cios: "✅ Active daily", boot: "Forum only",     trad: "❌ No" },
+                ].map((row, i) => (
+                  <tr key={row.feature} style={{ background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)" }}>
+                    <td style={{ padding: "13px 20px", fontSize: 13, fontWeight: 600, color: "#B0BEC5", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>{row.feature}</td>
+                    <td style={{ padding: "13px 20px", fontSize: 13, fontWeight: 700, color: row.cios.startsWith("✅") ? "#66BB6A" : "#E8EDF5", textAlign: "center", background: "rgba(30,136,229,0.06)", borderLeft: "1px solid rgba(30,136,229,0.15)", borderRight: "1px solid rgba(30,136,229,0.15)", borderBottom: "1px solid rgba(30,136,229,0.08)" }}>{row.cios}</td>
+                    <td style={{ padding: "13px 20px", fontSize: 13, color: "#5A6478", textAlign: "center", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>{row.boot}</td>
+                    <td style={{ padding: "13px 20px", fontSize: 13, color: "#5A6478", textAlign: "center", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>{row.trad}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td style={{ padding: "16px 20px" }} />
+                  <td style={{ padding: "16px 20px", background: "rgba(30,136,229,0.1)", borderRadius: "0 0 14px 14px", border: "1px solid rgba(30,136,229,0.2)", borderTop: "none", textAlign: "center" }}>
+                    <Link href="/sign-up" style={{ display: "inline-block", padding: "10px 24px", borderRadius: 10, background: "linear-gradient(135deg,#1E88E5,#1565C0)", color: "#fff", textDecoration: "none", fontWeight: 800, fontSize: 13 }}>
+                      Join Free →
+                    </Link>
+                  </td>
+                  <td style={{ padding: "16px 20px" }} />
+                  <td style={{ padding: "16px 20px" }} />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════
           TESTIMONIALS
       ═══════════════════════════════════════════════════ */}
       <section style={{ padding: "80px 24px", borderTop: "1px solid rgba(255,255,255,0.04)", position: "relative", zIndex: 1 }}>
@@ -354,6 +453,9 @@ export default async function LandingPage() {
           <Link href="/success-stories" style={{ display: "inline-block", marginTop: 32, fontSize: 14, color: "#1E88E5", textDecoration: "none", fontWeight: 700 }}>
             Read full success stories →
           </Link>
+          <Link href="/faq" style={{ display: "inline-block", marginTop: 12, marginLeft: 20, fontSize: 14, color: "#8892A4", textDecoration: "none", fontWeight: 700 }}>
+            View all FAQs →
+          </Link>
 
           {/* Partners */}
           <div style={{ marginTop: 64, paddingTop: 32, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
@@ -381,6 +483,11 @@ export default async function LandingPage() {
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
         <PricingSection condensed />
       </div>
+
+      {/* ═══════════════════════════════════════════════════
+          EMAIL CAPTURE
+      ═══════════════════════════════════════════════════ */}
+      <EmailCapture />
 
       {/* ═══════════════════════════════════════════════════
           FAQ
@@ -439,10 +546,6 @@ export default async function LandingPage() {
 
       <MarketingFooter />
 
-      {/* Floating CTA button */}
-      <Link href="/sign-up" style={{ position: "fixed", bottom: 24, right: 24, zIndex: 50, width: 56, height: 56, borderRadius: "50%", overflow: "hidden", boxShadow: "0 8px 32px rgba(30,136,229,0.5)", border: "2px solid rgba(30,136,229,0.4)", animation: "float 3s ease-in-out infinite", textDecoration: "none" }}>
-        <img src={LOGO} alt="Apply" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-      </Link>
     </div>
   );
 }

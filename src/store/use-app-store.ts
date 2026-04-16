@@ -79,8 +79,15 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set) => ({
   sidebarCollapsed: false,
-  toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
-  setSidebarCollapsed: (v) => set({ sidebarCollapsed: v }),
+  toggleSidebar: () => set((s) => {
+    const next = !s.sidebarCollapsed;
+    try { localStorage.setItem("cios-sidebar-collapsed", String(next)); } catch {}
+    return { sidebarCollapsed: next };
+  }),
+  setSidebarCollapsed: (v) => {
+    try { localStorage.setItem("cios-sidebar-collapsed", String(v)); } catch {}
+    set({ sidebarCollapsed: v });
+  },
 
   mobileSidebarOpen: false,
   setMobileSidebarOpen: (v) => set({ mobileSidebarOpen: v }),

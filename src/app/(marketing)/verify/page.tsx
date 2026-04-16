@@ -119,6 +119,39 @@ export default function VerifyPage() {
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.07)" }}>
               <Field label="Certificate ID" value={result.certificateNumber!} mono />
             </div>
+
+            {/* Share actions */}
+            <div style={{ marginTop: 20, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.07)", display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <a
+                href={`https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=${encodeURIComponent(result.courseTitle || "CIOS Certificate")}&organizationName=COSPRONOS%20Media&issueYear=${new Date(result.issuedAt || "").getFullYear()}&issueMonth=${new Date(result.issuedAt || "").getMonth() + 1}&certUrl=${encodeURIComponent(`${typeof window !== "undefined" ? window.location.origin : ""}/verify?id=${result.certificateNumber}`)}&certId=${encodeURIComponent(result.certificateNumber || "")}`}
+                target="_blank" rel="noopener noreferrer"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 8,
+                  padding: "10px 18px", borderRadius: 10, fontWeight: 700, fontSize: 13,
+                  background: "#0A66C2", color: "#fff", textDecoration: "none",
+                  boxShadow: "0 4px 16px rgba(10,102,194,0.35)",
+                }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                </svg>
+                Add to LinkedIn Profile
+              </a>
+              <button
+                onClick={() => {
+                  const url = `${window.location.origin}/verify?id=${result.certificateNumber}`;
+                  navigator.clipboard.writeText(url).catch(() => {});
+                }}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 8,
+                  padding: "10px 18px", borderRadius: 10, fontWeight: 700, fontSize: 13,
+                  background: "rgba(255,255,255,0.06)", color: "#B0BEC5",
+                  border: "1px solid rgba(255,255,255,0.1)", cursor: "pointer",
+                }}
+              >
+                🔗 Copy Verify Link
+              </button>
+            </div>
           </div>
         )}
 

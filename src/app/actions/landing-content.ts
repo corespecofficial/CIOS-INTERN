@@ -28,6 +28,7 @@ export interface PlatformSettings {
   homepage_screenshot_3_label: string;
   homepage_screenshot_4_url: string;
   homepage_screenshot_4_label: string;
+  demo_calendly_url: string;
 }
 
 export async function getPlatformSettings(): Promise<PlatformSettings> {
@@ -52,6 +53,7 @@ export async function getPlatformSettings(): Promise<PlatformSettings> {
     homepage_screenshot_3_label:  map.homepage_screenshot_3_label  ?? "Leaderboard",
     homepage_screenshot_4_url:    map.homepage_screenshot_4_url    ?? "",
     homepage_screenshot_4_label:  map.homepage_screenshot_4_label  ?? "Recruiter Portal",
+    demo_calendly_url:            map.demo_calendly_url            ?? "",
   };
 }
 
@@ -62,6 +64,7 @@ export async function updatePlatformSetting(key: string, value: string): Promise
     await sb.from("platform_settings").upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: "key" });
     revalidatePath("/");
     revalidatePath("/about");
+    revalidatePath("/demo");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -78,6 +81,7 @@ export async function updatePlatformSettings(settings: Partial<PlatformSettings>
     await sb.from("platform_settings").upsert(rows, { onConflict: "key" });
     revalidatePath("/");
     revalidatePath("/about");
+    revalidatePath("/demo");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };

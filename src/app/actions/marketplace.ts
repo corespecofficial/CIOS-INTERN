@@ -3,6 +3,7 @@
 import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import type { Product, Purchase } from "./marketplace-types";
+import { atomicWalletDebit, atomicWalletCredit } from "@/app/actions/payments/wallet-debit";
 
 // Re-export types only (type-only exports are fine in "use server" files)
 export type { Product, Purchase } from "./marketplace-types";
@@ -109,17 +110,56 @@ export async function recordPurchase(productId: string): Promise<R<{ id: string 
     const me = await getCurrentDbUser();
     if (!me) return { ok: false, error: "Unauthorized" };
     const sb = supabaseAdmin();
-    const { data: product } = await sb.from("marketplace_products").select("price_ngn,seller_id,status").eq("id", productId).maybeSingle();
+    const { data: product } = await sb
+      .from("marketplace_products")
+      .select("price_ngn, seller_id, status, title")
+      .eq("id", productId)
+      .maybeSingle();
     if (!product) return { ok: false, error: "Product not found" };
-    const p = product as { price_ngn: number; seller_id: string; status: string };
+    const p = product as { price_ngn: number; seller_id: string; status: string; title: string };
     if (p.status !== "active") return { ok: false, error: "Product is not available" };
     if (p.seller_id === me.id) return { ok: false, error: "Cannot purchase your own product" };
+
+    const price = Number(p.price_ngn);
+    const platformCut = Math.round(price * 0.15);   // 15% platform fee
+    const sellerPayout = price - platformCut;
+
+    // Debit buyer's wallet
+    const debit = await atomicWalletDebit({
+      userId: me.id,
+      amount: price,
+      type: "payment",
+      description: `Purchase: ${p.title}`,
+      idempotencyKey: `marketplace-buy-${me.id}-${productId}-${Date.now()}`,
+      gateway: "internal",
+      metadata: { product_id: productId },
+    });
+    if (!debit.ok) return { ok: false, error: debit.error };
+
+    // Credit seller (85% of price)
+    await atomicWalletCredit({
+      userId: p.seller_id,
+      amount: sellerPayout,
+      type: "credit",
+      description: `Sale: ${p.title} (after 15% platform fee)`,
+      idempotencyKey: `marketplace-sell-${p.seller_id}-${productId}-${Date.now()}`,
+      gateway: "internal",
+      metadata: { product_id: productId, buyer_id: me.id },
+    });
+
+    // Record purchase
     const { data, error } = await sb.from("marketplace_purchases")
-      .insert({ buyer_id: me.id, product_id: productId, amount_paid: p.price_ngn, currency: "NGN" })
+      .insert({ buyer_id: me.id, product_id: productId, amount_paid: price, currency: "NGN" })
       .select("id").single();
-    if (error || !data) return { ok: false, error: error?.message || "Purchase failed" };
-    const { count } = await sb.from("marketplace_purchases").select("id", { count: "exact", head: true }).eq("product_id", productId);
-    await sb.from("marketplace_products").update({ sales_count: count || 1, updated_at: new Date().toISOString() }).eq("id", productId);
+    if (error || !data) return { ok: false, error: error?.message || "Purchase record failed" };
+
+    const { count } = await sb.from("marketplace_purchases")
+      .select("id", { count: "exact", head: true })
+      .eq("product_id", productId);
+    await sb.from("marketplace_products")
+      .update({ sales_count: count || 1, updated_at: new Date().toISOString() })
+      .eq("id", productId);
+
     revalidatePath("/marketplace");
     return { ok: true, data: { id: (data as { id: string }).id } };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }

@@ -13,34 +13,29 @@ interface NavItem  { label: string; href?: string; dropdown?: DropItem[] }
 const NAV: NavItem[] = [
   { label: "Home",         href: "/" },
   {
-    label: "Platform",
-    dropdown: [
-      { href: "/about",           label: "About CIOS",        icon: "ℹ️",  desc: "Our story and mission" },
-      { href: "/success-stories", label: "Success Stories",   icon: "🏆", desc: "Real intern outcomes" },
-      { href: "/demo",            label: "Book a Demo",       icon: "🎯", desc: "See the platform live" },
-    ],
-  },
-  {
     label: "Features",
     dropdown: [
       { href: "/#features",       label: "All Features",      icon: "⚡", desc: "Full platform overview" },
       { href: "/#how-it-works",   label: "How It Works",      icon: "🗺️", desc: "The 6-step journey" },
-      { href: "/#faq",            label: "FAQ",               icon: "❓", desc: "Common questions" },
+      { href: "/faq",             label: "FAQ",               icon: "❓", desc: "All common questions" },
+      { href: "/about",           label: "About CIOS",        icon: "ℹ️",  desc: "Our story and mission" },
+      { href: "/success-stories", label: "Success Stories",   icon: "🏆", desc: "Real intern outcomes" },
     ],
   },
   {
     label: "Solutions",
     dropdown: [
-      { href: "/solutions/ai-machine-learning",  label: "AI & Machine Learning", icon: "🤖", desc: "Build real AI products" },
-      { href: "/solutions/digital-marketing",    label: "Digital Marketing",     icon: "📣", desc: "Growth & brand strategy" },
-      { href: "/solutions/ui-ux-design",         label: "UI/UX Design",          icon: "🎨", desc: "Product & interface design" },
-      { href: "/solutions/web-development",      label: "Web Development",       icon: "💻", desc: "Full-stack engineering" },
-      { href: "/solutions/data-analytics",       label: "Data Analytics",        icon: "📊", desc: "Insights and BI" },
-      { href: "/solutions/content-creation",     label: "Content Creation",      icon: "✍️",  desc: "Media & storytelling" },
+      { href: "/solutions/ai-automation",             label: "AI & Automation",           icon: "🤖", desc: "Agents, automation, ML, no-code AI" },
+      { href: "/solutions/development",               label: "Development & Engineering",  icon: "💻", desc: "Web, mobile, AI-assisted coding" },
+      { href: "/solutions/design-creative",           label: "Design & Creative",          icon: "🎨", desc: "UI/UX, AI art, motion, brand" },
+      { href: "/solutions/marketing-growth",          label: "Marketing & Growth",         icon: "📣", desc: "SEO, ads, content, community" },
+      { href: "/solutions/data-analytics",            label: "Data & Analytics",           icon: "📊", desc: "SQL, BI, Python, AI analytics" },
+      { href: "/solutions/business-entrepreneurship", label: "Business & Entrepreneurship",icon: "💼", desc: "Product, sales, startup, freelance" },
     ],
   },
   { label: "How It Works", href: "/#how-it-works" },
   { label: "Pricing",      href: "/pricing" },
+  { label: "Book a Demo",  href: "/demo" },
   {
     label: "Portals",
     dropdown: [
@@ -100,6 +95,7 @@ function DropMenu({ items, onClose }: { items: DropItem[]; onClose: () => void }
 
 function DesktopNavItem({ item }: { item: NavItem }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -108,9 +104,22 @@ function DesktopNavItem({ item }: { item: NavItem }) {
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
+  // Determine active state.
+  // Anchor links (/#section) are never "active" — they're scroll targets, not pages.
+  const isActive = item.href
+    ? item.href === "/"
+      ? pathname === "/"
+      : item.href.includes("#")
+        ? false
+        : pathname.startsWith(item.href)
+    : item.dropdown?.some(d => {
+        const base = d.href.split("#")[0];
+        return base.length > 1 && pathname.startsWith(base);
+      });
+
   if (!item.dropdown) {
     return (
-      <SmartLink href={item.href!} className="cios-nl">
+      <SmartLink href={item.href!} className={`cios-nl${isActive ? " cios-active" : ""}`}>
         {item.label}
       </SmartLink>
     );
@@ -118,7 +127,7 @@ function DesktopNavItem({ item }: { item: NavItem }) {
 
   return (
     <div ref={ref} className="cios-ng" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
-      <button className={`cios-nl cios-nb${open ? " on" : ""}`} onClick={() => setOpen(v => !v)}>
+      <button className={`cios-nl cios-nb${open ? " on" : ""}${isActive ? " cios-active" : ""}`} onClick={() => setOpen(v => !v)}>
         {item.label}
         <svg style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s", opacity: .55 }}
           width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8">
@@ -185,6 +194,26 @@ export function MarketingHeader() {
         }
         .cios-nl:hover, .cios-nb:hover, .cios-nb.on {
           color: #E8EDF5; background: rgba(255,255,255,0.05);
+        }
+        .cios-nl[href="/demo"] {
+          color: #FFC107; border: 1px solid rgba(255,193,7,0.3);
+          border-radius: 8px;
+        }
+        .cios-nl[href="/demo"]:hover {
+          background: rgba(255,193,7,0.1); color: #FFD54F;
+          border-color: rgba(255,193,7,0.5);
+        }
+        /* active page indicator */
+        .cios-active {
+          color: #E8EDF5 !important;
+          position: relative;
+        }
+        .cios-active::after {
+          content: "";
+          position: absolute; bottom: -2px; left: 50%;
+          transform: translateX(-50%);
+          width: 18px; height: 2px; border-radius: 99px;
+          background: linear-gradient(135deg, #1E88E5, #42A5F5);
         }
         /* dropdown panel */
         .cios-drop {
