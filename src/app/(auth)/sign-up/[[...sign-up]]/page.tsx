@@ -2,11 +2,12 @@
 import { SignUp } from "@clerk/nextjs";
 
 interface Props {
-  searchParams: { ref?: string };
+  searchParams: Promise<{ ref?: string }>;
 }
 
-export default function SignUpPage({ searchParams }: Props) {
-  const ref = searchParams.ref?.trim().toUpperCase();
+export default async function SignUpPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const ref = params.ref?.trim().toUpperCase();
   const redirectUrl = ref ? `/post-auth?ref=${encodeURIComponent(ref)}` : "/post-auth";
 
   return (
