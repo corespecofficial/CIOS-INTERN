@@ -65,6 +65,8 @@ const NAV_ITEMS: NavItem[] = [
   { emoji: "\u{1F4C8}", label: "Performance", href: "/performance", section: "PROGRESS", dataRole: ["intern", "team_lead"] },
   { emoji: "💚", label: "Wellness", href: "/wellness", section: "PROGRESS", dataRole: ["intern", "team_lead"] },
   { emoji: "👨‍👩‍👧", label: "Guardian Access", href: "/guardian", section: "PROGRESS", dataRole: ["intern", "team_lead"] },
+  { emoji: "⚡", label: "Compliance", href: "/compliance", section: "PROGRESS", dataRole: ["intern", "team_lead", "alumni", "mentor"] },
+  { emoji: "📋", label: "Appeals", href: "/appeals", section: "PROGRESS", dataRole: ["intern", "team_lead", "alumni", "mentor"] },
   // TEAM LEAD
   { emoji: "\u{1F465}", label: "Team Management", href: "/team-lead", section: "MANAGEMENT", dataRole: ["team_lead"] },
   // ADMIN
@@ -74,6 +76,8 @@ const NAV_ITEMS: NavItem[] = [
   { emoji: "\u{1F4D1}", label: "Note templates", href: "/admin/note-templates", section: "ADMIN", dataRole: ["admin", "super_admin"] },
   { emoji: "🏫", label: "Creative Spaces", href: "/admin/creative-spaces", section: "ADMIN", dataRole: ["admin", "super_admin"] },
   { emoji: "💚", label: "Wellness", href: "/admin/wellness", section: "ADMIN", dataRole: ["admin", "super_admin"] },
+  { emoji: "🛡️", label: "Compliance Engine", href: "/admin/compliance", section: "ADMIN", dataRole: ["admin", "super_admin"] },
+  { emoji: "📋", label: "Appeals Panel", href: "/admin/appeals", section: "ADMIN", dataRole: ["admin", "super_admin"] },
   // SUPER ADMIN
   { emoji: "\u{1F451}", label: "Super Admin", href: "/super-admin", section: "ADMIN", dataRole: ["super_admin"] },
   { emoji: "\u{1F465}", label: "Manage Users", href: "/super-admin/users", section: "ADMIN", dataRole: ["super_admin"] },

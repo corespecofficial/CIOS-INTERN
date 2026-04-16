@@ -32,23 +32,23 @@ const SHARED_ROUTES = ["/profile", "/settings", "/notifications", "/post-auth", 
 
 // Per-role allowed route prefixes
 const ROLE_ACCESS: Record<Role, string[]> = {
-  intern: ["/dashboard", "/classroom", "/courses", "/tasks", "/messages", "/community", "/wallet", "/gamification", "/notes", "/performance", "/calendar", "/ai-hub", "/documents", "/recruitment", "/productivity", "/certificates", "/my-analytics", "/announcements", "/mentorship", "/marketplace", "/creative-space", "/wellness", "/guardian", "/hackathons", "/startup"],
-  team_lead: ["/team-lead", "/dashboard", "/classroom", "/courses", "/tasks", "/messages", "/community", "/wallet", "/gamification", "/notes", "/performance", "/calendar", "/ai-hub", "/documents", "/recruitment", "/productivity", "/certificates", "/my-analytics", "/announcements", "/mentorship", "/marketplace", "/creative-space", "/wellness", "/guardian", "/hackathons", "/startup"],
-  admin: ["/admin", "/dashboard", "/analytics", "/status", "/documents", "/productivity", "/courses", "/instructor", "/certificates", "/marketplace", "/creative-space", "/wellness", "/hackathons", "/startup", "/investors", "/mentorship", "/alumni", "/opportunities"],
+  intern: ["/dashboard", "/classroom", "/courses", "/tasks", "/messages", "/community", "/wallet", "/gamification", "/notes", "/performance", "/calendar", "/ai-hub", "/documents", "/recruitment", "/productivity", "/certificates", "/my-analytics", "/announcements", "/mentorship", "/marketplace", "/creative-space", "/wellness", "/guardian", "/hackathons", "/startup", "/compliance", "/appeals", "/suspended"],
+  team_lead: ["/team-lead", "/dashboard", "/classroom", "/courses", "/tasks", "/messages", "/community", "/wallet", "/gamification", "/notes", "/performance", "/calendar", "/ai-hub", "/documents", "/recruitment", "/productivity", "/certificates", "/my-analytics", "/announcements", "/mentorship", "/marketplace", "/creative-space", "/wellness", "/guardian", "/hackathons", "/startup", "/compliance", "/appeals", "/suspended"],
+  admin: ["/admin", "/dashboard", "/analytics", "/status", "/documents", "/productivity", "/courses", "/instructor", "/certificates", "/marketplace", "/creative-space", "/wellness", "/hackathons", "/startup", "/investors", "/mentorship", "/alumni", "/opportunities", "/compliance", "/appeals", "/suspended"],
   super_admin: [
     "/dashboard","/classroom","/courses","/tasks","/messages","/community","/wallet","/gamification","/notes","/performance","/calendar",
     "/admin","/super-admin","/team-lead","/instructor","/moderator","/finance","/support",
     "/analytics","/documents","/ai-hub","/recruitment","/status","/productivity",
     "/mentor","/mentorship","/alumni","/marketplace","/creative-space","/wellness","/guardian",
-    "/hackathons","/startup",
+    "/hackathons","/startup","/compliance","/appeals","/suspended",
   ],
   instructor: ["/instructor", "/courses", "/messages", "/community", "/calendar", "/productivity", "/certificates", "/creative-space"],
   moderator: ["/moderator", "/community", "/messages"],
   finance: ["/finance", "/wallet"],
   support: ["/support", "/messages"],
   recruiter: ["/recruiter", "/opportunities", "/talent", "/messages", "/notifications", "/marketplace", "/creative-space", "/hackathons", "/investors", "/mentorship", "/alumni"],
-  mentor: ["/mentor", "/mentorship", "/messages", "/community", "/notes", "/calendar", "/productivity", "/certificates", "/announcements", "/alumni", "/marketplace", "/creative-space", "/hackathons"],
-  alumni: ["/alumni", "/community", "/opportunities", "/messages", "/notes", "/calendar", "/mentorship", "/announcements", "/marketplace", "/creative-space", "/hackathons", "/startup"],
+  mentor: ["/mentor", "/mentorship", "/messages", "/community", "/notes", "/calendar", "/productivity", "/certificates", "/announcements", "/alumni", "/marketplace", "/creative-space", "/hackathons", "/compliance", "/appeals", "/suspended"],
+  alumni: ["/alumni", "/community", "/opportunities", "/messages", "/notes", "/calendar", "/mentorship", "/announcements", "/marketplace", "/creative-space", "/hackathons", "/startup", "/compliance", "/appeals", "/suspended"],
 };
 
 const isProtectedRoute = createRouteMatcher([
@@ -71,6 +71,9 @@ const isProtectedRoute = createRouteMatcher([
   '/guardian',
   '/hackathons', '/hackathons/(.*)',
   '/startup', '/startup/(.*)',
+  '/compliance', '/compliance/(.*)',
+  '/appeals', '/appeals/(.*)',
+  '/suspended',
 ]);
 
 function extractRole(source: unknown): Role | null {

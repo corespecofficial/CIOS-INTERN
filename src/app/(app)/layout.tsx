@@ -12,6 +12,7 @@ import { AnnouncementTakeover } from "@/components/announcement-takeover";
 import { CommandPalette } from "@/components/command-palette";
 import { DailyMotivationPopup } from "@/components/daily-motivation-popup";
 import { ActivityTracker } from "@/components/activity-tracker";
+import { ComplianceGate } from "@/components/compliance/compliance-gate";
 import { useAppStore } from "@/store/use-app-store";
 import { claimDailyLogin } from "@/app/actions/daily-login";
 
@@ -21,7 +22,7 @@ const AI_COPILOT_ROUTES: string[] = [];
 
 // These routes are public (no auth required) and should render WITHOUT the
 // portal chrome (no sidebar, no header). They handle their own layout.
-const STANDALONE_PUBLIC_ROUTES = ["/investors", "/guardian/"];
+const STANDALONE_PUBLIC_ROUTES = ["/investors", "/guardian/", "/suspended"];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -113,6 +114,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Fires "page_view" + "session_start" events for behavior analytics */}
       <ActivityTracker />
+
+      {/* Compliance gate — checks for unpaid fines / suspensions on every page load */}
+      <ComplianceGate />
 
       <style>{`
         @media (max-width: 768px) {
