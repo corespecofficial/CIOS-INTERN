@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 
 const LOGO_URL = "https://res.cloudinary.com/detsk6uql/image/upload/v1775646964/Adobe_Express_-_file_lydnbc.png";
-const SHOW_AFTER_MS = 600;   // don't show unless nav takes longer than this
-const MAX_MS = 5000;         // hard cap
+const SHOW_AFTER_MS = 800;   // don't show unless nav takes longer than this
+const MAX_MS = 4000;         // hard cap
 
 const QUOTES = [
   "Integrity is doing the right thing even when no one is watching.",
@@ -82,13 +82,14 @@ export function RouteLoader() {
       if (!a) return;
       const href = a.getAttribute("href");
       if (!href || href.startsWith("#") || a.target === "_blank" || a.hasAttribute("download")) return;
-      // Same-origin only
       try {
         const url = new URL(href, window.location.origin);
         if (url.origin !== window.location.origin) return;
         if (url.pathname === window.location.pathname) return;
-        // Never show loader when navigating from any public/marketing page
-        if (isMarketingPath(window.location.pathname)) return;
+        // Only show the full-screen loader when going FROM a marketing/public page
+        // into the app (e.g. landing → sign-in → dashboard). Never show it for
+        // portal-to-portal navigation — those pages have their own skeleton states.
+        if (!isMarketingPath(window.location.pathname)) return;
       } catch { return; }
       startNav();
     };

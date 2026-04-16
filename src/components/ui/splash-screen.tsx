@@ -12,16 +12,24 @@ const MAX_MS = 8000;
  * or after MAX_MS, whichever is first. A short fade-out transition runs
  * before unmount so it never cuts abruptly.
  */
+const SESSION_KEY = "cios-splash-shown";
+
 export function SplashScreen() {
-  const [visible, setVisible] = useState(true);
+  // Start hidden — only reveal if this is the very first load of the session.
+  // sessionStorage is cleared when the tab closes, so it shows once per session.
+  const [visible, setVisible] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    // Already shown this session — never show again (covers all in-portal navigation).
+    if (sessionStorage.getItem(SESSION_KEY)) return;
+    sessionStorage.setItem(SESSION_KEY, "1");
+    setVisible(true);
+
     const start = Date.now();
     let windowLoaded = document.readyState === "complete";
 
-    // Progress bar: fills smoothly to 98% across MIN_MS, regardless of actual load.
     const tick = setInterval(() => {
       const elapsed = Date.now() - start;
       setProgress(Math.min(98, (elapsed / MIN_MS) * 100));
@@ -41,9 +49,7 @@ export function SplashScreen() {
     const onLoad = () => { windowLoaded = true; tryFinish(); };
     if (!windowLoaded) window.addEventListener("load", onLoad);
 
-    // Check every 200ms whether both conditions are met.
     const checker = setInterval(tryFinish, 200);
-    // Hard cap so it can never stick.
     const maxTimer = setTimeout(finish, MAX_MS);
 
     return () => {
