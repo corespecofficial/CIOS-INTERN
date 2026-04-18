@@ -62,17 +62,18 @@ export const XP_RULES: Record<XPEventType, number> = {
   spin_wheel_win: 0, // variable — handled by spin wheel action directly
 };
 
-/** Level curve: quadratic-ish growth. xpForLevel(n) = 50 * n * (n-1). */
+/** Level curve: xpForLevel(n) = 500 * n * (n-1).
+ *  Level 2 = 1,000 XP · Level 3 = 3,000 · Level 10 = 45,000 · Level 50 = 1,225,000 */
 export function xpForLevel(level: number): number {
   if (level <= 1) return 0;
-  return 50 * level * (level - 1);
+  return 500 * level * (level - 1);
 }
 
 /** Given total XP, what level are they at? */
 export function levelFromXP(xp: number): number {
   if (xp <= 0) return 1;
-  // Invert xpForLevel: 50 * n * (n-1) <= xp  =>  n <= (1 + sqrt(1 + xp/12.5)) / 2
-  const n = Math.floor((1 + Math.sqrt(1 + xp / 12.5)) / 2);
+  // Invert xpForLevel: 500 * n * (n-1) = xp  =>  n = (1 + sqrt(1 + xp/125)) / 2
+  const n = Math.floor((1 + Math.sqrt(1 + xp / 125)) / 2);
   return Math.max(1, n);
 }
 
