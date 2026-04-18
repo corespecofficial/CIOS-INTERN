@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import type { RoomListItem, DirectoryUser, DbMessage, StatusRow } from "@/lib/db";
@@ -1128,8 +1129,27 @@ function MessageBubble({
   menuOpen: boolean;
   onToggleMenu: () => void;
 }) {
-  const [reactBarOpen, setReactBarOpen] = useState(false);
   const reactionEntries = Object.entries(msg.reactions || {}).filter(([, users]) => users.length > 0);
+  const menuBtnRef = useRef<HTMLButtonElement>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (!menuOpen || !menuBtnRef.current) { setMenuPos(null); return; }
+    const r = menuBtnRef.current.getBoundingClientRect();
+    const menuH = 340; // conservative estimate
+    const menuW = 190;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const spaceBelow = vh - r.bottom;
+    const spaceAbove = r.top;
+    const top = spaceBelow >= menuH || spaceBelow >= spaceAbove
+      ? Math.min(r.bottom + 4, vh - menuH - 8)
+      : Math.max(r.top - menuH - 4, 8);
+    const left = mine
+      ? Math.max(8, r.right - menuW)
+      : Math.min(r.left, vw - menuW - 8);
+    setMenuPos({ top, left });
+  }, [menuOpen, mine]);
 
   return (
     <div style={{
@@ -1207,30 +1227,68 @@ function MessageBubble({
             {mine && status && <TickIndicator status={status} />}
           </span>
           {!msg.is_deleted && (
-            <button onClick={onToggleMenu} style={{ background: "transparent", border: "none", color: "#5A6478", cursor: "pointer", fontSize: 12, padding: 0 }}>⋯</button>
+            <button
+              ref={menuBtnRef}
+              onClick={onToggleMenu}
+              style={{ background: "transparent", border: "none", color: "#5A6478", cursor: "pointer", fontSize: 12, padding: "2px 4px" }}
+            >⋯</button>
           )}
         </div>
-        {menuOpen && !msg.is_deleted && (
-          <div style={{ ...menuBox, right: mine ? 0 : "auto", left: mine ? "auto" : 0, top: "auto", bottom: 28, width: 160 }}>
-            <MenuItem onClick={() => { setReactBarOpen(!reactBarOpen); }}>😀 React</MenuItem>
-            {reactBarOpen && (
-              <div style={{ display: "flex", gap: 4, padding: 6, borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                {REACTION_EMOJIS.map((e) => (
-                  <button key={e} onClick={() => { onReact(e); setReactBarOpen(false); }} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 18 }}>{e}</button>
-                ))}
-              </div>
-            )}
-            <MenuItem onClick={onReply}>↩ Reply</MenuItem>
-            <MenuItem onClick={onForward}>↪ Forward</MenuItem>
-            <MenuItem onClick={onCopy}>📋 Copy</MenuItem>
-            <MenuItem onClick={onStar}>⭐ Star</MenuItem>
-            {onEdit && <MenuItem onClick={onEdit}>✏️ Edit</MenuItem>}
-            <MenuItem onClick={() => onDelete(false)}>🗑 Delete for me</MenuItem>
-            {mine && <MenuItem danger onClick={() => onDelete(true)}>🗑 Delete for everyone</MenuItem>}
-            {onBlockSender && <MenuItem danger onClick={onBlockSender}>🚫 Block sender</MenuItem>}
-          </div>
-        )}
       </div>
+
+      {/* Fixed-position portal menu — never hidden behind nav or other messages */}
+      {menuOpen && !msg.is_deleted && menuPos && typeof document !== "undefined" && createPortal(
+        <>
+          {/* Backdrop: tap anywhere outside to close */}
+          <div
+            onClick={onToggleMenu}
+            style={{ position: "fixed", inset: 0, zIndex: 9998, background: "rgba(0,0,0,0.25)" }}
+          />
+          <div style={{
+            position: "fixed",
+            top: menuPos.top,
+            left: menuPos.left,
+            zIndex: 9999,
+            background: "#1A2332",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 14,
+            padding: 6,
+            width: 190,
+            boxShadow: "0 12px 40px rgba(0,0,0,0.6)",
+          }}>
+            {/* Emoji reaction strip at top */}
+            <div style={{
+              display: "flex", gap: 4, padding: "6px 8px 8px",
+              borderBottom: "1px solid rgba(255,255,255,0.07)", marginBottom: 4,
+              justifyContent: "space-between",
+            }}>
+              {REACTION_EMOJIS.map((e) => (
+                <button
+                  key={e}
+                  onClick={() => { onReact(e); onToggleMenu(); }}
+                  style={{
+                    background: "transparent", border: "none", cursor: "pointer",
+                    fontSize: 22, borderRadius: 8, padding: "2px 3px",
+                    transition: "transform 0.1s",
+                  }}
+                  onMouseEnter={(el) => (el.currentTarget.style.transform = "scale(1.3)")}
+                  onMouseLeave={(el) => (el.currentTarget.style.transform = "scale(1)")}
+                >{e}</button>
+              ))}
+            </div>
+            <MenuItem onClick={() => { onReply(); onToggleMenu(); }}>↩ Reply</MenuItem>
+            <MenuItem onClick={() => { onForward(); onToggleMenu(); }}>↪ Forward</MenuItem>
+            <MenuItem onClick={() => { onCopy(); onToggleMenu(); }}>📋 Copy</MenuItem>
+            <MenuItem onClick={() => { onStar(); onToggleMenu(); }}>⭐ Star</MenuItem>
+            {onEdit && <MenuItem onClick={() => { onEdit!(); onToggleMenu(); }}>✏️ Edit</MenuItem>}
+            <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "4px 0" }} />
+            <MenuItem onClick={() => { onDelete(false); onToggleMenu(); }}>🗑 Delete for me</MenuItem>
+            {mine && <MenuItem danger onClick={() => { onDelete(true); onToggleMenu(); }}>🗑 Delete for everyone</MenuItem>}
+            {onBlockSender && <MenuItem danger onClick={() => { onBlockSender!(); onToggleMenu(); }}>🚫 Block sender</MenuItem>}
+          </div>
+        </>,
+        document.body
+      )}
     </div>
   );
 }
