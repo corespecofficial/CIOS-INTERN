@@ -2,8 +2,6 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useIsMobile } from "@/hooks/use-is-mobile";
-
 const COVENANT_LINES = [
   "I will show up, even when inconvenient.",
   "I will submit assignments on time because my name is on them.",
@@ -27,21 +25,34 @@ interface Props {
 }
 
 export function CovenantWallClient({ signatories }: Props) {
-  const isMobile = useIsMobile();
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: isMobile ? "0 0 40px" : undefined }}>
+    <div style={{ maxWidth: 900, margin: "0 auto" }}>
+      <style>{`
+        .cw-hero { padding: 36px 24px; }
+        .cw-eagle { font-size: 52px; }
+        .cw-h1 { font-size: 28px; }
+        .cw-covenant-text { padding: 16px 20px; }
+        .cw-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+        @media (max-width: 640px) {
+          .cw-hero { padding: 24px 16px; }
+          .cw-eagle { font-size: 40px; }
+          .cw-h1 { font-size: 22px; }
+          .cw-covenant-text { padding: 12px 14px; }
+          .cw-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
       {/* Hero */}
-      <div style={{
+      <div className="cw-hero" style={{
         textAlign: "center", marginBottom: 32,
         background: "linear-gradient(135deg, rgba(255,193,7,0.07) 0%, rgba(30,136,229,0.05) 100%)",
-        border: "1px solid rgba(255,193,7,0.15)", borderRadius: 16, padding: isMobile ? "24px 16px" : "36px 24px",
+        border: "1px solid rgba(255,193,7,0.15)", borderRadius: 16,
       }}>
-        <div style={{ fontSize: isMobile ? 40 : 52, marginBottom: 8 }}>🦅</div>
-        <h1 style={{ margin: 0, fontSize: isMobile ? 22 : 28, fontWeight: 800, color: "#E8EDF5" }}>The Eagle Covenant Wall</h1>
+        <div className="cw-eagle" style={{ marginBottom: 8 }}>🦅</div>
+        <h1 className="cw-h1" style={{ margin: 0, fontWeight: 800, color: "#E8EDF5" }}>The Eagle Covenant Wall</h1>
         <p style={{ margin: "10px 0 0", color: "#9CA3AF", fontSize: 15 }}>
           Every name here is an eagle that looked up.
         </p>
-        <div style={{ margin: "20px auto 0", maxWidth: 520, background: "rgba(255,193,7,0.06)", borderRadius: 10, padding: isMobile ? "12px 14px" : "16px 20px", textAlign: "left" }}>
+        <div className="cw-covenant-text" style={{ margin: "20px auto 0", maxWidth: 520, background: "rgba(255,193,7,0.06)", borderRadius: 10, textAlign: "left" }}>
           {COVENANT_LINES.map((line, i) => (
             <p key={i} style={{ margin: "0 0 6px", color: "#B0BEC5", fontSize: 13, lineHeight: 1.7, fontStyle: "italic" }}>
               &ldquo;{line}&rdquo;
@@ -59,7 +70,7 @@ export function CovenantWallClient({ signatories }: Props) {
           <p>No signatures yet. Be the first to sign the covenant.</p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
+        <div className="cw-grid" style={{ display: "grid", gap: 16 }}>
           {signatories.map((s, idx) => (
             <div
               key={s.id}

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { EagleSubmission } from "@/app/actions/eagle";
 
 const SECTIONS = [
@@ -57,37 +56,57 @@ interface Props {
 
 export function EagleLandingClient({ submission, deadline, userName }: Props) {
   const router = useRouter();
-  const isMobile = useIsMobile();
   const status = submission?.status;
   const cfg = status ? STATUS_CONFIG[status] : null;
 
   return (
-    <div style={{ maxWidth: 860, margin: "0 auto", padding: isMobile ? "0 0 48px" : "0 4px" }}>
+    <div style={{ maxWidth: 860, margin: "0 auto" }}>
+      <style>{`
+        .el-hero { padding: 36px 32px 28px; }
+        .el-eagle { font-size: 56px; }
+        .el-h1 { font-size: 32px; }
+        .el-subtitle { font-size: 15px; }
+        .el-quote-long { display: block; }
+        .el-quote-short { display: none; }
+        .el-sections-inner { padding: 20px 24px; }
+        .el-sections-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+        .el-pillars { padding: 20px 24px; }
+        .el-cta { flex-direction: row; }
+        @media (max-width: 640px) {
+          .el-hero { padding: 24px 18px 20px; }
+          .el-eagle { font-size: 44px; }
+          .el-h1 { font-size: 24px; }
+          .el-subtitle { font-size: 13px; }
+          .el-quote-long { display: none; }
+          .el-quote-short { display: block; }
+          .el-sections-inner { padding: 16px 14px; }
+          .el-sections-grid { grid-template-columns: 1fr 1fr !important; }
+          .el-pillars { padding: 16px 14px; }
+          .el-cta { flex-direction: column; }
+        }
+      `}</style>
+
       {/* Hero */}
-      <div style={{
+      <div className="el-hero" style={{
         background: "linear-gradient(135deg, rgba(30,136,229,0.08) 0%, rgba(255,193,7,0.06) 100%)",
         border: "1px solid rgba(255,193,7,0.15)",
-        borderRadius: 16, padding: isMobile ? "24px 18px 20px" : "36px 32px 28px", marginBottom: 20, textAlign: "center",
+        borderRadius: 16, marginBottom: 20, textAlign: "center",
       }}>
-        <div style={{ fontSize: isMobile ? 44 : 56, marginBottom: 8 }}>🦅</div>
-        <h1 style={{ margin: 0, fontSize: isMobile ? 24 : 32, fontWeight: 800, color: "#E8EDF5", letterSpacing: -0.5 }}>
+        <div className="el-eagle" style={{ marginBottom: 8 }}>🦅</div>
+        <h1 className="el-h1" style={{ margin: 0, fontWeight: 800, color: "#E8EDF5", letterSpacing: -0.5 }}>
           The Eagle Project
         </h1>
-        <p style={{ margin: "8px 0 0", color: "#9CA3AF", fontSize: isMobile ? 13 : 15 }}>
+        <p className="el-subtitle" style={{ margin: "8px 0 0", color: "#9CA3AF" }}>
           Weekend Activation Assignment · 100 Points · 8 Sections
         </p>
-        {!isMobile && (
-          <p style={{ margin: "18px 0 0", color: "#B0BEC5", fontSize: 14, fontStyle: "italic", maxWidth: 560, marginLeft: "auto", marginRight: "auto", lineHeight: 1.7 }}>
-            &ldquo;An eagle was raised among chickens. It scratched for grain and forgot it had wings.
-            One day it looked up — and answered the sky. You are that eagle.
-            This assignment is the moment you look up.&rdquo;
-          </p>
-        )}
-        {isMobile && (
-          <p style={{ margin: "12px 0 0", color: "#B0BEC5", fontSize: 13, fontStyle: "italic", lineHeight: 1.6 }}>
-            &ldquo;Look up. Answer the sky.&rdquo;
-          </p>
-        )}
+        <p className="el-quote-long" style={{ margin: "18px 0 0", color: "#B0BEC5", fontSize: 14, fontStyle: "italic", maxWidth: 560, marginLeft: "auto", marginRight: "auto", lineHeight: 1.7 }}>
+          &ldquo;An eagle was raised among chickens. It scratched for grain and forgot it had wings.
+          One day it looked up — and answered the sky. You are that eagle.
+          This assignment is the moment you look up.&rdquo;
+        </p>
+        <p className="el-quote-short" style={{ margin: "12px 0 0", color: "#B0BEC5", fontSize: 13, fontStyle: "italic", lineHeight: 1.6 }}>
+          &ldquo;Look up. Answer the sky.&rdquo;
+        </p>
         <p style={{ margin: "8px 0 0", color: "#5A6478", fontSize: 12 }}>— Coach Joshua</p>
       </div>
 
@@ -118,9 +137,9 @@ export function EagleLandingClient({ submission, deadline, userName }: Props) {
       </div>
 
       {/* Sections overview */}
-      <div style={{ background: "#131929", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: isMobile ? "16px 14px" : "20px 24px", marginBottom: 24 }}>
+      <div className="el-sections-inner" style={{ background: "#131929", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, marginBottom: 24 }}>
         <h2 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: "#E8EDF5" }}>Assignment Overview</h2>
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
+        <div className="el-sections-grid" style={{ display: "grid", gap: 10 }}>
           {SECTIONS.map((s) => (
             <div key={s.id} style={{
               background: "rgba(255,255,255,0.03)", borderRadius: 8,
@@ -139,9 +158,9 @@ export function EagleLandingClient({ submission, deadline, userName }: Props) {
       </div>
 
       {/* Coaching philosophy snippets */}
-      <div style={{
+      <div className="el-pillars" style={{
         background: "rgba(30,136,229,0.06)", border: "1px solid rgba(30,136,229,0.12)",
-        borderRadius: 12, padding: isMobile ? "16px 14px" : "20px 24px", marginBottom: 28,
+        borderRadius: 12, marginBottom: 28,
       }}>
         <h2 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#1E88E5", textTransform: "uppercase", letterSpacing: 1 }}>
           Three Pillars
@@ -162,7 +181,7 @@ export function EagleLandingClient({ submission, deadline, userName }: Props) {
       </div>
 
       {/* CTA */}
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
+      <div className="el-cta" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         {(!status || status === "draft") && (
           <button
             onClick={() => router.push("/projects/eagle/submit")}
