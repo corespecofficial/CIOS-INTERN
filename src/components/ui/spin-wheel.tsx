@@ -26,7 +26,7 @@ function getLabelPos(index: number, radius: number) {
   return { x: radius + r * Math.cos(angle), y: radius + r * Math.sin(angle), angle: (index + 0.5) * SEGMENT_ANGLE };
 }
 
-export function SpinWheel({ onWin }: { onWin?: (prize: SpinPrize) => void }) {
+export function SpinWheel({ onWin, size: sizeProp }: { onWin?: (prize: SpinPrize) => void; size?: number }) {
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [canSpin, setCanSpin] = useState(true);
@@ -86,7 +86,7 @@ export function SpinWheel({ onWin }: { onWin?: (prize: SpinPrize) => void }) {
     }, 4200);
   }
 
-  const size = 280;
+  const size = sizeProp ?? 280;
   const r = size / 2;
 
   const timeUntilNext = nextSpinAt ? (() => {
