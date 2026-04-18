@@ -65,6 +65,10 @@ export function LibraryUploadClient({ categories }: Props) {
 
   return (
     <div style={{ maxWidth: 700, margin: "0 auto", fontFamily: "'Nunito', sans-serif", color: "#E8EDF5" }}>
+      <style>{`
+        .lu-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        @media (max-width: 520px) { .lu-grid2 { grid-template-columns: 1fr; gap: 0; } }
+      `}</style>
       <button onClick={() => router.push("/library")} style={{ background: "none", border: "none", color: "#5A6478", cursor: "pointer", fontSize: 13, display: "flex", alignItems: "center", gap: 6, padding: 0, marginBottom: 20, fontFamily: "'Nunito', sans-serif" }}>
         ← Back to Library
       </button>
@@ -89,7 +93,7 @@ export function LibraryUploadClient({ categories }: Props) {
         </div>
 
         {/* Category + Type row */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div className="lu-grid2">
           <div>
             <label style={labelStyle}>Category *</label>
             <select style={{ ...inputStyle, cursor: "pointer" }} value={form.category_slug} onChange={(e) => set("category_slug", e.target.value)}>
@@ -110,7 +114,7 @@ export function LibraryUploadClient({ categories }: Props) {
         </div>
 
         {/* Access + Price */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+        <div className="lu-grid2">
           <div>
             <label style={labelStyle}>Access Type</label>
             <select style={{ ...inputStyle, cursor: "pointer" }} value={form.access_type} onChange={(e) => set("access_type", e.target.value)}>

@@ -98,16 +98,30 @@ export function LibraryItemClient({ item, reviews, userRole }: Props) {
         .li-review-body { font-size: 13px; color: #8892A4; line-height: 1.6; }
 
         /* Paywall modal */
-        .li-paywall-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 999; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .li-paywall { background: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 22px; padding: 32px; max-width: 460px; width: 100%; }
+        .li-paywall-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 999; display: flex; align-items: flex-end; justify-content: center; }
+        @media (min-width: 640px) { .li-paywall-overlay { align-items: center; padding: 20px; } }
+        .li-paywall { background: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 22px 22px 0 0; padding: 28px 24px 36px; max-width: 460px; width: 100%; }
+        @media (min-width: 640px) { .li-paywall { border-radius: 22px; padding: 32px; } }
         .li-paywall-title { font-size: 20px; font-weight: 800; font-family: 'Space Grotesk', sans-serif; margin-bottom: 6px; }
         .li-paywall-sub { font-size: 13px; color: #8892A4; margin-bottom: 20px; }
         .li-paywall-price { font-size: 36px; font-weight: 800; color: #FFC107; font-family: 'Space Grotesk', sans-serif; margin-bottom: 20px; }
 
         @media (max-width: 700px) {
-          .li-hero { grid-template-columns: 1fr; }
-          .li-title { font-size: 18px; }
-          .li-card { padding: 16px; }
+          .li-hero { grid-template-columns: 1fr; gap: 16px; }
+          .li-thumb { border-radius: 14px; max-height: 200px; }
+          .li-title { font-size: 17px; }
+          .li-info { gap: 10px; }
+          .li-card { padding: 14px 16px; }
+          .li-card-head { font-size: 10px; }
+          .li-price-block { padding: 16px; }
+          .li-price-num, .li-price-free { font-size: 24px; }
+          .li-access-btn { padding: 13px; font-size: 14px; border-radius: 10px; }
+          .li-features { gap: 5px; }
+          .li-paywall-overlay { align-items: flex-end; padding: 0; }
+          .li-paywall { border-radius: 20px 20px 0 0; padding: 24px 20px 32px; max-height: 90dvh; overflow-y: auto; }
+          .li-paywall-title { font-size: 17px; }
+          .li-paywall-price { font-size: 30px; }
+          .li-review-header { flex-direction: column; align-items: flex-start; gap: 4px; }
         }
       `}</style>
 

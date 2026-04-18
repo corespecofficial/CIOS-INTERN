@@ -109,15 +109,27 @@ export function ChecklistHomeClient({ checklists, userRole }: Props) {
         /* Create modal */
         .cl-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 999; display: flex; align-items: flex-end; justify-content: center; padding: 0; }
         @media (min-width: 640px) { .cl-modal-overlay { align-items: center; padding: 20px; } }
-        .cl-modal { background: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 22px 22px 0 0; padding: 28px 24px; width: 100%; max-width: 500px; }
-        @media (min-width: 640px) { .cl-modal { border-radius: 22px; } }
+        .cl-modal { background: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 22px 22px 0 0; padding: 24px 20px 32px; width: 100%; max-width: 500px; max-height: 92dvh; overflow-y: auto; }
+        @media (min-width: 640px) { .cl-modal { border-radius: 22px; padding: 28px 24px; max-height: 90vh; } }
         .cl-modal-title { font-size: 18px; font-weight: 800; font-family: 'Space Grotesk', sans-serif; margin-bottom: 20px; }
         .cl-input { width: 100%; padding: 11px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: #E8EDF5; font-size: 13px; font-family: 'Nunito', sans-serif; outline: none; box-sizing: border-box; margin-bottom: 12px; }
         .cl-label { font-size: 11px; font-weight: 700; color: #8892A4; display: block; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .cl-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        @media (max-width: 400px) { .cl-form-grid { grid-template-columns: 1fr; } }
 
         @media (max-width: 640px) {
-          .cl-stats { grid-template-columns: repeat(2,1fr); }
+          .cl-stats { grid-template-columns: repeat(2,1fr); gap: 8px; }
           .cl-h1 { font-size: 22px; }
+          .cl-header { margin-bottom: 18px; }
+          .cl-stat { padding: 12px 8px; border-radius: 12px; }
+          .cl-stat-num { font-size: 22px; }
+          .cl-card { padding: 13px 14px; gap: 11px; }
+          .cl-pct-ring-wrap { width: 42px; height: 42px; }
+          .cl-card-title { font-size: 13px; }
+          .cl-filter-tabs { gap: 6px; }
+          .cl-filter-tab { padding: 7px 12px; font-size: 11px; }
+          .cl-modal { padding: 22px 18px; }
+          .cl-modal-title { font-size: 16px; }
         }
       `}</style>
 
@@ -257,7 +269,7 @@ export function ChecklistHomeClient({ checklists, userRole }: Props) {
             <label className="cl-label">Description (optional)</label>
             <textarea className="cl-input" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} placeholder="What is this checklist for?" style={{ minHeight: 70, resize: "vertical" }} />
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div className="cl-form-grid">
               <div>
                 <label className="cl-label">Priority</label>
                 <select className="cl-input" value={newPriority} onChange={(e) => setNewPriority(e.target.value)} style={{ marginBottom: 0, cursor: "pointer" }}>

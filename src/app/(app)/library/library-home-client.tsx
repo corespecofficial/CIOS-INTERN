@@ -117,12 +117,30 @@ export function LibraryHomeClient({ items, categories, userRole }: Props) {
         .lib-admin-bar { background: linear-gradient(135deg, rgba(30,136,229,0.1), rgba(171,71,188,0.07)); border: 1px solid rgba(30,136,229,0.2); border-radius: 14px; padding: 14px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 
         @media (max-width: 640px) {
-          .lib-hero { padding: 22px 18px 20px; border-radius: 18px; }
-          .lib-hero-title { font-size: 24px; }
+          .lib-hero { padding: 20px 16px 18px; border-radius: 18px; margin-bottom: 16px; }
+          .lib-hero-title { font-size: 22px; }
+          .lib-hero-sub { font-size: 12px; margin-bottom: 16px; }
           .lib-hero::before, .lib-hero::after { display: none; }
-          .lib-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
-          .lib-filters { gap: 8px; }
-          .lib-stats-row { gap: 8px; }
+          .lib-search { padding: 12px 16px 12px 42px; font-size: 13px; border-radius: 12px; }
+          .lib-stats-row { gap: 7px; margin-top: 14px; }
+          .lib-stat { padding: 8px 12px; font-size: 11px; border-radius: 8px; }
+          .lib-stat strong { font-size: 13px; }
+          .lib-cats { gap: 6px; padding-bottom: 6px; margin-bottom: 14px; }
+          .lib-cat { padding: 7px 12px; font-size: 11px; }
+          .lib-filters { gap: 7px; margin-bottom: 18px; }
+          .lib-filter-select { padding: 7px 10px; font-size: 11px; border-radius: 8px; }
+          .lib-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+          .lib-card-body { padding: 10px; }
+          .lib-card-title { font-size: 12px; }
+          .lib-card-footer { margin-top: 7px; }
+          .lib-card-featured { width: 180px; }
+          .lib-featured-strip { margin-bottom: 20px; }
+          .lib-section-label { font-size: 10px; margin-bottom: 10px; }
+          .lib-admin-bar { padding: 12px 14px; gap: 10px; }
+          .lib-empty { padding: 40px 20px; }
+        }
+        @media (max-width: 380px) {
+          .lib-grid { grid-template-columns: 1fr; }
         }
       `}</style>
 

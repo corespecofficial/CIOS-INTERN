@@ -45,7 +45,7 @@ export function ChecklistTemplatesClient({ templates, userRole }: Props) {
           <div style={{ fontSize: 13, color: "#5A6478", marginTop: 4 }}>Admins can create templates from the checklist builder</div>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(320px, 100%), 1fr))", gap: 14 }}>
           {templates.map((tmpl) => (
             <div key={tmpl.id} style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>

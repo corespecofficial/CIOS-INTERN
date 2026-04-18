@@ -135,7 +135,16 @@ export function LibraryAdminClient({ items, userRole }: Props) {
         )}
       </div>
 
-      <style>{`@media (max-width: 640px) { div[style*="grid-template-columns: repeat(6"] { grid-template-columns: repeat(3,1fr) !important; } }`}</style>
+      <style>{`
+        @media (max-width: 640px) {
+          div[style*="grid-template-columns: repeat(6"] { grid-template-columns: repeat(3,1fr) !important; }
+          .lib-admin-row-actions { flex-wrap: wrap; gap: 4px !important; }
+          .lib-admin-row-meta { display: none; }
+        }
+        @media (max-width: 480px) {
+          div[style*="grid-template-columns: repeat(6"] { grid-template-columns: repeat(2,1fr) !important; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -126,12 +126,20 @@ export function ChecklistDetailClient({ checklist: initialData, userId, userRole
         /* Sign modal */
         .cd-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 999; display: flex; align-items: flex-end; justify-content: center; }
         @media (min-width: 640px) { .cd-modal-overlay { align-items: center; padding: 20px; } }
-        .cd-modal { background: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 22px 22px 0 0; padding: 28px 24px; width: 100%; max-width: 440px; }
-        @media (min-width: 640px) { .cd-modal { border-radius: 22px; } }
+        .cd-modal { background: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 22px 22px 0 0; padding: 24px 20px 32px; width: 100%; max-width: 440px; max-height: 92dvh; overflow-y: auto; }
+        @media (min-width: 640px) { .cd-modal { border-radius: 22px; padding: 28px 24px; } }
 
         @media (max-width: 640px) {
           .cd-title { font-size: 17px; }
-          .cd-item { padding: 11px 13px; }
+          .cd-hero { padding: 18px 16px; border-radius: 16px; }
+          .cd-hero-top { gap: 12px; }
+          .cd-item { padding: 11px 13px; gap: 10px; }
+          .cd-item-title { font-size: 12px; }
+          .cd-chips { gap: 6px; }
+          .cd-chip { padding: 2px 8px; font-size: 10px; }
+          .cd-section-head { font-size: 10px; margin: 16px 0 8px; }
+          .cd-alert { padding: 10px 12px; font-size: 12px; border-radius: 10px; }
+          .cd-add-grid { flex-direction: column !important; }
         }
       `}</style>
 
@@ -280,9 +288,9 @@ export function ChecklistDetailClient({ checklist: initialData, userId, userRole
             onChange={(e) => setNewItemTitle(e.target.value)}
             autoFocus
           />
-          <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
-            <input type="datetime-local" value={newItemDeadline} onChange={(e) => setNewItemDeadline(e.target.value)} style={{ padding: "8px 10px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#E8EDF5", fontSize: 12, fontFamily: "'Nunito', sans-serif", outline: "none" }} />
-            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#E8EDF5", cursor: "pointer" }}>
+          <div className="cd-add-grid" style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10, flexWrap: "wrap" }}>
+            <input type="datetime-local" value={newItemDeadline} onChange={(e) => setNewItemDeadline(e.target.value)} style={{ flex: 1, minWidth: 0, padding: "8px 10px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#E8EDF5", fontSize: 12, fontFamily: "'Nunito', sans-serif", outline: "none" }} />
+            <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#E8EDF5", cursor: "pointer", flexShrink: 0 }}>
               <input type="checkbox" checked={newItemCritical} onChange={(e) => setNewItemCritical(e.target.checked)} style={{ accentColor: "#EF5350" }} />
               Critical
             </label>
