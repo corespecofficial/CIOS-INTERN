@@ -16,6 +16,7 @@ import { ComplianceGate } from "@/components/compliance/compliance-gate";
 import { MobileInstallOnboarding } from "@/components/pwa-install-onboarding";
 import { WellnessReminderBanner } from "@/components/wellness-reminder-banner";
 import { PushNotificationManager } from "@/components/push-notification-manager";
+import { NotificationBanners, AudioUnlocker } from "@/lib/use-server-notifications";
 import { useAppStore } from "@/store/use-app-store";
 import { claimDailyLogin } from "@/app/actions/daily-login";
 
@@ -136,6 +137,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Web Push — registers service worker + subscribes for OS-level phone notifications */}
       <PushNotificationManager />
+
+      {/* Top-drop in-app notification banners (like iOS/Android) */}
+      <NotificationBanners />
+
+      {/* Unlock AudioContext on first user gesture so notification sounds work on mobile */}
+      <AudioUnlocker />
 
       <style>{`
         @media (max-width: 768px) {

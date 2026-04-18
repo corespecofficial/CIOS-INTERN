@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import * as Ably from "ably";
 import toast from "react-hot-toast";
 import { usePathname } from "next/navigation";
@@ -15,8 +16,6 @@ function showBrowserNotification(title: string, body: string, url?: string | nul
   if (typeof window === "undefined" || !("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
   try {
-    // Each notification gets a unique tag so Chrome doesn't silently merge / suppress duplicates
-    // when the user is already on the page. Same-origin PNGs guarantee the icon renders.
     const tag = `${title}-${Date.now()}`;
     const n = new Notification(title, {
       body: body.slice(0, 200),
@@ -27,12 +26,10 @@ function showBrowserNotification(title: string, body: string, url?: string | nul
       silent: false,
     });
     n.onclick = () => { window.focus(); if (url) window.location.href = url; n.close(); };
-    // Auto-close after 6s so the desktop doesn't pile them up
     setTimeout(() => { try { n.close(); } catch {} }, 6000);
   } catch {}
 }
 
-// Notifications now fire on every incoming event — no route-based suppression.
 function isRouteSuppressed(_pathname: string | null, _type: string): boolean { return false; }
 
 let ablyClient: Ably.Realtime | null = null;
@@ -54,9 +51,9 @@ async function getAbly(): Promise<Ably.Realtime | null> {
 export interface NotifPrefs {
   soundOn: boolean;
   toastsOn: boolean;
-  mutedCategories: string[];   // notification.type values
-  quietFromHour: number;       // 0-23
-  quietToHour: number;         // 0-23
+  mutedCategories: string[];
+  quietFromHour: number;
+  quietToHour: number;
 }
 
 const PREFS_KEY = "cios-notif-prefs-v1";
@@ -84,12 +81,16 @@ function isQuietNow(p: NotifPrefs): boolean {
   return from < to ? h >= from && h < to : h >= from || h < to;
 }
 
+/* ── Audio ── */
 let chimeCtx: AudioContext | null = null;
-function playChime(priority: "critical" | "important" | "normal" = "normal") {
+let audioUnlocked = false;
+let pendingChimePriority: ("critical" | "important" | "normal") | null = null;
+
+function doPlayChime(priority: "critical" | "important" | "normal") {
   try {
     if (!chimeCtx) chimeCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
     const ctx = chimeCtx;
-    if (ctx.state === "suspended") ctx.resume().catch(() => {});
+    if (ctx.state === "suspended") { ctx.resume().catch(() => {}); return; }
     const master = ctx.createGain(); master.gain.value = 0.35; master.connect(ctx.destination);
     const beep = (f: number, t: number, type: OscillatorType = "sine") => {
       const osc = ctx.createOscillator(); const g = ctx.createGain();
@@ -101,21 +102,225 @@ function playChime(priority: "critical" | "important" | "normal" = "normal") {
       osc.start(ctx.currentTime + t); osc.stop(ctx.currentTime + t + 0.3);
     };
     if (priority === "critical") {
-      // Triple-beep alarm
       beep(1400, 0, "square"); beep(1400, 0.18, "square"); beep(1400, 0.36, "square");
     } else if (priority === "important") {
       beep(1000, 0, "triangle"); beep(1400, 0.16, "triangle");
     } else {
-      // Soft 2-note chime
       beep(880, 0); beep(1175, 0.15);
     }
   } catch {}
+}
+
+function playChime(priority: "critical" | "important" | "normal" = "normal") {
+  if (!audioUnlocked) {
+    // Queue it — will fire immediately when the user next interacts
+    pendingChimePriority = priority;
+    return;
+  }
+  doPlayChime(priority);
+}
+
+/** Call once on any user gesture to unlock the AudioContext */
+function unlockAudioContext() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  try {
+    if (!chimeCtx) chimeCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    if (chimeCtx.state === "suspended") chimeCtx.resume().catch(() => {});
+  } catch {}
+  if (pendingChimePriority) {
+    const p = pendingChimePriority;
+    pendingChimePriority = null;
+    setTimeout(() => doPlayChime(p), 50);
+  }
+}
+
+/** Mount once in the app to unlock audio on first gesture */
+export function AudioUnlocker() {
+  useEffect(() => {
+    const handler = () => unlockAudioContext();
+    document.addEventListener("click", handler, { passive: true, once: true });
+    document.addEventListener("touchstart", handler, { passive: true, once: true });
+    document.addEventListener("keydown", handler, { passive: true, once: true });
+    return () => {
+      document.removeEventListener("click", handler);
+      document.removeEventListener("touchstart", handler);
+      document.removeEventListener("keydown", handler);
+    };
+  }, []);
+  return null;
 }
 
 function priorityOf(type: string): "critical" | "important" | "normal" {
   if (type === "error") return "critical";
   if (type === "warning" || type === "fine") return "important";
   return "normal";
+}
+
+/* ── Top-drop banner system ── */
+export interface BannerItem {
+  id: string;
+  title: string;
+  message: string;
+  icon: string;
+  color: string;
+  priority: "critical" | "important" | "normal";
+  actionUrl?: string | null;
+}
+type BannerListener = (item: BannerItem) => void;
+const bannerListeners = new Set<BannerListener>();
+function emitBanner(item: BannerItem) {
+  bannerListeners.forEach((fn) => fn(item));
+}
+
+function BannerCard({ banner, onDismiss }: { banner: BannerItem; onDismiss: () => void }) {
+  const [visible, setVisible] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+
+  useEffect(() => {
+    // Slide in
+    const t1 = setTimeout(() => setVisible(true), 10);
+    // Auto-dismiss
+    const duration = banner.priority === "critical" ? 8000 : banner.priority === "important" ? 5500 : 4500;
+    const t2 = setTimeout(() => { setLeaving(true); setTimeout(onDismiss, 340); }, duration);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [banner.priority, onDismiss]);
+
+  const handleClick = () => {
+    if (banner.actionUrl) window.location.href = banner.actionUrl;
+    setLeaving(true);
+    setTimeout(onDismiss, 340);
+  };
+  const handleDismiss = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLeaving(true);
+    setTimeout(onDismiss, 340);
+  };
+
+  const transform = visible && !leaving ? "translateY(0)" : "translateY(-110%)";
+  const opacity = visible && !leaving ? 1 : 0;
+
+  return (
+    <div
+      onClick={handleClick}
+      style={{
+        background: banner.priority === "critical"
+          ? "linear-gradient(135deg, #1a0a0a 0%, #1F2937 100%)"
+          : "linear-gradient(135deg, #0f172a 0%, #1F2937 100%)",
+        border: `1px solid ${banner.priority === "critical" ? "rgba(239,83,80,0.4)" : "rgba(255,255,255,0.12)"}`,
+        borderLeft: `4px solid ${banner.color}`,
+        borderRadius: 14,
+        padding: "12px 14px",
+        cursor: banner.actionUrl ? "pointer" : "default",
+        boxShadow: banner.priority === "critical"
+          ? "0 16px 40px rgba(239,83,80,0.35), 0 4px 12px rgba(0,0,0,0.5)"
+          : "0 16px 40px rgba(0,0,0,0.45), 0 4px 12px rgba(0,0,0,0.3)",
+        transform,
+        opacity,
+        transition: "transform 0.34s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        position: "relative",
+        overflow: "hidden",
+        pointerEvents: "auto",
+        userSelect: "none",
+      }}
+    >
+      {/* Progress bar */}
+      <div style={{
+        position: "absolute", bottom: 0, left: 0, height: 2, background: banner.color,
+        animation: `cios-banner-shrink ${banner.priority === "critical" ? 8 : banner.priority === "important" ? 5.5 : 4.5}s linear forwards`,
+        opacity: 0.6,
+      }} />
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+        <div style={{
+          width: 38, height: 38, borderRadius: 10, background: `${banner.color}22`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontSize: 20, flexShrink: 0, border: `1px solid ${banner.color}33`,
+        }}>
+          {banner.icon}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {banner.priority === "critical" && (
+            <div style={{ fontSize: 9, fontWeight: 800, color: "#EF5350", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 2 }}>Critical Alert</div>
+          )}
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#F1F5F9", marginBottom: banner.message ? 2 : 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {banner.title}
+          </div>
+          {banner.message && (
+            <div style={{ fontSize: 11.5, color: "#94A3B8", lineHeight: 1.4, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+              {banner.message}
+            </div>
+          )}
+          {banner.actionUrl && (
+            <div style={{ fontSize: 11, color: banner.color, fontWeight: 700, marginTop: 4 }}>Tap to open →</div>
+          )}
+        </div>
+        <button
+          onClick={handleDismiss}
+          style={{ background: "none", border: "none", color: "#475569", cursor: "pointer", fontSize: 16, padding: "0 0 0 4px", lineHeight: 1, flexShrink: 0 }}
+        >
+          ×
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Mount once in the app layout (inside any server-notification-aware parent).
+ * Renders drop-down banner notifications from the top of the screen.
+ */
+export function NotificationBanners() {
+  const [banners, setBanners] = useState<BannerItem[]>([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    const handler: BannerListener = (item) => {
+      setBanners((prev) => [item, ...prev].slice(0, 5));
+    };
+    bannerListeners.add(handler);
+    return () => { bannerListeners.delete(handler); };
+  }, []);
+
+  const dismiss = useCallback((id: string) => {
+    setBanners((prev) => prev.filter((b) => b.id !== id));
+  }, []);
+
+  if (!mounted || banners.length === 0) return null;
+
+  return createPortal(
+    <>
+      <style>{`
+        @keyframes cios-banner-shrink {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
+      `}</style>
+      <div
+        style={{
+          position: "fixed",
+          top: 12,
+          right: 12,
+          left: "auto",
+          zIndex: 999999,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          width: 370,
+          maxWidth: "calc(100vw - 24px)",
+          pointerEvents: "none",
+        }}
+      >
+        {banners.map((b) => (
+          <BannerCard key={b.id} banner={b} onDismiss={() => dismiss(b.id)} />
+        ))}
+      </div>
+    </>,
+    document.body
+  );
 }
 
 export function useServerNotifications(currentClerkId: string | null) {
@@ -171,12 +376,9 @@ export function useServerNotifications(currentClerkId: string | null) {
         const categoryMuted = prefs.mutedCategories.includes(d.type);
         const quiet = isQuietNow(prefs);
         const muted = categoryMuted || quiet;
-        const criticalOverride = priority === "critical"; // Critical always toasts/sounds
+        const criticalOverride = priority === "critical";
 
-        // Browser OS notification + sound — fire whenever the user hasn't
-        // EXPLICITLY muted this category. Quiet-hours is the OS's job (macOS
-        // Focus, Windows Focus Assist, Android DND). Muting at the app level
-        // means users miss every notification after 22:00 — not the intent.
+        // OS notification — fires unless category explicitly muted
         if (!categoryMuted || criticalOverride) {
           showBrowserNotification(d.title, d.message || "", d.actionUrl);
           if (prefs.soundOn || criticalOverride) playChime(priority);
@@ -184,43 +386,16 @@ export function useServerNotifications(currentClerkId: string | null) {
             try {
               if (priority === "critical") navigator.vibrate([200, 100, 200, 100, 400]);
               else if (priority === "important") navigator.vibrate([150]);
-              else navigator.vibrate(60); // gentle tick for normal messages
+              else navigator.vibrate(60);
             } catch {}
           }
         }
 
-        // In-app toast — honours full mute (including quiet hours). OS notif
-        // above covers the "wake me up" case; the toast is noise inside the app.
+        // Top-drop in-app banner — same conditions as old toast but shows from top
         if ((!muted && !routeSuppressed && prefs.toastsOn) || criticalOverride) {
           const icon = iconFor(d.type);
           const color = colorFor(d.type);
-          const borderWidth = priority === "critical" ? 4 : 3;
-          toast.custom((t) => (
-            <div
-              onClick={() => { if (d.actionUrl) window.location.href = d.actionUrl; toast.dismiss(t.id); }}
-              style={{
-                background: "#111827",
-                border: `1px solid ${priority === "critical" ? "rgba(239,83,80,0.4)" : "rgba(255,255,255,0.1)"}`,
-                borderLeft: `${borderWidth}px solid ${color}`,
-                borderRadius: 12, padding: "12px 14px", minWidth: 280, maxWidth: 380,
-                color: "#E8EDF5", fontFamily: "'Nunito', sans-serif", cursor: d.actionUrl ? "pointer" : "default",
-                boxShadow: priority === "critical" ? "0 12px 30px rgba(239,83,80,0.3)" : "0 10px 25px rgba(0,0,0,0.3)",
-                animation: priority === "critical" ? "critShake 0.4s ease-in-out" : undefined,
-              }}>
-              <style>{`@keyframes critShake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }`}</style>
-              <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <div style={{ fontSize: priority === "critical" ? 22 : 20 }}>{icon}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  {priority === "critical" && <div style={{ fontSize: 9, fontWeight: 700, color: "#EF5350", letterSpacing: 1, textTransform: "uppercase", marginBottom: 2 }}>Critical</div>}
-                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.title}</div>
-                  {d.message && <div style={{ fontSize: 11, color: "#8892A4", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{d.message}</div>}
-                </div>
-                {d.actionUrl && <div style={{ fontSize: 11, color: color, fontWeight: 700, flexShrink: 0 }}>Open →</div>}
-              </div>
-            </div>
-          ), { duration: priority === "critical" ? 8000 : priority === "important" ? 5500 : 4500 });
-          // Sound + vibrate are fired above alongside the OS notification so
-          // they trigger even when the toast is muted.
+          emitBanner({ id: d.id, title: d.title, message: d.message || "", icon, color, priority, actionUrl: d.actionUrl });
         }
       });
     })();
@@ -257,15 +432,15 @@ export function browserNotificationPermission(): NotificationPermission | "unsup
 }
 
 function iconFor(type: string): string {
-  return {
+  return ({
     message: "💬", task: "📋", achievement: "🏆", fine: "💸",
     info: "🔔", success: "✅", warning: "⚠️", error: "🚨", system: "⚙️",
-  }[type] || "🔔";
+  } as Record<string, string>)[type] || "🔔";
 }
 
 function colorFor(type: string): string {
-  return {
+  return ({
     message: "#1E88E5", task: "#AB47BC", achievement: "#FFC107", fine: "#EF5350",
     info: "#1E88E5", success: "#66BB6A", warning: "#FFC107", error: "#EF5350", system: "#8892A4",
-  }[type] || "#1E88E5";
+  } as Record<string, string>)[type] || "#1E88E5";
 }
