@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentDbUser, supabaseAdmin } from "@/lib/db";
 import { atomicWalletDebit } from "@/app/actions/payments/wallet-debit";
+import { pushNotification } from "@/app/actions/notifications";
 import type {
   ComplianceFine,
   ComplianceSuspension,
@@ -452,6 +453,15 @@ export async function issueFine(
       acknowledged: false,
       created_at: new Date().toISOString(),
     });
+
+    // Notify the user immediately so they know they've been fined
+    pushNotification({
+      userId,
+      type: "fine",
+      title: `💸 Fine Issued — ₦${finalAmount.toLocaleString()}`,
+      message: `Offense #${offenseNumber}: ${reason.trim().slice(0, 120)}. Visit Compliance to review or pay.`,
+      actionUrl: "/compliance",
+    }).catch(() => {});
 
     revalidatePath("/admin/compliance");
     return { ok: true, data: { fineId, offenseNumber, escalatedAmount: finalAmount } };

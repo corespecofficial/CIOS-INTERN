@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentDbUser, supabaseAdmin } from "@/lib/db";
+import { pushNotification } from "@/app/actions/notifications";
 import type {
   ComplianceTask,
   ComplianceTaskAssignment,
@@ -104,6 +105,18 @@ export async function createComplianceTask(
       // Roll back task if assignments fail
       await sb.from("compliance_tasks").delete().eq("id", taskId);
       return { ok: false, error: `Failed to assign task: ${assignError.message}` };
+    }
+
+    // Notify each assigned user about their new task
+    const deadline = new Date(input.deadline).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    for (const userId of input.assigned_user_ids) {
+      pushNotification({
+        userId,
+        type: "task",
+        title: `📋 New Task: ${input.title.trim().slice(0, 80)}`,
+        message: `You've been assigned a ${input.priority} priority task due ${deadline}. Open Compliance to view details.`,
+        actionUrl: "/compliance",
+      }).catch(() => {});
     }
 
     revalidatePath("/admin/compliance");

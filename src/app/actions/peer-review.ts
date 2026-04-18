@@ -111,10 +111,10 @@ export async function submitPeerReview(input: SubmitReviewInput): Promise<R<{ xp
 
     pushNotification({
       userId: r.submitter_id,
-      kind: "info",
-      title: "📝 You got peer feedback",
-      body: `A peer just reviewed your submission for "${input.feedback.slice(0, 80)}…"`,
-      url: "/classroom/submissions",
+      type: "info",
+      title: "📝 You received peer feedback",
+      message: `A peer reviewed your submission. Check your feedback now.`,
+      actionUrl: "/peer-review",
     }).catch(() => {});
 
     revalidatePath("/peer-review");

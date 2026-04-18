@@ -261,73 +261,101 @@ export function Header() {
                     .cios-notif-backdrop { display: block !important; }
                     .cios-notif-panel {
                       position: fixed !important;
-                      top: 56px !important;
+                      top: 58px !important;
                       left: 8px !important;
                       right: 8px !important;
                       width: auto !important;
                       max-width: none !important;
-                      max-height: calc(100dvh - 80px) !important;
+                      max-height: calc(100dvh - 74px) !important;
+                      border-radius: 16px !important;
                     }
+                    .cios-notif-scroll {
+                      max-height: none !important;
+                      -webkit-overflow-scrolling: touch;
+                      overscroll-behavior: contain;
+                    }
+                    .cios-notif-item { padding: 14px 14px !important; }
                   }
                 `}</style>
                 <div className="cios-notif-panel" style={{
-                  position: "absolute", top: 46, right: 0, width: 360, maxHeight: 480,
-                  background: "var(--bg-secondary)", border: "1px solid var(--border-default)",
-                  borderRadius: 12, boxShadow: "0 12px 48px rgba(0,0,0,0.15)",
+                  position: "absolute", top: 46, right: 0, width: 370, maxHeight: 520,
+                  background: "#111827", border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 14, boxShadow: "0 16px 56px rgba(0,0,0,0.45)",
                   zIndex: 1000, display: "flex", flexDirection: "column", overflow: "hidden",
                 }}>
-                  <div style={{ padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid var(--border-default)" }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>Notifications</span>
-                    <button onClick={() => markAllRead()} style={{ background: "none", border: "none", color: "#1E88E5", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                  {/* Header row */}
+                  <div style={{ padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: "#F1F5F9" }}>Notifications</span>
+                      {unreadCount > 0 && (
+                        <span style={{ fontSize: 11, fontWeight: 700, color: "#1E88E5", background: "rgba(30,136,229,0.15)", padding: "1px 7px", borderRadius: 20 }}>{unreadCount} new</span>
+                      )}
+                    </div>
+                    <button onClick={() => markAllRead()} style={{ background: "none", border: "none", color: "#1E88E5", fontSize: 12, fontWeight: 600, cursor: "pointer", padding: "4px 8px", borderRadius: 6 }}>
                       Mark all read
                     </button>
                   </div>
                   <BrowserPermNudge onEnable={enableBrowserNotifications} />
-                  <div style={{ flex: 1, overflowY: "auto", maxHeight: 380 }}>
+                  {/* Scrollable list — flex:1 lets it fill the panel; CSS removes maxHeight on mobile */}
+                  <div className="cios-notif-scroll" style={{ flex: 1, overflowY: "auto", maxHeight: 390, WebkitOverflowScrolling: "touch" as React.CSSProperties["WebkitOverflowScrolling"] }}>
                     {notifsList.length === 0 ? (
-                      <div style={{ padding: 32, textAlign: "center", color: "var(--text-secondary)", fontSize: 13 }}>No notifications</div>
+                      <div style={{ padding: "36px 20px", textAlign: "center", color: "#6B7280", fontSize: 13 }}>
+                        <div style={{ fontSize: 32, marginBottom: 8 }}>🔔</div>
+                        No notifications yet
+                      </div>
                     ) : notifsList.map(n => {
-                      const icon = { message: "💬", task: "📋", achievement: "🏆", fine: "💸", info: "🔔", success: "✅", warning: "⚠️", error: "🚨", system: "⚙️" }[n.type] || "🔔";
-                      const color = { message: "#1E88E5", task: "#AB47BC", achievement: "#FFC107", fine: "#EF5350", info: "#1E88E5", success: "#66BB6A", warning: "#FFC107", error: "#EF5350", system: "#8892A4" }[n.type] || "#1E88E5";
+                      const icon = ({ message: "💬", task: "📋", achievement: "🏆", fine: "💸", info: "🔔", success: "✅", warning: "⚠️", error: "🚨", system: "⚙️" } as Record<string, string>)[n.type] || "🔔";
+                      const color = ({ message: "#1E88E5", task: "#AB47BC", achievement: "#FFC107", fine: "#EF5350", info: "#1E88E5", success: "#66BB6A", warning: "#FFC107", error: "#EF5350", system: "#8892A4" } as Record<string, string>)[n.type] || "#1E88E5";
                       const ms = Date.now() - new Date(n.created_at).getTime();
                       const mins = Math.floor(ms / 60000);
-                      const time = mins < 1 ? "now" : mins < 60 ? `${mins}m ago` : mins < 1440 ? `${Math.floor(mins / 60)}h ago` : `${Math.floor(mins / 1440)}d ago`;
+                      const time = mins < 1 ? "just now" : mins < 60 ? `${mins}m ago` : mins < 1440 ? `${Math.floor(mins / 60)}h ago` : `${Math.floor(mins / 1440)}d ago`;
                       return (
                         <div
                           key={n.id}
-                          onClick={() => { markAsRead(n.id); if (n.action_url) { window.location.href = n.action_url; setShowDropdown(false); } }}
+                          className="cios-notif-item"
+                          onClick={() => {
+                            markAsRead(n.id);
+                            setShowDropdown(false);
+                            if (n.action_url) router.push(n.action_url);
+                          }}
                           style={{
                             padding: "12px 16px", display: "flex", gap: 12, alignItems: "flex-start",
-                            background: n.is_read ? "transparent" : "rgba(30,136,229,0.06)",
-                            borderBottom: "1px solid var(--border-default)",
-                            cursor: "pointer", transition: "background 0.15s",
+                            background: n.is_read ? "transparent" : "rgba(30,136,229,0.07)",
+                            borderBottom: "1px solid rgba(255,255,255,0.05)",
+                            cursor: n.action_url ? "pointer" : "default",
+                            transition: "background 0.15s",
+                            WebkitTapHighlightColor: "transparent",
                           }}
-                          onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
-                          onMouseLeave={e => (e.currentTarget.style.background = n.is_read ? "transparent" : "rgba(30,136,229,0.06)")}
+                          onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.04)")}
+                          onMouseLeave={e => (e.currentTarget.style.background = n.is_read ? "transparent" : "rgba(30,136,229,0.07)")}
                         >
                           <div style={{
-                            width: 36, height: 36, borderRadius: 10,
-                            background: `${color}22`, color,
+                            width: 38, height: 38, borderRadius: 10,
+                            background: `${color}1A`, color,
                             display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 16, flexShrink: 0,
+                            fontSize: 17, flexShrink: 0, border: `1px solid ${color}22`,
                           }}>{icon}</div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 2, display: "flex", alignItems: "center", gap: 6 }}>
-                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.title}</span>
-                              {!n.is_read && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#1E88E5", flexShrink: 0 }} />}
+                            <div style={{ fontSize: 13, fontWeight: n.is_read ? 600 : 700, color: "#E8EDF5", marginBottom: 2, display: "flex", alignItems: "center", gap: 6 }}>
+                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{n.title}</span>
+                              {!n.is_read && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#1E88E5", flexShrink: 0 }} />}
                             </div>
-                            {n.message && <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{n.message}</div>}
-                            <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4 }}>{time}</div>
+                            {n.message && <div style={{ fontSize: 12, color: "#8892A4", lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", wordBreak: "break-word" }}>{n.message}</div>}
+                            <div style={{ fontSize: 10, color: "#4B5563", marginTop: 4, display: "flex", alignItems: "center", gap: 4 }}>
+                              <span style={{ width: 4, height: 4, borderRadius: "50%", background: color, display: "inline-block" }} />
+                              {time}
+                            </div>
                           </div>
                         </div>
                       );
                     })}
                   </div>
                   <Link href="/notifications" onClick={() => setShowDropdown(false)} style={{
-                    padding: "12px 16px", textAlign: "center", borderTop: "1px solid var(--border-default)",
-                    color: "#1E88E5", fontSize: 13, fontWeight: 600, textDecoration: "none",
+                    padding: "13px 16px", textAlign: "center", borderTop: "1px solid rgba(255,255,255,0.07)",
+                    color: "#1E88E5", fontSize: 13, fontWeight: 700, textDecoration: "none",
+                    display: "block", flexShrink: 0, background: "rgba(30,136,229,0.04)",
                   }}>
-                    View all notifications
+                    View all notifications →
                   </Link>
                 </div>
               </>
