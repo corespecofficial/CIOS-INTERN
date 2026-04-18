@@ -60,29 +60,55 @@ export async function getMyChecklists(): Promise<R<Checklist[]>> {
     if (!me) return { ok: false, error: "Unauthorized" };
     const sb = supabaseAdmin();
 
+    // Fetch checklists — avoid ambiguous dual-FK join to users by keeping select simple
     const { data, error } = await sb
       .from("checklists")
-      .select("*, creator:users!creator_id(full_name), assigned:users!assigned_to(full_name), items:checklist_items(id,completed,deadline,is_critical,parent_id)")
+      .select("*")
       .or(`assigned_to.eq.${me.id},creator_id.eq.${me.id}`)
       .eq("is_template", false)
       .neq("status", "archived")
       .order("created_at", { ascending: false });
 
     if (error) return { ok: false, error: error.message };
+    if (!data || data.length === 0) return { ok: true, data: [] };
+
+    // Fetch item counts in one query
+    const clIds = data.map((c: { id: string }) => c.id);
+    const { data: items } = await sb
+      .from("checklist_items")
+      .select("checklist_id, completed, deadline, is_critical, parent_id")
+      .in("checklist_id", clIds);
+
+    // Fetch user names for creators/assignees
+    const userIds = [...new Set([
+      ...data.map((c: { creator_id: string }) => c.creator_id),
+      ...data.map((c: { assigned_to: string | null }) => c.assigned_to).filter(Boolean),
+    ])] as string[];
+    const { data: users } = await sb
+      .from("users")
+      .select("id, full_name")
+      .in("id", userIds);
+    const userMap: Record<string, string> = {};
+    (users ?? []).forEach((u: { id: string; full_name: string }) => { userMap[u.id] = u.full_name; });
+
+    // Group items by checklist
+    const itemMap: Record<string, typeof items> = {};
+    (items ?? []).forEach((i: { checklist_id: string }) => {
+      if (!itemMap[i.checklist_id]) itemMap[i.checklist_id] = [];
+      itemMap[i.checklist_id]!.push(i);
+    });
 
     return {
       ok: true,
-      data: (data ?? []).map((row: Record<string, unknown>) => {
-        const creator = row.creator as { full_name?: string } | null;
-        const assigned = row.assigned as { full_name?: string } | null;
-        const items = (row.items as ChecklistItem[] | null) ?? [];
-        const topItems = items.filter((i) => !i.parent_id);
+      data: data.map((row: Record<string, unknown>) => {
+        const rowItems = (itemMap[row.id as string] ?? []) as Array<{ parent_id: string | null; completed: boolean; deadline: string | null }>;
+        const topItems = rowItems.filter((i) => !i.parent_id);
         const completedItems = topItems.filter((i) => i.completed).length;
         const overdue = topItems.filter((i) => !i.completed && i.deadline && new Date(i.deadline) < new Date()).length;
         return {
           ...(row as Checklist),
-          creator_name: creator?.full_name ?? "—",
-          assigned_name: assigned?.full_name ?? "—",
+          creator_name: userMap[row.creator_id as string] ?? "—",
+          assigned_name: row.assigned_to ? (userMap[row.assigned_to as string] ?? "—") : "—",
           total_items: topItems.length,
           completed_items: completedItems,
           overdue_count: overdue,
@@ -99,17 +125,29 @@ export async function getChecklist(id: string): Promise<R<Checklist>> {
     if (!me) return { ok: false, error: "Unauthorized" };
     const sb = supabaseAdmin();
 
+    // Fetch checklist without ambiguous dual-FK user joins
     const { data, error } = await sb
       .from("checklists")
-      .select("*, creator:users!creator_id(full_name), assigned:users!assigned_to(full_name), items:checklist_items(*)")
+      .select("*")
       .eq("id", id)
       .single();
 
     if (error || !data) return { ok: false, error: "Checklist not found." };
 
-    const creator = (data as Record<string, unknown>).creator as { full_name?: string } | null;
-    const assigned = (data as Record<string, unknown>).assigned as { full_name?: string } | null;
-    const allItems = ((data as Record<string, unknown>).items as ChecklistItem[] | null) ?? [];
+    // Fetch items separately
+    const { data: rawItems } = await sb
+      .from("checklist_items")
+      .select("*")
+      .eq("checklist_id", id)
+      .order("sort_order");
+
+    // Fetch user names
+    const userIds = [...new Set([data.creator_id, data.assigned_to].filter(Boolean))] as string[];
+    const { data: users } = await sb.from("users").select("id, full_name").in("id", userIds);
+    const userMap: Record<string, string> = {};
+    (users ?? []).forEach((u: { id: string; full_name: string }) => { userMap[u.id] = u.full_name; });
+
+    const allItems = (rawItems ?? []) as ChecklistItem[];
 
     // Build tree
     const itemMap = new Map<string, ChecklistItem>();
@@ -140,8 +178,8 @@ export async function getChecklist(id: string): Promise<R<Checklist>> {
       ok: true,
       data: {
         ...(data as Checklist),
-        creator_name: creator?.full_name ?? "—",
-        assigned_name: assigned?.full_name ?? "—",
+        creator_name: userMap[data.creator_id] ?? "—",
+        assigned_name: data.assigned_to ? (userMap[data.assigned_to] ?? "—") : "—",
         items: roots,
         total_items: topItems.length,
         completed_items: completedItems,
@@ -407,24 +445,43 @@ export async function getAdminChecklists(): Promise<R<Checklist[]>> {
 
     const { data, error } = await sb
       .from("checklists")
-      .select("*, creator:users!creator_id(full_name), assigned:users!assigned_to(full_name), items:checklist_items(id,completed,is_critical,parent_id,deadline)")
+      .select("*")
       .eq("is_template", false)
       .order("created_at", { ascending: false })
       .limit(100);
 
     if (error) return { ok: false, error: error.message };
+    if (!data || data.length === 0) return { ok: true, data: [] };
+
+    const clIds = data.map((c: { id: string }) => c.id);
+    const { data: items } = await sb
+      .from("checklist_items")
+      .select("checklist_id, completed, is_critical, parent_id, deadline")
+      .in("checklist_id", clIds);
+
+    const userIds = [...new Set([
+      ...data.map((c: { creator_id: string }) => c.creator_id),
+      ...data.map((c: { assigned_to: string | null }) => c.assigned_to).filter(Boolean),
+    ])] as string[];
+    const { data: users } = await sb.from("users").select("id, full_name").in("id", userIds);
+    const userMap: Record<string, string> = {};
+    (users ?? []).forEach((u: { id: string; full_name: string }) => { userMap[u.id] = u.full_name; });
+
+    const itemMap: Record<string, Array<{ parent_id: string | null; completed: boolean; deadline: string | null }>> = {};
+    (items ?? []).forEach((i: { checklist_id: string; parent_id: string | null; completed: boolean; deadline: string | null }) => {
+      if (!itemMap[i.checklist_id]) itemMap[i.checklist_id] = [];
+      itemMap[i.checklist_id]!.push(i);
+    });
 
     return {
       ok: true,
-      data: (data ?? []).map((row: Record<string, unknown>) => {
-        const creator = row.creator as { full_name?: string } | null;
-        const assigned = row.assigned as { full_name?: string } | null;
-        const items = (row.items as ChecklistItem[] | null) ?? [];
-        const topItems = items.filter((i) => !i.parent_id);
+      data: data.map((row: Record<string, unknown>) => {
+        const rowItems = (itemMap[row.id as string] ?? []);
+        const topItems = rowItems.filter((i) => !i.parent_id);
         return {
           ...(row as Checklist),
-          creator_name: creator?.full_name ?? "—",
-          assigned_name: assigned?.full_name ?? "—",
+          creator_name: userMap[row.creator_id as string] ?? "—",
+          assigned_name: row.assigned_to ? (userMap[row.assigned_to as string] ?? "—") : "—",
           total_items: topItems.length,
           completed_items: topItems.filter((i) => i.completed).length,
           overdue_count: topItems.filter((i) => !i.completed && i.deadline && new Date(i.deadline) < new Date()).length,
