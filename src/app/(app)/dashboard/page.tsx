@@ -12,12 +12,13 @@ import {
   getInstructorUpcomingClasses,
   getInstructorRecentGrades,
 } from "@/lib/db";
+import { computePersonalMetrics, getWeights } from "@/lib/performance";
 import DashboardClient from "./dashboard-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const dbUser = await getCurrentDbUser();
+  const [dbUser, weights] = await Promise.all([getCurrentDbUser(), getWeights()]);
   const isInstructor = dbUser?.role === "instructor";
 
   const [
@@ -27,6 +28,7 @@ export default async function DashboardPage() {
     weekly,
     activity,
     teamMembers,
+    freshMetrics,
     instructorCourses,
     instructorUpcoming,
     instructorGrades,
@@ -37,6 +39,7 @@ export default async function DashboardPage() {
     getWeeklyPerformance(),
     getRecentActivityForCurrentUser(4),
     listTeamMembers(),
+    dbUser ? computePersonalMetrics(dbUser.id, weights) : Promise.resolve(null),
     isInstructor ? getMyCoursesAsInstructor() : Promise.resolve([]),
     isInstructor ? getInstructorUpcomingClasses(3) : Promise.resolve([]),
     isInstructor ? getInstructorRecentGrades(5) : Promise.resolve([]),
@@ -55,7 +58,7 @@ export default async function DashboardPage() {
   const stats = {
     xp: dbUser?.xp ?? 0,
     streak: dbUser?.streak ?? 0,
-    performance: dbUser?.performance ?? 0,
+    performance: freshMetrics?.total ?? dbUser?.performance ?? 0,
     walletBalance: dbUser?.wallet_balance ?? 0,
     level,
     rank: rankForLevel(level),

@@ -1649,11 +1649,11 @@ export async function getWeeklyPerformance(): Promise<WeeklyBar[]> {
 
   const since = new Date();
   since.setDate(since.getDate() - 7);
-  const { data } = await supabase()
+  const { data } = await supabaseAdmin()
     .from("tasks")
     .select("updated_at, status")
     .eq("assigned_to", me.id)
-    .in("status", ["approved", "submitted", "under_review"])
+    .in("status", ["approved", "submitted", "under_review", "done", "completed"])
     .gte("updated_at", since.toISOString());
 
   const todayIdx = 6;
@@ -1690,14 +1690,14 @@ function relTime(iso: string): string {
 export async function getRecentActivityForCurrentUser(limit = 4): Promise<HomeActivityItem[]> {
   const me = await getCurrentDbUser();
   if (!me) return [];
-  const { data: tasks } = await supabase()
+  const { data: tasks } = await supabaseAdmin()
     .from("tasks")
     .select("id, title, status, xp_reward, updated_at")
     .eq("assigned_to", me.id)
-    .in("status", ["approved", "submitted"])
+    .in("status", ["approved", "submitted", "done", "completed"])
     .order("updated_at", { ascending: false })
     .limit(limit);
-  const { data: txs } = await supabase()
+  const { data: txs } = await supabaseAdmin()
     .from("transactions")
     .select("id, type, amount, description, created_at")
     .eq("user_id", me.id)

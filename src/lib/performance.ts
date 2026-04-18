@@ -47,11 +47,12 @@ export async function computePersonalMetrics(userId: string, weights: Weights): 
   const u = user.data || { xp: 0, streak: 0, level: 1, performance: 0, reputation: 0, wallet_balance: 0 };
   const totalSessions = classCountRes.count || 0;
   const attended = attendData.data?.length || 0;
-  const attendance = totalSessions > 0 ? Math.min(100, Math.round((attended / totalSessions) * 100)) : 75; // baseline if no classes yet
+  // Use 0 when no sessions exist — artificial baseline inflates the score and hides real changes
+  const attendance = totalSessions > 0 ? Math.min(100, Math.round((attended / totalSessions) * 100)) : 0;
 
   const allTasks = tasksData.data || [];
   type T = { status: string; due_date: string; updated_at: string };
-  const done = (allTasks as T[]).filter((t) => t.status === "approved" || t.status === "submitted").length;
+  const done = (allTasks as T[]).filter((t) => ["approved", "submitted", "done", "completed", "under_review"].includes(t.status)).length;
   const tasksPct = allTasks.length > 0 ? Math.round((done / allTasks.length) * 100) : 0;
 
   const enrollments = (enrolls.data || []) as { progress: number; status: string }[];
