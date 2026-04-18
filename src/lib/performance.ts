@@ -1,5 +1,5 @@
-import { supabase, supabaseAdmin } from "@/lib/db";
-import { DEFAULT_WEIGHTS, type Weights } from "@/lib/performance-shared";
+import { supabaseAdmin } from "@/lib/db";
+import { DEFAULT_WEIGHTS, type Weights, type PersonalMetrics, type TeamMember } from "@/lib/performance-shared";
 
 export { DEFAULT_WEIGHTS, grade } from "@/lib/performance-shared";
 export type { Weights, PersonalMetrics, TeamMember } from "@/lib/performance-shared";
@@ -25,7 +25,7 @@ export async function setWeights(w: Partial<Weights>, actorId: string): Promise<
 }
 
 export async function computePersonalMetrics(userId: string, weights: Weights): Promise<PersonalMetrics> {
-  const sb = supabase();
+  const sb = supabaseAdmin();
   // Each query resolves to a safe shape on failure so one missing column/table can't crash the page.
   const safe = async <T,>(p: PromiseLike<T>, fallback: T): Promise<T> => {
     try { return await p; } catch { return fallback; }
@@ -121,13 +121,14 @@ export async function computePersonalMetrics(userId: string, weights: Weights): 
   }
   const weeklyActivity = Array.from(buckets.entries()).map(([date, count]) => ({ date, count }));
 
-  // Skill radar
+  // Skill radar — all 7 weighted categories
   const skillBreakdown = [
     { subject: "Attendance", score: attendance },
     { subject: "Tasks", score: tasksPct },
     { subject: "Courses", score: courses },
     { subject: "Community", score: community },
     { subject: "Consistency", score: consistency },
+    { subject: "Revenue", score: revenue },
     { subject: "Discipline", score: discipline },
   ];
 
@@ -166,7 +167,7 @@ export async function getTeamMetrics(): Promise<{
   attendanceAverage: number;
   taskCompletion: number;
 }> {
-  const sb = supabase();
+  const sb = supabaseAdmin();
   const { data: users } = await sb
     .from("users")
     .select("id, name, avatar_url, role, xp, streak, reputation, performance, status, last_seen")
@@ -217,7 +218,7 @@ export async function getOrgMetrics(): Promise<{
   usersByRole: { role: string; count: number }[];
   growthTrend: { date: string; total: number }[];
 }> {
-  const sb = supabase();
+  const sb = supabaseAdmin();
   const [usersRes, txRes] = await Promise.all([
     sb.from("users").select("id, role, last_seen, created_at, status"),
     sb.from("transactions").select("type, amount, created_at"),

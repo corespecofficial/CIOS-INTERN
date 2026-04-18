@@ -90,6 +90,11 @@ export function SpaceDetailClient({ space: s }: { space: CreativeSpace }) {
           >
             {s.category}
           </span>
+          {s.is_live && (
+            <span style={{ fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 6, background: "rgba(239,83,80,0.2)", color: "#EF5350", letterSpacing: 0.5 }}>
+              🔴 LIVE NOW
+            </span>
+          )}
           {s.status !== "approved" && (
             <span
               style={{
@@ -307,6 +312,18 @@ export function SpaceDetailClient({ space: s }: { space: CreativeSpace }) {
             </span>
           ))}
         </div>
+      )}
+
+      {/* Live session join banner */}
+      {s.is_live && s.meeting_link && (
+        <a
+          href={s.meeting_link}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: "block", textAlign: "center", padding: "14px 0", background: "rgba(239,83,80,0.15)", color: "#EF5350", border: "1px solid rgba(239,83,80,0.4)", borderRadius: 12, fontSize: 14, fontWeight: 800, textDecoration: "none", marginBottom: 10, letterSpacing: 0.4 }}
+        >
+          🔴 Session is Live — Join Now
+        </a>
       )}
 
       {/* Enroll button */}

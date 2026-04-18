@@ -14,7 +14,10 @@ export interface CreativeSpace {
   schedule: string | null;
   duration_weeks: number | null;
   enrollment_count: number;
+  meeting_link: string | null;
+  is_live: boolean;
   created_at: string;
+  updated_at: string;
 }
 
 export const SPACE_CATEGORIES = [

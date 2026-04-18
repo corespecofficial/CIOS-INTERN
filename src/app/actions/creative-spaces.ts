@@ -133,6 +133,52 @@ export async function adminListSpaces(status?: string): Promise<R<CreativeSpace[
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 
+export async function updateSpaceMeetingLink(spaceId: string, meetingLink: string): Promise<R> {
+  try {
+    const me = await getCurrentDbUser();
+    if (!me) return { ok: false, error: "Unauthorized" };
+    const sb = supabaseAdmin();
+    const { data: space } = await sb.from("creative_spaces").select("owner_id").eq("id", spaceId).maybeSingle();
+    if (!space || (space as { owner_id: string }).owner_id !== me.id) return { ok: false, error: "Not your space" };
+    await sb.from("creative_spaces").update({ meeting_link: meetingLink.trim() || null, updated_at: new Date().toISOString() }).eq("id", spaceId);
+    revalidatePath("/creative-space/manage");
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+export async function toggleSpaceLive(spaceId: string, isLive: boolean): Promise<R> {
+  try {
+    const me = await getCurrentDbUser();
+    if (!me) return { ok: false, error: "Unauthorized" };
+    const sb = supabaseAdmin();
+    const { data: space } = await sb.from("creative_spaces").select("owner_id, title, meeting_link").eq("id", spaceId).maybeSingle();
+    if (!space) return { ok: false, error: "Space not found" };
+    const s = space as { owner_id: string; title: string; meeting_link: string | null };
+    if (s.owner_id !== me.id) return { ok: false, error: "Not your space" };
+    await sb.from("creative_spaces").update({ is_live: isLive, updated_at: new Date().toISOString() }).eq("id", spaceId);
+
+    if (isLive) {
+      // Notify all enrolled students
+      const { data: enrollments } = await sb.from("creative_enrollments").select("student_id").eq("space_id", spaceId);
+      if (enrollments && enrollments.length > 0) {
+        const notifications = (enrollments as { student_id: string }[]).map((e) => ({
+          user_id: e.student_id,
+          title: "🔴 Space is Live Now!",
+          message: `"${s.title}" has just started${s.meeting_link ? ` — join at ${s.meeting_link}` : ""}.`,
+          type: "info",
+          action_url: `/creative-space/${spaceId}`,
+          is_read: false,
+        }));
+        await sb.from("notifications").insert(notifications);
+      }
+    }
+
+    revalidatePath("/creative-space/manage");
+    revalidatePath(`/creative-space/${spaceId}`);
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
 export async function reviewSpace(spaceId: string, decision: "approved" | "rejected"): Promise<R> {
   try {
     const me = await getCurrentDbUser();
