@@ -79,9 +79,12 @@ export function RouteLoader() {
     const show = () => {
       const startIdx = Math.floor(Math.random() * QUOTES.length);
       navPending.current = true;
-      // Defer state updates to avoid scheduling them during React's
-      // useInsertionEffect / render phase (throws in Next.js 16+ / Turbopack)
+      // Defer state updates out of React's useInsertionEffect/render phase
+      // (Next.js 16+ / Turbopack throws if setState is called synchronously
+      // during pushState which can fire inside an insertion effect).
+      // Guard: if navigation already completed before the tick fires, bail.
       setTimeout(() => {
+        if (!navPending.current) return; // navigation finished before tick — don't show
         setLeaving(false);
         setQuoteIdx(startIdx);
         setVisible(true);
