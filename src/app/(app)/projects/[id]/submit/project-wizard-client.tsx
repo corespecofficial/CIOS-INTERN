@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { saveProjectDraft, submitProject } from "@/app/actions/custom-projects";
+import { saveProjectDraft, submitProject, recordMasterclassSectionProgress } from "@/app/actions/custom-projects";
 import { SectionRenderer } from "@/components/projects/section-renderer";
 import type { Project } from "@/app/actions/custom-projects-types";
 import { SECTION_TYPE_ICONS } from "@/app/actions/custom-projects-types";
@@ -21,6 +21,9 @@ export function ProjectWizardClient({ project, existingAnswers }: Props) {
   const [showConfirm, setShowConfirm] = useState(false);
   const [showSectionDrawer, setShowSectionDrawer] = useState(false);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const firedSectionEvents = useRef<Set<string>>(new Set(
+    Object.keys(existingAnswers).filter((k) => existingAnswers[k])
+  ));
 
   const sections = project.sections;
   const currentSection = sections[currentSectionIdx];
@@ -55,6 +58,12 @@ export function ProjectWizardClient({ project, existingAnswers }: Props) {
     const updated = { ...answers, [sectionId]: value };
     setAnswers(updated);
     triggerAutoSave(updated);
+    // Fire per-section masterclass mission event once per section
+    const hasContent = value && (typeof value !== "object" || Object.keys(value as object).length > 0);
+    if (hasContent && !firedSectionEvents.current.has(sectionId)) {
+      firedSectionEvents.current.add(sectionId);
+      recordMasterclassSectionProgress(project.id, sectionId).catch(() => {});
+    }
   }
 
   useEffect(() => {

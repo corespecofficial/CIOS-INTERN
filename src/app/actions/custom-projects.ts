@@ -2,6 +2,7 @@
 
 import { getCurrentDbUser, supabaseAdmin } from "@/lib/db";
 import { pushNotification } from "@/app/actions/notifications";
+import { awardXP } from "@/lib/gamification";
 import { revalidatePath } from "next/cache";
 import type {
   Project, ProjectSubmission, ProjectInput,
@@ -161,6 +162,32 @@ export async function saveProjectDraft(
   }
 }
 
+const MASTERCLASS_PROJECT_ID = "c7f8e9d0-1a2b-3c4d-5e6f-7a8b9c0d1e2f";
+// Section IDs match the `id` field in the project's sections JSONB (set in p359 migration)
+const MASTERCLASS_SECTION_EVENTS: Record<string, import("@/lib/gamification-shared").XPEventType> = {
+  day1_social:   "masterclass_day1",
+  day2_digital:  "masterclass_day2",
+  day3_business: "masterclass_day3",
+  day4_calendar: "masterclass_day4a",
+  day4_posts:    "masterclass_day4b",
+};
+
+export async function recordMasterclassSectionProgress(
+  projectId: string,
+  sectionKey: string,
+): Promise<void> {
+  if (projectId !== MASTERCLASS_PROJECT_ID) return;
+  const event = MASTERCLASS_SECTION_EVENTS[sectionKey];
+  if (!event) return;
+  try {
+    const me = await getCurrentDbUser();
+    if (!me) return;
+    await awardXP(me.id, event);
+  } catch {
+    // non-critical — silently ignore
+  }
+}
+
 export async function submitProject(projectId: string): Promise<R<{ late: boolean }>> {
   try {
     const me = await getCurrentDbUser();
@@ -226,6 +253,11 @@ export async function submitProject(projectId: string): Promise<R<{ late: boolea
       ref_type: "project_submission",
       ref_id: submission.id,
     }).then(() => {}).catch(() => {});
+
+    // Fire masterclass mission event if this is the masterclass project
+    if (projectId === MASTERCLASS_PROJECT_ID) {
+      await awardXP(me.id, "masterclass_submitted").catch(() => {});
+    }
 
     await pushNotification({
       userId: me.id,

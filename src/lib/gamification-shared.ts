@@ -29,7 +29,13 @@ export type XPEventType =
   | "eagle_perfect_score"
   | "eagle_of_week"
   | "consistency_bonus"
-  | "spin_wheel_win";
+  | "spin_wheel_win"
+  | "masterclass_day1"
+  | "masterclass_day2"
+  | "masterclass_day3"
+  | "masterclass_day4a"
+  | "masterclass_day4b"
+  | "masterclass_submitted";
 
 export const XP_RULES: Record<XPEventType, number> = {
   lesson_completed: 20,
@@ -60,6 +66,12 @@ export const XP_RULES: Record<XPEventType, number> = {
   eagle_of_week: 300,
   consistency_bonus: 150,
   spin_wheel_win: 0, // variable — handled by spin wheel action directly
+  masterclass_day1: 50,
+  masterclass_day2: 50,
+  masterclass_day3: 50,
+  masterclass_day4a: 50,
+  masterclass_day4b: 50,
+  masterclass_submitted: 150,
 };
 
 /** Level curve: xpForLevel(n) = 500 * n * (n-1).
