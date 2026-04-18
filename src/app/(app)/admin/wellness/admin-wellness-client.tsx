@@ -1,6 +1,5 @@
 "use client";
 
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import { type WellnessAggregate } from "@/app/actions/wellness-types";
 
 const GOLD = "#FFC107";
@@ -82,23 +81,38 @@ function MiniBar({
 
 export function AdminWellnessClient({ aggregates }: { aggregates: WellnessAggregate[] }) {
   const latest = aggregates.length > 0 ? aggregates[aggregates.length - 1] : null;
-  const isMobile = useIsMobile();
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", fontFamily: "'Nunito', sans-serif" }}>
+      <style>{`
+        .aw-header { padding: 24px; margin-bottom: 24px; }
+        .aw-h1 { font-size: 24px; }
+        .aw-stats { grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 28px; }
+        .aw-title { font-size: 16px; }
+        .aw-table-wrap { display: block; }
+        .aw-cards-wrap { display: none; }
+        @media (max-width: 640px) {
+          .aw-header { padding: 16px; margin-bottom: 16px; }
+          .aw-h1 { font-size: 18px; }
+          .aw-stats { grid-template-columns: 1fr 1fr !important; gap: 10px; margin-bottom: 20px; }
+          .aw-title { font-size: 14px; }
+          .aw-table-wrap { display: none; }
+          .aw-cards-wrap { display: flex; flex-direction: column; gap: 10px; }
+        }
+      `}</style>
       {/* Header */}
-      <div style={{ background: GOLD_DIM, border: `1px solid ${GOLD_BORDER}`, borderRadius: 16, padding: isMobile ? "16px 16px" : 24, marginBottom: isMobile ? 16 : 24 }}>
+      <div className="aw-header" style={{ background: GOLD_DIM, border: `1px solid ${GOLD_BORDER}`, borderRadius: 16 }}>
         <span style={{ fontSize: 11, color: GOLD, fontWeight: 700, letterSpacing: 0.5 }}>ADMIN PANEL</span>
-        <h1 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 800, color: "#E8EDF5", margin: "4px 0 4px", fontFamily: "'Space Grotesk', sans-serif" }}>
+        <h1 className="aw-h1" style={{ fontWeight: 800, color: "#E8EDF5", margin: "4px 0 4px", fontFamily: "'Space Grotesk', sans-serif" }}>
           💚 Team Wellness Dashboard
         </h1>
-        <p style={{ fontSize: isMobile ? 12 : 13, color: "#8892A4", margin: 0 }}>
+        <p style={{ fontSize: 13, color: "#8892A4", margin: 0 }}>
           Aggregated wellness check-in trends across the team. Individual data is anonymised.
         </p>
       </div>
 
       {/* Summary stats — 2×2 on mobile, 4×1 on desktop */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? 10 : 12, marginBottom: isMobile ? 20 : 28 }}>
+      <div className="aw-stats" style={{ display: "grid" }}>
         <StatCard label="Avg Mood (this week)" value={latest ? latest.avg_mood.toFixed(1) : "—"} color="#66BB6A" sub="out of 5.0" />
         <StatCard label="Avg Stress (this week)" value={latest ? latest.avg_stress.toFixed(1) : "—"} color="#EF5350" sub="1=calm, 5=overwhelmed" />
         <StatCard label="Avg Energy (this week)" value={latest ? latest.avg_energy.toFixed(1) : "—"} color="#42A5F5" sub="out of 5.0" />
@@ -106,7 +120,7 @@ export function AdminWellnessClient({ aggregates }: { aggregates: WellnessAggreg
       </div>
 
       {/* Weekly trend title */}
-      <div style={{ fontSize: isMobile ? 14 : 16, fontWeight: 700, color: "#E8EDF5", marginBottom: 12, fontFamily: "'Space Grotesk', sans-serif" }}>
+      <div className="aw-title" style={{ fontWeight: 700, color: "#E8EDF5", marginBottom: 12, fontFamily: "'Space Grotesk', sans-serif" }}>
         Weekly Trends (last {aggregates.length} weeks)
       </div>
 
@@ -114,60 +128,62 @@ export function AdminWellnessClient({ aggregates }: { aggregates: WellnessAggreg
         <div style={{ padding: 60, textAlign: "center", color: "#8892A4", background: "#111827", border: "1px dashed rgba(255,255,255,0.1)", borderRadius: 14, fontSize: 13 }}>
           No wellness check-ins recorded yet.
         </div>
-      ) : isMobile ? (
-        /* ── Mobile: stacked cards ── */
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {[...aggregates].reverse().map((agg) => {
-            const label = new Date(agg.week_of).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-            return (
-              <div key={agg.week_of} style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "14px 16px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <span style={{ fontSize: 12, color: "#E8EDF5", fontWeight: 700 }}>{label}</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: GOLD }}>{agg.count} responses</span>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {[
-                    { label: "Mood", value: agg.avg_mood, color: agg.avg_mood >= 3.5 ? "#66BB6A" : agg.avg_mood >= 2.5 ? "#FFC107" : "#EF5350" },
-                    { label: "Stress", value: agg.avg_stress, color: agg.avg_stress >= 3.5 ? "#EF5350" : agg.avg_stress >= 2.5 ? "#FFC107" : "#66BB6A" },
-                    { label: "Energy", value: agg.avg_energy, color: agg.avg_energy >= 3.5 ? "#42A5F5" : agg.avg_energy >= 2.5 ? "#7986CB" : "#8892A4" },
-                  ].map(({ label: l, value, color }) => (
-                    <div key={l} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 10, color: "#8892A4", width: 40, fontWeight: 600 }}>{l}</span>
-                      <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 4, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${(value / 5) * 100}%`, background: color, borderRadius: 4 }} />
-                      </div>
-                      <span style={{ fontSize: 11, color, fontWeight: 700, width: 28, textAlign: "right" }}>{value.toFixed(1)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
       ) : (
-        /* ── Desktop: table grid ── */
-        <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "140px 1fr 1fr 1fr 80px", padding: "10px 20px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-            {["Week", "Mood", "Stress", "Energy", "Responses"].map((h) => (
-              <div key={h} style={{ fontSize: 10, fontWeight: 700, color: "#8892A4", textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</div>
-            ))}
+        <>
+          {/* ── Desktop: table grid ── */}
+          <div className="aw-table-wrap" style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "140px 1fr 1fr 1fr 80px", padding: "10px 20px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+              {["Week", "Mood", "Stress", "Energy", "Responses"].map((h) => (
+                <div key={h} style={{ fontSize: 10, fontWeight: 700, color: "#8892A4", textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</div>
+              ))}
+            </div>
+            {[...aggregates].reverse().map((agg) => {
+              const label = new Date(agg.week_of).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+              return (
+                <div key={agg.week_of} style={{ display: "grid", gridTemplateColumns: "140px 1fr 1fr 1fr 80px", padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.04)", alignItems: "center" }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.02)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                >
+                  <div style={{ fontSize: 12, color: "#E8EDF5", fontWeight: 600 }}>{label}</div>
+                  <div style={{ paddingRight: 16 }}><MiniBar value={agg.avg_mood} color={agg.avg_mood >= 3.5 ? "#66BB6A" : agg.avg_mood >= 2.5 ? "#FFC107" : "#EF5350"} /></div>
+                  <div style={{ paddingRight: 16 }}><MiniBar value={agg.avg_stress} color={agg.avg_stress >= 3.5 ? "#EF5350" : agg.avg_stress >= 2.5 ? "#FFC107" : "#66BB6A"} /></div>
+                  <div style={{ paddingRight: 16 }}><MiniBar value={agg.avg_energy} color={agg.avg_energy >= 3.5 ? "#42A5F5" : agg.avg_energy >= 2.5 ? "#7986CB" : "#8892A4"} /></div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: GOLD, textAlign: "center" }}>{agg.count}</div>
+                </div>
+              );
+            })}
           </div>
-          {[...aggregates].reverse().map((agg) => {
-            const label = new Date(agg.week_of).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-            return (
-              <div key={agg.week_of} style={{ display: "grid", gridTemplateColumns: "140px 1fr 1fr 1fr 80px", padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.04)", alignItems: "center" }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.02)"; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
-              >
-                <div style={{ fontSize: 12, color: "#E8EDF5", fontWeight: 600 }}>{label}</div>
-                <div style={{ paddingRight: 16 }}><MiniBar value={agg.avg_mood} color={agg.avg_mood >= 3.5 ? "#66BB6A" : agg.avg_mood >= 2.5 ? "#FFC107" : "#EF5350"} /></div>
-                <div style={{ paddingRight: 16 }}><MiniBar value={agg.avg_stress} color={agg.avg_stress >= 3.5 ? "#EF5350" : agg.avg_stress >= 2.5 ? "#FFC107" : "#66BB6A"} /></div>
-                <div style={{ paddingRight: 16 }}><MiniBar value={agg.avg_energy} color={agg.avg_energy >= 3.5 ? "#42A5F5" : agg.avg_energy >= 2.5 ? "#7986CB" : "#8892A4"} /></div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: GOLD, textAlign: "center" }}>{agg.count}</div>
-              </div>
-            );
-          })}
-        </div>
+
+          {/* ── Mobile: stacked cards ── */}
+          <div className="aw-cards-wrap">
+            {[...aggregates].reverse().map((agg) => {
+              const label = new Date(agg.week_of).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+              return (
+                <div key={agg.week_of} style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "14px 16px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <span style={{ fontSize: 12, color: "#E8EDF5", fontWeight: 700 }}>{label}</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: GOLD }}>{agg.count} responses</span>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {[
+                      { label: "Mood", value: agg.avg_mood, color: agg.avg_mood >= 3.5 ? "#66BB6A" : agg.avg_mood >= 2.5 ? "#FFC107" : "#EF5350" },
+                      { label: "Stress", value: agg.avg_stress, color: agg.avg_stress >= 3.5 ? "#EF5350" : agg.avg_stress >= 2.5 ? "#FFC107" : "#66BB6A" },
+                      { label: "Energy", value: agg.avg_energy, color: agg.avg_energy >= 3.5 ? "#42A5F5" : agg.avg_energy >= 2.5 ? "#7986CB" : "#8892A4" },
+                    ].map(({ label: l, value, color }) => (
+                      <div key={l} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 10, color: "#8892A4", width: 40, fontWeight: 600 }}>{l}</span>
+                        <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,0.05)", borderRadius: 4, overflow: "hidden" }}>
+                          <div style={{ height: "100%", width: `${(value / 5) * 100}%`, background: color, borderRadius: 4 }} />
+                        </div>
+                        <span style={{ fontSize: 11, color, fontWeight: 700, width: 28, textAlign: "right" }}>{value.toFixed(1)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {/* Legend */}
