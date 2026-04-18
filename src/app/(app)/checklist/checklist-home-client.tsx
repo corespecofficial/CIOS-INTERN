@@ -56,10 +56,13 @@ export function ChecklistHomeClient({ checklists, userRole }: Props) {
         signature_required: newSig,
       });
       if (res.ok) {
-        toast.success("Checklist created!");
         setShowCreate(false);
         setNewTitle(""); setNewDesc(""); setNewDue(""); setNewSig(false);
-        router.push(`/checklist/${res.data.id}`);
+        router.refresh(); // reload server data so the new item appears in the list
+        toast.success("Checklist created! ✅", {
+          duration: 4000,
+          icon: "📋",
+        });
       } else {
         toast.error(res.error);
       }

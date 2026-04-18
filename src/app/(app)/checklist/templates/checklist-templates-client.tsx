@@ -20,7 +20,7 @@ export function ChecklistTemplatesClient({ templates, userRole }: Props) {
   function useTemplate(id: string) {
     start(async () => {
       const res = await createChecklistFromTemplate(id);
-      if (res.ok) { toast.success("Checklist created from template!"); router.push(`/checklist/${res.data.id}`); }
+      if (res.ok) { toast.success("Checklist created! ✅"); router.push(`/checklist/${res.data.id}`); }
       else toast.error(res.error);
     });
   }
