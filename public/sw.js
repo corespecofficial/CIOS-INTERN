@@ -173,32 +173,57 @@ self.addEventListener("fetch", (event) => {
 /* ── Push notifications ── */
 self.addEventListener("push", (event) => {
   let data = {};
-  try { data = event.data ? event.data.json() : {}; } catch { data = { title: "CIOS", body: event.data?.text?.() || "" }; }
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "CIOS", body: event.data ? event.data.text() : "" };
+  }
+
   const title = data.title || "CIOS";
   const options = {
     body: data.body || "",
     icon: data.icon || "/icon-192.png",
     badge: "/badge-72.png",
+    image: data.image || undefined,          // large image on Android
     data: { url: data.url || "/notifications" },
     tag: data.tag || "cios-notification",
-    renotify: true,
+    renotify: true,                           // ring again even if same tag
+    requireInteraction: false,                // auto-dismiss after ~4s on Android
+    silent: false,
     vibrate: data.vibrate || [200, 100, 200],
+    actions: [
+      { action: "open", title: "Open" },
+      { action: "dismiss", title: "Dismiss" },
+    ],
   };
-  event.waitUntil(self.registration.showNotification(title, options));
+
+  event.waitUntil(
+    // Close any older notification with the same tag before showing the new one
+    self.registration.getNotifications({ tag: options.tag }).then((existing) => {
+      existing.forEach((n) => n.close());
+      return self.registration.showNotification(title, options);
+    })
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+
+  if (event.action === "dismiss") return;
+
   const url = event.notification.data?.url || "/dashboard";
+
   event.waitUntil(
-    self.clients.matchAll({ type: "window" }).then((clients) => {
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      // If a CIOS tab is already open, navigate it and focus it
       for (const client of clients) {
-        if ("focus" in client) {
-          if ("navigate" in client) { try { client.navigate(url); } catch {} }
+        if (client.url.includes(self.location.origin)) {
+          try { client.navigate(url); } catch {}
           return client.focus();
         }
       }
-      if (self.clients.openWindow) return self.clients.openWindow(url);
+      // No open tab — open a new one
+      return self.clients.openWindow(url);
     })
   );
 });

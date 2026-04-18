@@ -4,6 +4,7 @@ import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import Ably from "ably";
 import { sendEmail, wrapEmail } from "@/lib/email";
+import { sendWebPushToUser } from "@/lib/web-push-send";
 
 type Result<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -72,6 +73,14 @@ export async function pushNotification(params: {
         console.warn("[notif] ably publish:", e);
       }
     }
+    // Web Push — delivers to phone notification bar even when app is in background
+    sendWebPushToUser(params.userId, {
+      title: params.title,
+      body: params.message || "",
+      url: params.actionUrl || "/notifications",
+      tag: `cios-${params.type || "info"}`,
+    }).catch((e) => console.warn("[web-push] send error:", e));
+
     return { id: data.id };
   } catch (e) {
     console.error("[notif] pushNotification:", e);

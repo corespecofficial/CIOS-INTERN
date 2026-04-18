@@ -15,6 +15,7 @@ import { ActivityTracker } from "@/components/activity-tracker";
 import { ComplianceGate } from "@/components/compliance/compliance-gate";
 import { MobileInstallOnboarding } from "@/components/pwa-install-onboarding";
 import { WellnessReminderBanner } from "@/components/wellness-reminder-banner";
+import { PushNotificationManager } from "@/components/push-notification-manager";
 import { useAppStore } from "@/store/use-app-store";
 import { claimDailyLogin } from "@/app/actions/daily-login";
 
@@ -132,6 +133,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Daily wellness reminder — shows once per day until user checks in for the week */}
       <WellnessReminderBanner />
+
+      {/* Web Push — registers service worker + subscribes for OS-level phone notifications */}
+      <PushNotificationManager />
 
       <style>{`
         @media (max-width: 768px) {

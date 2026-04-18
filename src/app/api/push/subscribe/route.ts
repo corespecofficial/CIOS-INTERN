@@ -18,11 +18,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid subscription" }, { status: 400 });
   }
   const sb = supabaseAdmin();
+  const userAgent = req.headers.get("user-agent") || null;
   const { error } = await sb.from("push_subscriptions").upsert({
     user_id: me.id,
     endpoint: body.endpoint,
     p256dh: body.keys.p256dh,
     auth: body.keys.auth,
+    user_agent: userAgent,
   }, { onConflict: "endpoint" });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
