@@ -229,3 +229,39 @@ export async function submitSessionFeedback(sessionId: string, rating: number, b
     return { ok: true };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
+
+export interface AdminMentorRow {
+  user_id: string; bio: string | null; expertise_tags: string[];
+  max_mentees: number; is_available: boolean; session_rate: number | null;
+  rating: number; sessions_done: number; name: string | null;
+  avatar_url: string | null; active_mentees: number; pending_requests: number;
+}
+
+export async function getAdminMentors(): Promise<R<AdminMentorRow[]>> {
+  try {
+    const me = await requireMe();
+    if (!["admin", "super_admin"].includes(me.role)) return { ok: false, error: "Unauthorized" };
+    const sb = supabaseAdmin();
+    const { data: mentors } = await sb
+      .from("mentors")
+      .select("*, user:users!mentors_user_id_fkey(name,avatar_url)")
+      .order("sessions_done", { ascending: false });
+    type MRow = { user_id: string; bio: string | null; expertise_tags: string[]; max_mentees: number; is_available: boolean; session_rate: number | null; rating: number; sessions_done: number; user?: { name?: string | null; avatar_url?: string | null } | Array<{ name?: string | null; avatar_url?: string | null }> | null; };
+    const mentorIds = ((mentors || []) as MRow[]).map((m) => m.user_id);
+    let activeCounts: Record<string, number> = {};
+    let pendingCounts: Record<string, number> = {};
+    if (mentorIds.length > 0) {
+      const [{ data: active }, { data: pending }] = await Promise.all([
+        sb.from("mentorships").select("mentor_id").in("mentor_id", mentorIds).eq("status", "active"),
+        sb.from("mentorships").select("mentor_id").in("mentor_id", mentorIds).eq("status", "pending"),
+      ]);
+      (active || []).forEach((r: { mentor_id: string }) => { activeCounts[r.mentor_id] = (activeCounts[r.mentor_id] || 0) + 1; });
+      (pending || []).forEach((r: { mentor_id: string }) => { pendingCounts[r.mentor_id] = (pendingCounts[r.mentor_id] || 0) + 1; });
+    }
+    const rows: AdminMentorRow[] = ((mentors || []) as MRow[]).map((m) => {
+      const u = Array.isArray(m.user) ? m.user[0] : m.user;
+      return { user_id: m.user_id, bio: m.bio, expertise_tags: m.expertise_tags ?? [], max_mentees: m.max_mentees, is_available: m.is_available, session_rate: m.session_rate, rating: m.rating ?? 0, sessions_done: m.sessions_done ?? 0, name: u?.name || null, avatar_url: u?.avatar_url || null, active_mentees: activeCounts[m.user_id] || 0, pending_requests: pendingCounts[m.user_id] || 0 };
+    });
+    return { ok: true, data: rows };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
