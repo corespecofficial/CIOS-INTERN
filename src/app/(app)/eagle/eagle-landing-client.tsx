@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { EagleSubmission } from "@/app/actions/eagle";
 
 const SECTIONS = [
@@ -56,30 +57,38 @@ interface Props {
 
 export function EagleLandingClient({ submission, deadline, userName }: Props) {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const status = submission?.status;
   const cfg = status ? STATUS_CONFIG[status] : null;
 
   return (
-    <div style={{ maxWidth: 860, margin: "0 auto", padding: "0 4px" }}>
+    <div style={{ maxWidth: 860, margin: "0 auto", padding: isMobile ? "0 0 48px" : "0 4px" }}>
       {/* Hero */}
       <div style={{
         background: "linear-gradient(135deg, rgba(30,136,229,0.08) 0%, rgba(255,193,7,0.06) 100%)",
         border: "1px solid rgba(255,193,7,0.15)",
-        borderRadius: 16, padding: "36px 32px 28px", marginBottom: 24, textAlign: "center",
+        borderRadius: 16, padding: isMobile ? "24px 18px 20px" : "36px 32px 28px", marginBottom: 20, textAlign: "center",
       }}>
-        <div style={{ fontSize: 56, marginBottom: 8 }}>🦅</div>
-        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 800, color: "#E8EDF5", letterSpacing: -0.5 }}>
+        <div style={{ fontSize: isMobile ? 44 : 56, marginBottom: 8 }}>🦅</div>
+        <h1 style={{ margin: 0, fontSize: isMobile ? 24 : 32, fontWeight: 800, color: "#E8EDF5", letterSpacing: -0.5 }}>
           The Eagle Project
         </h1>
-        <p style={{ margin: "10px 0 0", color: "#9CA3AF", fontSize: 15 }}>
+        <p style={{ margin: "8px 0 0", color: "#9CA3AF", fontSize: isMobile ? 13 : 15 }}>
           Weekend Activation Assignment · 100 Points · 8 Sections
         </p>
-        <p style={{ margin: "18px 0 0", color: "#B0BEC5", fontSize: 14, fontStyle: "italic", maxWidth: 560, marginLeft: "auto", marginRight: "auto", lineHeight: 1.7 }}>
-          &ldquo;An eagle was raised among chickens. It scratched for grain and forgot it had wings.
-          One day it looked up — and answered the sky. You are that eagle.
-          This assignment is the moment you look up.&rdquo;
-        </p>
-        <p style={{ margin: "10px 0 0", color: "#5A6478", fontSize: 12 }}>— Coach Joshua</p>
+        {!isMobile && (
+          <p style={{ margin: "18px 0 0", color: "#B0BEC5", fontSize: 14, fontStyle: "italic", maxWidth: 560, marginLeft: "auto", marginRight: "auto", lineHeight: 1.7 }}>
+            &ldquo;An eagle was raised among chickens. It scratched for grain and forgot it had wings.
+            One day it looked up — and answered the sky. You are that eagle.
+            This assignment is the moment you look up.&rdquo;
+          </p>
+        )}
+        {isMobile && (
+          <p style={{ margin: "12px 0 0", color: "#B0BEC5", fontSize: 13, fontStyle: "italic", lineHeight: 1.6 }}>
+            &ldquo;Look up. Answer the sky.&rdquo;
+          </p>
+        )}
+        <p style={{ margin: "8px 0 0", color: "#5A6478", fontSize: 12 }}>— Coach Joshua</p>
       </div>
 
       {/* Deadline + status */}
@@ -109,9 +118,9 @@ export function EagleLandingClient({ submission, deadline, userName }: Props) {
       </div>
 
       {/* Sections overview */}
-      <div style={{ background: "#131929", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "20px 24px", marginBottom: 24 }}>
+      <div style={{ background: "#131929", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: isMobile ? "16px 14px" : "20px 24px", marginBottom: 24 }}>
         <h2 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: "#E8EDF5" }}>Assignment Overview</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
           {SECTIONS.map((s) => (
             <div key={s.id} style={{
               background: "rgba(255,255,255,0.03)", borderRadius: 8,
@@ -132,7 +141,7 @@ export function EagleLandingClient({ submission, deadline, userName }: Props) {
       {/* Coaching philosophy snippets */}
       <div style={{
         background: "rgba(30,136,229,0.06)", border: "1px solid rgba(30,136,229,0.12)",
-        borderRadius: 12, padding: "20px 24px", marginBottom: 28,
+        borderRadius: 12, padding: isMobile ? "16px 14px" : "20px 24px", marginBottom: 28,
       }}>
         <h2 style={{ margin: "0 0 14px", fontSize: 14, fontWeight: 700, color: "#1E88E5", textTransform: "uppercase", letterSpacing: 1 }}>
           Three Pillars
@@ -153,12 +162,12 @@ export function EagleLandingClient({ submission, deadline, userName }: Props) {
       </div>
 
       {/* CTA */}
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", flexDirection: isMobile ? "column" : "row" }}>
         {(!status || status === "draft") && (
           <button
             onClick={() => router.push("/projects/eagle/submit")}
             style={{
-              flex: 1, minWidth: 200, padding: "14px 24px",
+              flex: 1, padding: "14px 24px",
               background: "linear-gradient(135deg,#1E88E5,#FFC107)",
               color: "#0A0E1A", fontWeight: 800, fontSize: 16,
               border: "none", borderRadius: 10, cursor: "pointer",
@@ -171,7 +180,7 @@ export function EagleLandingClient({ submission, deadline, userName }: Props) {
           <button
             onClick={() => router.push(`/projects/eagle/${submission!.id}`)}
             style={{
-              flex: 1, minWidth: 200, padding: "14px 24px",
+              flex: 1, padding: "14px 24px",
               background: "#1E2640", color: "#E8EDF5", fontWeight: 700, fontSize: 15,
               border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, cursor: "pointer",
             }}

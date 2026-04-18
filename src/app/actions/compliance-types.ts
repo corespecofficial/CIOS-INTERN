@@ -129,6 +129,11 @@ export interface ComplianceFine {
   waived_by: string | null;
   waived_reason: string | null;
   payment_ref: string | null;
+  // Fine reform additions
+  offense_number: number;
+  non_monetary_consequence: string | null;
+  consequence_status: "pending" | "fulfilled" | "waived" | null;
+  consequence_note: string | null;
   // Optional joined fields
   task_title?: string;
   user_name?: string;

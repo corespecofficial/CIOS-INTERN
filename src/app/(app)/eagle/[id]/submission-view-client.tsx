@@ -2,6 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 import { useRouter } from "next/navigation";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { EagleSubmission, SectionScore } from "@/app/actions/eagle";
 
 const STATUS_CONFIG = {
@@ -44,18 +45,19 @@ function ScoreBar({ score, max }: { score: number; max: number }) {
 
 export function EagleSubmissionView({ submission }: Props) {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const status = submission.status;
   const cfg = STATUS_CONFIG[status];
   const scoreMap: Record<string, SectionScore> = {};
   for (const s of submission.section_scores) scoreMap[s.section] = s;
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
+    <div style={{ maxWidth: 800, margin: "0 auto", padding: isMobile ? "0 0 40px" : undefined }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#E8EDF5" }}>
+            <h1 style={{ margin: 0, fontSize: isMobile ? 20 : 24, fontWeight: 800, color: "#E8EDF5" }}>
               🦅 Eagle Project Submission
             </h1>
             <span style={{
@@ -77,10 +79,10 @@ export function EagleSubmissionView({ submission }: Props) {
         {submission.total_score !== null && (
           <div style={{
             background: "rgba(30,136,229,0.1)", border: "1px solid rgba(30,136,229,0.2)",
-            borderRadius: 12, padding: "16px 24px", textAlign: "center",
+            borderRadius: 12, padding: isMobile ? "12px 18px" : "16px 24px", textAlign: "center",
           }}>
             <div style={{ color: "#5A6478", fontSize: 11, marginBottom: 4 }}>TOTAL SCORE</div>
-            <div style={{ fontSize: 36, fontWeight: 900, color: submission.total_score >= 70 ? "#4CAF50" : "#FFC107" }}>
+            <div style={{ fontSize: isMobile ? 28 : 36, fontWeight: 900, color: submission.total_score >= 70 ? "#4CAF50" : "#FFC107" }}>
               {submission.total_score}<span style={{ fontSize: 16, color: "#5A6478" }}>/100</span>
             </div>
           </div>
@@ -89,7 +91,7 @@ export function EagleSubmissionView({ submission }: Props) {
 
       {/* Section scores (if graded) */}
       {status === "graded" && Object.keys(SECTION_LABELS).length > 0 && (
-        <div style={{ background: "#131929", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "20px 24px", marginBottom: 20 }}>
+        <div style={{ background: "#131929", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: isMobile ? "16px 14px" : "20px 24px", marginBottom: 20 }}>
           <h2 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700, color: "#E8EDF5" }}>Section Scores</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {Object.entries(SECTION_LABELS).map(([sec, meta]) => {
@@ -140,7 +142,7 @@ export function EagleSubmissionView({ submission }: Props) {
         return (
           <div key={key} style={{
             background: "#131929", border: "1px solid rgba(255,255,255,0.07)",
-            borderRadius: 12, padding: "18px 24px", marginBottom: 14,
+            borderRadius: 12, padding: isMobile ? "14px 14px" : "18px 24px", marginBottom: 14,
           }}>
             <h3 style={{ margin: "0 0 14px", color: "#E8EDF5", fontSize: 15, fontWeight: 700 }}>{label}</h3>
             <pre style={{

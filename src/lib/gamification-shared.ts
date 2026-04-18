@@ -26,7 +26,9 @@ export type XPEventType =
   | "warning_issued"
   | "spam_flagged"
   | "eagle_submitted"
-  | "eagle_perfect_score";
+  | "eagle_perfect_score"
+  | "eagle_of_week"
+  | "consistency_bonus";
 
 export const XP_RULES: Record<XPEventType, number> = {
   lesson_completed: 20,
@@ -54,6 +56,8 @@ export const XP_RULES: Record<XPEventType, number> = {
   spam_flagged: -50,
   eagle_submitted: 200,
   eagle_perfect_score: 500,
+  eagle_of_week: 300,
+  consistency_bonus: 150,
 };
 
 /** Level curve: quadratic-ish growth. xpForLevel(n) = 50 * n * (n-1). */

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import toast from "react-hot-toast";
 import {
   saveEagleDraft, submitEagleProject,
@@ -218,7 +219,7 @@ function SectionDForm({ data, onChange }: { data: SectionD; onChange: (d: Sectio
                   </div>
                 ))}
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10, marginTop: 10 }}>
                 <div>
                   <label style={{ color: "#4CAF50", fontSize: 12, display: "block", marginBottom: 4 }}>Win of the Day</label>
                   <input value={dayData.win ?? ""} onChange={(e) => update({ win: e.target.value })} placeholder="What went well?" style={{ width: "100%", background: "#0D1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: "#E8EDF5", fontSize: 13, padding: "7px 12px", boxSizing: "border-box" }} />
@@ -331,18 +332,18 @@ function SectionFForm({ data, onChange }: { data: SectionF; onChange: (d: Sectio
       </div>
       <div style={{ marginBottom: 14 }}>
         <label style={{ color: "#E8EDF5", fontSize: 14, fontWeight: 600, display: "block", marginBottom: 6 }}>Colour Palette (3 colours representing you)</label>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 10 }}>
           {colors.map((c, i) => (
-            <input key={i} value={c} onChange={(e) => { const u = [...colors]; u[i] = e.target.value; onChange({ ...data, colors: u }); }} placeholder={`Colour ${i + 1} (e.g. #1E88E5 or "Ocean Blue")`} style={{ flex: 1, background: "#0D1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#E8EDF5", fontSize: 13, padding: "9px 12px" }} />
+            <input key={i} value={c} onChange={(e) => { const u = [...colors]; u[i] = e.target.value; onChange({ ...data, colors: u }); }} placeholder={`Colour ${i + 1}`} style={{ background: "#0D1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#E8EDF5", fontSize: 13, padding: "9px 12px" }} />
           ))}
         </div>
       </div>
       <Input label="Visual Symbol (icon or illustration that represents you)" value={data.symbol ?? ""} onChange={(v) => onChange({ ...data, symbol: v })} placeholder="e.g. Eagle silhouette, rising sun, open book..." />
       <div style={{ marginBottom: 14 }}>
         <label style={{ color: "#E8EDF5", fontSize: 14, fontWeight: 600, display: "block", marginBottom: 6 }}>Top 3 Values</label>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 10 }}>
           {values.map((v, i) => (
-            <input key={i} value={v} onChange={(e) => { const u = [...values]; u[i] = e.target.value; onChange({ ...data, values: u }); }} placeholder={`Value ${i + 1}`} style={{ flex: 1, background: "#0D1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#E8EDF5", fontSize: 13, padding: "9px 12px" }} />
+            <input key={i} value={v} onChange={(e) => { const u = [...values]; u[i] = e.target.value; onChange({ ...data, values: u }); }} placeholder={`Value ${i + 1}`} style={{ background: "#0D1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#E8EDF5", fontSize: 13, padding: "9px 12px" }} />
           ))}
         </div>
       </div>
@@ -469,7 +470,9 @@ interface Props {
 
 export function EagleWizardClient({ initialSubmission, deadline, userName }: Props) {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [activeSection, setActiveSection] = useState(0);
+  const [showSectionDrawer, setShowSectionDrawer] = useState(false);
   const [sectionA, setSectionA] = useState<SectionA>(initialSubmission?.section_a ?? {});
   const [sectionB, setSectionB] = useState<SectionB>(initialSubmission?.section_b ?? {});
   const [sectionC, setSectionC] = useState<SectionC>(initialSubmission?.section_c ?? {});
@@ -506,7 +509,6 @@ export function EagleWizardClient({ initialSubmission, deadline, userName }: Pro
 
   const handleSubmit = () => {
     startSubmit(async () => {
-      // Save first
       await doSave();
       const res = await submitEagleProject();
       if (res.ok) {
@@ -522,6 +524,152 @@ export function EagleWizardClient({ initialSubmission, deadline, userName }: Pro
 
   const sec = SECTIONS_META[activeSection];
   const isDeadlinePast = new Date(deadline) < new Date();
+  const completedCount = SECTIONS_META.filter((s, i) => isSectionComplete(s.id, currentData[i] as Record<string, unknown>)).length;
+
+  const SectionList = () => (
+    <>
+      <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <div style={{ color: "#5A6478", fontSize: 11, marginBottom: 4 }}>DEADLINE</div>
+        <div style={{ color: isDeadlinePast ? "#EF5350" : "#FFC107", fontSize: 12, fontWeight: 700 }}>
+          {isDeadlinePast ? "PASSED" : new Date(deadline).toLocaleString()}
+        </div>
+      </div>
+      {SECTIONS_META.map((s, i) => {
+        const done = isSectionComplete(s.id, currentData[i] as Record<string, unknown>);
+        return (
+          <button
+            key={s.id}
+            onClick={() => { setActiveSection(i); setShowSectionDrawer(false); }}
+            style={{
+              width: "100%", textAlign: "left", padding: "10px 12px",
+              background: activeSection === i ? "rgba(30,136,229,0.15)" : "transparent",
+              border: activeSection === i ? "1px solid rgba(30,136,229,0.3)" : "1px solid transparent",
+              borderRadius: 8, cursor: "pointer", marginBottom: 4,
+              display: "flex", alignItems: "center", gap: 8,
+            }}
+          >
+            <span style={{ fontSize: 16 }}>{done ? "✅" : s.icon}</span>
+            <div>
+              <div style={{ color: activeSection === i ? "#1E88E5" : "#E8EDF5", fontSize: 13, fontWeight: 600 }}>
+                {s.id}. {s.label}
+              </div>
+              <div style={{ color: "#5A6478", fontSize: 11 }}>{s.points} pts</div>
+            </div>
+          </button>
+        );
+      })}
+      <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.06)", color: "#5A6478", fontSize: 11 }}>
+        {saving ? "Saving..." : lastSaved ? `Saved ${lastSaved.toLocaleTimeString()}` : "Not saved yet"}
+      </div>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <div style={{ paddingBottom: 80 }}>
+        {/* Mobile progress bar */}
+        <div style={{ background: "#131929", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "14px 16px", marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div>
+              <div style={{ color: "#E8EDF5", fontSize: 15, fontWeight: 800 }}>
+                {sec.icon} Section {sec.id} — {sec.label}
+              </div>
+              <div style={{ color: "#5A6478", fontSize: 12, marginTop: 2 }}>{sec.points} pts · {completedCount}/8 complete</div>
+            </div>
+            <button
+              onClick={() => setShowSectionDrawer(true)}
+              style={{ padding: "7px 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#9CA3AF", fontSize: 12, cursor: "pointer" }}
+            >
+              All Sections
+            </button>
+          </div>
+          {/* Progress bar */}
+          <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${((activeSection + 1) / 8) * 100}%`, background: "linear-gradient(90deg,#1E88E5,#FFC107)", borderRadius: 4, transition: "width 0.3s" }} />
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+            {SECTIONS_META.map((s, i) => {
+              const done = isSectionComplete(s.id, currentData[i] as Record<string, unknown>);
+              return (
+                <div key={s.id} style={{ width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                  background: done ? "rgba(76,175,80,0.2)" : i === activeSection ? "rgba(30,136,229,0.2)" : "rgba(255,255,255,0.04)",
+                  color: done ? "#4CAF50" : i === activeSection ? "#1E88E5" : "#5A6478",
+                  border: i === activeSection ? "1px solid rgba(30,136,229,0.4)" : "1px solid transparent",
+                }} onClick={() => setActiveSection(i)}>
+                  {done ? "✓" : s.id}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Section content */}
+        <div style={{ background: "#131929", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "18px 16px", marginBottom: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ color: "#5A6478", fontSize: 12 }}>Hello, {userName} · {saving ? "Saving..." : lastSaved ? `Saved ${lastSaved.toLocaleTimeString()}` : "Not saved"}</div>
+            <button onClick={doSave} disabled={saving} style={{ padding: "6px 14px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, color: "#9CA3AF", fontSize: 12, cursor: saving ? "wait" : "pointer" }}>
+              💾 Save
+            </button>
+          </div>
+          {activeSection === 0 && <SectionAForm data={sectionA} onChange={setSectionA} />}
+          {activeSection === 1 && <SectionBForm data={sectionB} onChange={setSectionB} />}
+          {activeSection === 2 && <SectionCForm data={sectionC} onChange={setSectionC} />}
+          {activeSection === 3 && <SectionDForm data={sectionD} onChange={setSectionD} />}
+          {activeSection === 4 && <SectionEForm data={sectionE} onChange={setSectionE} />}
+          {activeSection === 5 && <SectionFForm data={sectionF} onChange={setSectionF} />}
+          {activeSection === 6 && <SectionGForm data={sectionG} onChange={setSectionG} />}
+          {activeSection === 7 && <SectionHForm data={sectionH} onChange={setSectionH} />}
+        </div>
+
+        {/* Mobile nav buttons */}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button
+            onClick={() => setActiveSection(Math.max(0, activeSection - 1))}
+            disabled={activeSection === 0}
+            style={{ flex: 1, padding: "12px", background: "#1E2640", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: activeSection === 0 ? "#5A6478" : "#E8EDF5", cursor: activeSection === 0 ? "default" : "pointer", fontSize: 14 }}
+          >
+            ← Prev
+          </button>
+          {activeSection < 7 ? (
+            <button
+              onClick={() => { doSave(); setActiveSection(activeSection + 1); }}
+              style={{ flex: 2, padding: "12px", background: "rgba(30,136,229,0.15)", border: "1px solid rgba(30,136,229,0.3)", borderRadius: 8, color: "#1E88E5", cursor: "pointer", fontWeight: 700, fontSize: 14 }}
+            >
+              Save & Next →
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              style={{ flex: 2, padding: "12px", background: submitting ? "#1E2640" : "linear-gradient(135deg,#1E88E5,#FFC107)", border: "none", borderRadius: 8, color: submitting ? "#9CA3AF" : "#0A0E1A", cursor: submitting ? "wait" : "pointer", fontWeight: 800, fontSize: 14 }}
+            >
+              {submitting ? "Submitting..." : "🦅 Submit Project"}
+            </button>
+          )}
+        </div>
+
+        {/* Bottom sheet drawer overlay */}
+        {showSectionDrawer && (
+          <div
+            onClick={() => setShowSectionDrawer(false)}
+            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 40 }}
+          />
+        )}
+        {/* Bottom sheet */}
+        <div style={{
+          position: "fixed", left: 0, right: 0, bottom: showSectionDrawer ? 0 : "-100%",
+          background: "#131929", borderRadius: "20px 20px 0 0",
+          border: "1px solid rgba(255,255,255,0.1)", zIndex: 50,
+          maxHeight: "75vh", overflowY: "auto",
+          transition: "bottom 0.3s ease", padding: "20px 16px 32px",
+        }}>
+          <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto 16px" }} />
+          <h3 style={{ margin: "0 0 16px", color: "#E8EDF5", fontSize: 16, fontWeight: 700 }}>All Sections</h3>
+          <SectionList />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", gap: 20, height: "calc(100vh - 100px)", minHeight: 600 }}>
@@ -531,40 +679,7 @@ export function EagleWizardClient({ initialSubmission, deadline, userName }: Pro
         border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12,
         padding: "16px 12px", overflowY: "auto",
       }}>
-        <div style={{ marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ color: "#5A6478", fontSize: 11, marginBottom: 4 }}>DEADLINE</div>
-          <div style={{ color: isDeadlinePast ? "#EF5350" : "#FFC107", fontSize: 12, fontWeight: 700 }}>
-            {isDeadlinePast ? "PASSED" : new Date(deadline).toLocaleString()}
-          </div>
-        </div>
-        {SECTIONS_META.map((s, i) => {
-          const done = isSectionComplete(s.id, currentData[i] as Record<string, unknown>);
-          return (
-            <button
-              key={s.id}
-              onClick={() => setActiveSection(i)}
-              style={{
-                width: "100%", textAlign: "left", padding: "10px 12px",
-                background: activeSection === i ? "rgba(30,136,229,0.15)" : "transparent",
-                border: activeSection === i ? "1px solid rgba(30,136,229,0.3)" : "1px solid transparent",
-                borderRadius: 8, cursor: "pointer", marginBottom: 4,
-                display: "flex", alignItems: "center", gap: 8,
-              }}
-            >
-              <span style={{ fontSize: 16 }}>{done ? "✅" : s.icon}</span>
-              <div>
-                <div style={{ color: activeSection === i ? "#1E88E5" : "#E8EDF5", fontSize: 13, fontWeight: 600 }}>
-                  {s.id}. {s.label}
-                </div>
-                <div style={{ color: "#5A6478", fontSize: 11 }}>{s.points} pts</div>
-              </div>
-            </button>
-          );
-        })}
-        {/* Save status */}
-        <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.06)", color: "#5A6478", fontSize: 11 }}>
-          {saving ? "Saving..." : lastSaved ? `Saved ${lastSaved.toLocaleTimeString()}` : "Not saved yet"}
-        </div>
+        <SectionList />
       </div>
 
       {/* Main content */}

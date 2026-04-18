@@ -347,6 +347,23 @@ export async function adminGetAllFines(filters?: {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ESCALATING FINE SCHEDULE
+// Tier 1 (1st offense): ₦500
+// Tier 2 (2nd offense): ₦1,000
+// Tier 3 (3rd+ offense): ₦1,500
+// Late submission track: ₦300 → ₦600 → ₦900
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ESCALATING_AMOUNTS = [500, 1000, 1500];
+const LATE_ESCALATING_AMOUNTS = [300, 600, 900];
+
+function getEscalatedAmount(offenseNumber: number, isLateSubmission: boolean): number {
+  const schedule = isLateSubmission ? LATE_ESCALATING_AMOUNTS : ESCALATING_AMOUNTS;
+  const idx = Math.min(offenseNumber - 1, schedule.length - 1);
+  return schedule[idx];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // issueFine
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -354,8 +371,13 @@ export async function issueFine(
   userId: string,
   taskId: string | null,
   amount: number,
-  reason: string
-): Promise<R<{ fineId: string }>> {
+  reason: string,
+  options?: {
+    nonMonetaryConsequence?: string;
+    consequenceNote?: string;
+    useEscalation?: boolean; // if true, override amount with escalating schedule
+  }
+): Promise<R<{ fineId: string; offenseNumber: number; escalatedAmount: number }>> {
   try {
     const me = await getCurrentDbUser();
     if (!me) return { ok: false, error: "Unauthorized" };
@@ -363,20 +385,39 @@ export async function issueFine(
       return { ok: false, error: "Insufficient permissions to issue fines" };
     }
     if (!userId) return { ok: false, error: "User ID is required" };
-    if (amount <= 0) return { ok: false, error: "Fine amount must be greater than 0" };
     if (!reason?.trim()) return { ok: false, error: "Reason is required" };
 
     const sb = supabaseAdmin();
+
+    // Count prior non-waived offenses to determine escalation tier
+    const { count: priorOffenses } = await sb
+      .from("compliance_fines")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .neq("status", "waived");
+
+    const offenseNumber = (priorOffenses ?? 0) + 1;
+    const isLateSubmission = reason.toLowerCase().includes("late");
+
+    const finalAmount = options?.useEscalation
+      ? getEscalatedAmount(offenseNumber, isLateSubmission)
+      : amount > 0
+      ? amount
+      : getEscalatedAmount(offenseNumber, isLateSubmission);
 
     const { data: fineData, error: fineError } = await sb
       .from("compliance_fines")
       .insert({
         user_id: userId,
         task_id: taskId || null,
-        amount,
+        amount: finalAmount,
         reason: reason.trim(),
         status: "unpaid",
         issued_at: new Date().toISOString(),
+        offense_number: offenseNumber,
+        non_monetary_consequence: options?.nonMonetaryConsequence ?? null,
+        consequence_status: options?.nonMonetaryConsequence ? "pending" : null,
+        consequence_note: options?.consequenceNote ?? null,
       })
       .select("id")
       .single();
@@ -396,19 +437,51 @@ export async function issueFine(
       ? "repeated_absence"
       : "other";
 
-    // Insert corresponding violation record
+    const severity: "minor" | "moderate" | "major" | "critical" =
+      offenseNumber >= 4 ? "critical"
+      : offenseNumber === 3 ? "major"
+      : offenseNumber === 2 ? "moderate"
+      : "minor";
+
     await sb.from("compliance_violations").insert({
       user_id: userId,
       task_id: taskId || null,
       violation_type: violationType,
-      severity: "moderate",
+      severity,
       description: reason.trim(),
       acknowledged: false,
       created_at: new Date().toISOString(),
     });
 
     revalidatePath("/admin/compliance");
-    return { ok: true, data: { fineId } };
+    return { ok: true, data: { fineId, offenseNumber, escalatedAmount: finalAmount } };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// updateConsequenceStatus — mark a non-monetary consequence fulfilled/waived
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function updateConsequenceStatus(
+  fineId: string,
+  status: "fulfilled" | "waived",
+  note?: string
+): Promise<R> {
+  try {
+    const me = await requireAdmin();
+    const { error } = await supabaseAdmin()
+      .from("compliance_fines")
+      .update({
+        consequence_status: status,
+        consequence_note: note ?? null,
+      })
+      .eq("id", fineId);
+
+    if (error) return { ok: false, error: error.message };
+    revalidatePath("/admin/compliance");
+    return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

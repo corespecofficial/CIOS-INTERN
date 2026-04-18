@@ -2,6 +2,8 @@
 
 /* eslint-disable @next/next/no-img-element */
 
+import { useIsMobile } from "@/hooks/use-is-mobile";
+
 const COVENANT_LINES = [
   "I will show up, even when inconvenient.",
   "I will submit assignments on time because my name is on them.",
@@ -25,20 +27,21 @@ interface Props {
 }
 
 export function CovenantWallClient({ signatories }: Props) {
+  const isMobile = useIsMobile();
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto" }}>
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: isMobile ? "0 0 40px" : undefined }}>
       {/* Hero */}
       <div style={{
         textAlign: "center", marginBottom: 32,
         background: "linear-gradient(135deg, rgba(255,193,7,0.07) 0%, rgba(30,136,229,0.05) 100%)",
-        border: "1px solid rgba(255,193,7,0.15)", borderRadius: 16, padding: "36px 24px",
+        border: "1px solid rgba(255,193,7,0.15)", borderRadius: 16, padding: isMobile ? "24px 16px" : "36px 24px",
       }}>
-        <div style={{ fontSize: 52, marginBottom: 8 }}>🦅</div>
-        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: "#E8EDF5" }}>The Eagle Covenant Wall</h1>
+        <div style={{ fontSize: isMobile ? 40 : 52, marginBottom: 8 }}>🦅</div>
+        <h1 style={{ margin: 0, fontSize: isMobile ? 22 : 28, fontWeight: 800, color: "#E8EDF5" }}>The Eagle Covenant Wall</h1>
         <p style={{ margin: "10px 0 0", color: "#9CA3AF", fontSize: 15 }}>
           Every name here is an eagle that looked up.
         </p>
-        <div style={{ margin: "20px auto 0", maxWidth: 520, background: "rgba(255,193,7,0.06)", borderRadius: 10, padding: "16px 20px", textAlign: "left" }}>
+        <div style={{ margin: "20px auto 0", maxWidth: 520, background: "rgba(255,193,7,0.06)", borderRadius: 10, padding: isMobile ? "12px 14px" : "16px 20px", textAlign: "left" }}>
           {COVENANT_LINES.map((line, i) => (
             <p key={i} style={{ margin: "0 0 6px", color: "#B0BEC5", fontSize: 13, lineHeight: 1.7, fontStyle: "italic" }}>
               &ldquo;{line}&rdquo;
