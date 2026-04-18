@@ -25,6 +25,7 @@ interface Cmd {
 
 const COMMANDS: Cmd[] = [
   { id: "dash", label: "Dashboard", emoji: "🏠", href: "/dashboard", group: "Navigate" },
+  { id: "projects", label: "Projects", emoji: "📁", href: "/projects", group: "Navigate", keywords: "assignments eagle" },
   { id: "msg", label: "Messages", emoji: "💬", href: "/messages", group: "Navigate", keywords: "chat dm" },
   { id: "tasks", label: "Tasks", emoji: "✅", href: "/tasks", group: "Navigate", keywords: "todo" },
   { id: "cal", label: "Calendar", emoji: "🗓️", href: "/calendar", group: "Navigate", keywords: "schedule events" },
