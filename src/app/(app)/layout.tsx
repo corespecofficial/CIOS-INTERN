@@ -14,6 +14,7 @@ import { DailyMotivationPopup } from "@/components/daily-motivation-popup";
 import { ActivityTracker } from "@/components/activity-tracker";
 import { ComplianceGate } from "@/components/compliance/compliance-gate";
 import { MobileInstallOnboarding } from "@/components/pwa-install-onboarding";
+import { WellnessReminderBanner } from "@/components/wellness-reminder-banner";
 import { useAppStore } from "@/store/use-app-store";
 import { claimDailyLogin } from "@/app/actions/daily-login";
 
@@ -95,7 +96,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         transition: "margin-left 0.2s ease",
       }}>
         <Header />
-        <main id="main-content" role="main" style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 20 }}>
+        <main
+          id="main-content"
+          role="main"
+          className={pathname && pathname.split("/").filter(Boolean).length >= 2 ? "cios-inner-page" : "cios-root-page"}
+          style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 20 }}
+        >
           {children}
         </main>
       </div>
@@ -124,11 +130,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Mobile PWA install onboarding — shows full-screen sheet for mobile users who haven't installed */}
       <MobileInstallOnboarding />
 
+      {/* Daily wellness reminder — shows once per day until user checks in for the week */}
+      <WellnessReminderBanner />
+
       <style>{`
         @media (max-width: 768px) {
           .sidebar-desktop { display: none !important; }
           .main-content-area { margin-left: 0 !important; }
-          main:not(.cios-thread) { padding-bottom: 80px !important; }
+          /* Only add bottom padding on root pages (bottom nav visible) */
+          main.cios-root-page:not(.cios-thread) { padding-bottom: 80px !important; }
         }
         @media (min-width: 769px) {
           .bottom-nav-mobile { display: none !important; }

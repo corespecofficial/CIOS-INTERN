@@ -4,6 +4,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+// Inner pages (2+ path segments) don't need the bottom nav —
+// they show a back arrow in the header instead.
+
 const ITEMS = [
   { label: "Home", href: "/dashboard", icon: "🏠" },
   { label: "Projects", href: "/projects", icon: "📁" },
@@ -13,6 +16,8 @@ const ITEMS = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const isInnerPage = (pathname ?? "").split("/").filter(Boolean).length >= 2;
+  if (isInnerPage) return null;
 
   return (
     <nav className="bottom-nav-mobile" style={{

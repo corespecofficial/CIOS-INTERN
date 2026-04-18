@@ -4,6 +4,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import { setFeatureFlag, setSystemLock, clearPlatformCache, type FeatureFlags } from "@/app/actions/platform-settings";
 import { motion } from "framer-motion";
 import {
   Shield,
@@ -58,67 +59,73 @@ const MASCOT = "https://res.cloudinary.com/detsk6uql/image/upload/v1775646964/Ad
    1. SUPER ADMIN DASHBOARD (inline styles, HTML prototype match)
    ═══════════════════════════════════════════════════ */
 
+const FLAG_KEYS: { key: keyof FeatureFlags; label: string }[] = [
+  { key: "ai_copilot", label: "AI Copilot" },
+  { key: "spin_wheel", label: "Spin Wheel" },
+  { key: "fine_system", label: "Fine System" },
+  { key: "community", label: "Community" },
+  { key: "payouts", label: "Payouts" },
+];
+
 interface SuperAdminProps {
   stats?: { totalUsers: number; totalRevenue: number; orgs: number; systemHealth: number };
+  featureFlags?: FeatureFlags;
+  roleBreakdown?: Record<string, number>;
 }
 
-export function SuperAdminDashboard({ stats }: SuperAdminProps = {}) {
+export function SuperAdminDashboard({ stats, featureFlags, roleBreakdown }: SuperAdminProps = {}) {
   const display = stats ?? { totalUsers: 0, totalRevenue: 0, orgs: 1, systemHealth: 100 };
   const router = useRouter();
 
-  // Feature toggles — live state
-  const [toggles, setToggles] = useState([
-    { name: "AI Copilot", enabled: true },
-    { name: "Spin Wheel", enabled: true },
-    { name: "Fine System", enabled: true },
-    { name: "Community", enabled: true },
-    { name: "Payouts", enabled: false },
-  ]);
+  const defaultFlags: FeatureFlags = { ai_copilot: true, spin_wheel: true, fine_system: true, community: true, payouts: false };
+  const [flags, setFlags] = useState<FeatureFlags>(featureFlags ?? defaultFlags);
+  const [savingFlag, setSavingFlag] = useState<string | null>(null);
 
-  // Emergency control states
-  const [lockState, setLockState] = useState<"idle" | "confirm">("idle");
-  const [backingUp, setBackingUp] = useState(false);
+  const [lockState, setLockState] = useState<"idle" | "confirm" | "saving">("idle");
   const [clearing, setClearing] = useState(false);
 
-  function handleToggle(name: string) {
-    setToggles((prev) =>
-      prev.map((f) => (f.name === name ? { ...f, enabled: !f.enabled } : f))
-    );
-    const next = toggles.find((f) => f.name === name);
-    toast(next?.enabled ? `${name} disabled` : `${name} enabled`, {
-      icon: next?.enabled ? "🔴" : "🟢",
-    });
-  }
-
-  function handleSystemLock() {
-    if (lockState === "idle") {
-      setLockState("confirm");
-      toast("Click again to confirm system lock", { icon: "⚠️", duration: 3000 });
-      setTimeout(() => setLockState("idle"), 4000);
+  async function handleToggle(key: keyof FeatureFlags) {
+    const newVal = !flags[key];
+    setSavingFlag(key);
+    setFlags((prev) => ({ ...prev, [key]: newVal }));
+    const res = await setFeatureFlag(key, newVal);
+    setSavingFlag(null);
+    if (res.ok) {
+      toast(newVal ? `${key.replace("_", " ")} enabled` : `${key.replace("_", " ")} disabled`, { icon: newVal ? "🟢" : "🔴" });
     } else {
-      setLockState("idle");
-      toast.error("🔒 System locked — all non-admin sessions terminated.");
+      setFlags((prev) => ({ ...prev, [key]: !newVal }));
+      toast.error(res.error);
     }
   }
 
-  function handleBackup() {
-    if (backingUp) return;
-    setBackingUp(true);
-    toast.loading("Creating backup...", { id: "backup" });
-    setTimeout(() => {
-      setBackingUp(false);
-      toast.success("✅ Backup complete. Check system logs.", { id: "backup" });
-    }, 2500);
+  async function handleSystemLock() {
+    if (lockState === "idle") {
+      setLockState("confirm");
+      toast("Click again to confirm system lock — all users will be blocked.", { icon: "⚠️", duration: 4000 });
+      setTimeout(() => setLockState((s) => s === "confirm" ? "idle" : s), 5000);
+    } else if (lockState === "confirm") {
+      setLockState("saving");
+      const res = await setSystemLock(true);
+      setLockState("idle");
+      if (res.ok) toast.error("🔒 System locked — only admins can access.");
+      else toast.error(res.error);
+    }
   }
 
-  function handleClearCache() {
+  async function handleUnlock() {
+    const res = await setSystemLock(false);
+    if (res.ok) toast.success("🔓 System unlocked — access restored.");
+    else toast.error(res.error);
+  }
+
+  async function handleClearCache() {
     if (clearing) return;
     setClearing(true);
-    toast.loading("Clearing cache...", { id: "cache" });
-    setTimeout(() => {
-      setClearing(false);
-      toast.success("🧹 Cache cleared successfully.", { id: "cache" });
-    }, 1200);
+    const t = toast.loading("Clearing platform cache...", { id: "cache" });
+    const res = await clearPlatformCache();
+    setClearing(false);
+    if (res.ok) toast.success("🧹 Cache cleared — all pages will refresh.", { id: "cache" });
+    else toast.error(res.error, { id: "cache" });
   }
 
   return (
@@ -196,69 +203,42 @@ export function SuperAdminDashboard({ stats }: SuperAdminProps = {}) {
       </div>
 
       {/* Emergency Controls */}
-      <div
-        style={{
-          background: "#111827",
-          borderRadius: 16,
-          padding: 24,
-          border: "1px solid rgba(255,255,255,0.07)",
-        }}
-      >
-        <h3 style={{ fontSize: 16, fontWeight: 600, color: "#E8EDF5", margin: 0, marginBottom: 16 }}>
-          Emergency Controls
-        </h3>
+      <div style={{ background: "#111827", borderRadius: 16, padding: 24, border: "1px solid rgba(255,255,255,0.07)" }}>
+        <h3 style={{ fontSize: 16, fontWeight: 600, color: "#E8EDF5", margin: 0, marginBottom: 16 }}>Emergency Controls</h3>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <button
             onClick={handleSystemLock}
+            disabled={lockState === "saving"}
             style={{
               flex: 1, minWidth: 120,
               background: lockState === "confirm" ? "#B71C1C" : "#EF5350",
-              color: "#fff",
-              border: "none",
-              borderRadius: 12,
-              padding: "14px 20px",
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "background 0.2s",
+              color: "#fff", border: "none", borderRadius: 12,
+              padding: "14px 20px", fontSize: 14, fontWeight: 600,
+              cursor: lockState === "saving" ? "not-allowed" : "pointer",
+              opacity: lockState === "saving" ? 0.7 : 1, transition: "all 0.2s",
             }}
           >
-            {lockState === "confirm" ? "⚠️ Confirm Lock?" : "🔒 System Lock"}
+            {lockState === "saving" ? "⏳ Locking..." : lockState === "confirm" ? "⚠️ Confirm Lock?" : "🔒 System Lock"}
           </button>
           <button
-            onClick={handleBackup}
-            disabled={backingUp}
+            onClick={handleUnlock}
             style={{
               flex: 1, minWidth: 120,
-              background: "#FFC107",
-              color: "#111827",
-              border: "none",
-              borderRadius: 12,
-              padding: "14px 20px",
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: backingUp ? "not-allowed" : "pointer",
-              opacity: backingUp ? 0.7 : 1,
-              transition: "opacity 0.2s",
+              background: "rgba(102,187,106,0.15)", color: "#66BB6A",
+              border: "1px solid rgba(102,187,106,0.3)", borderRadius: 12,
+              padding: "14px 20px", fontSize: 14, fontWeight: 600, cursor: "pointer",
             }}
-          >
-            {backingUp ? "⏳ Backing up..." : "💾 Backup Now"}
-          </button>
+          >🔓 Unlock System</button>
           <button
             onClick={handleClearCache}
             disabled={clearing}
             style={{
               flex: 1, minWidth: 120,
-              background: "transparent",
-              color: "#E8EDF5",
-              border: "1px solid rgba(255,255,255,0.15)",
-              borderRadius: 12,
-              padding: "14px 20px",
-              fontSize: 14,
-              fontWeight: 600,
+              background: "transparent", color: "#E8EDF5",
+              border: "1px solid rgba(255,255,255,0.15)", borderRadius: 12,
+              padding: "14px 20px", fontSize: 14, fontWeight: 600,
               cursor: clearing ? "not-allowed" : "pointer",
-              opacity: clearing ? 0.7 : 1,
-              transition: "opacity 0.2s",
+              opacity: clearing ? 0.7 : 1, transition: "opacity 0.2s",
             }}
           >
             {clearing ? "⏳ Clearing..." : "🧹 Clear Cache"}
@@ -267,114 +247,79 @@ export function SuperAdminDashboard({ stats }: SuperAdminProps = {}) {
       </div>
 
       {/* Feature Toggles */}
-      <div
-        style={{
-          background: "#111827",
-          borderRadius: 16,
-          padding: 24,
-          border: "1px solid rgba(255,255,255,0.07)",
-        }}
-      >
-        <h3 style={{ fontSize: 16, fontWeight: 600, color: "#E8EDF5", margin: 0, marginBottom: 16 }}>
-          Feature Toggles
-        </h3>
+      <div style={{ background: "#111827", borderRadius: 16, padding: 24, border: "1px solid rgba(255,255,255,0.07)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: "#E8EDF5", margin: 0 }}>Feature Toggles</h3>
+          <span style={{ fontSize: 11, color: "#5A6478" }}>Changes save to database instantly</span>
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-          {toggles.map((f) => (
-            <div
-              key={f.name}
-              onClick={() => handleToggle(f.name)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "12px 14px",
-                borderRadius: 12,
-                background: "rgba(255,255,255,0.02)",
-                border: `1px solid ${f.enabled ? "rgba(30,136,229,0.3)" : "rgba(255,255,255,0.07)"}`,
-                cursor: "pointer",
-                transition: "border-color 0.2s",
-                userSelect: "none",
-              }}
-            >
-              <span style={{ fontSize: 14, color: "#E8EDF5", fontWeight: 500 }}>{f.name}</span>
+          {FLAG_KEYS.map(({ key, label }) => {
+            const enabled = flags[key];
+            const saving = savingFlag === key;
+            return (
               <div
+                key={key}
+                onClick={() => !saving && handleToggle(key)}
                 style={{
-                  position: "relative",
-                  width: 40,
-                  height: 20,
-                  borderRadius: 10,
-                  transition: "background 0.25s",
-                  background: f.enabled ? "#1E88E5" : "#374151",
-                  flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "12px 14px", borderRadius: 12,
+                  background: "rgba(255,255,255,0.02)",
+                  border: `1px solid ${enabled ? "rgba(30,136,229,0.3)" : "rgba(255,255,255,0.07)"}`,
+                  cursor: saving ? "not-allowed" : "pointer",
+                  transition: "border-color 0.2s", userSelect: "none",
+                  opacity: saving ? 0.6 : 1,
                 }}
               >
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 2,
-                    left: f.enabled ? 22 : 2,
-                    width: 16,
-                    height: 16,
-                    borderRadius: "50%",
-                    background: "#fff",
-                    transition: "left 0.25s",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
-                  }}
-                />
+                <span style={{ fontSize: 14, color: "#E8EDF5", fontWeight: 500 }}>{label}</span>
+                <div style={{
+                  position: "relative", width: 40, height: 20, borderRadius: 10,
+                  transition: "background 0.25s",
+                  background: enabled ? "#1E88E5" : "#374151", flexShrink: 0,
+                }}>
+                  <div style={{
+                    position: "absolute", top: 2, left: enabled ? 22 : 2,
+                    width: 16, height: 16, borderRadius: "50%", background: "#fff",
+                    transition: "left 0.25s", boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+                  }} />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* Organizations */}
-      <div
-        style={{
-          background: "#111827",
-          borderRadius: 16,
-          padding: 24,
-          border: "1px solid rgba(255,255,255,0.07)",
-        }}
-      >
-        <h3 style={{ fontSize: 16, fontWeight: 600, color: "#E8EDF5", margin: 0, marginBottom: 16 }}>
-          Organizations
-        </h3>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {[
-            { name: "COSPRONOS Media", members: 120, status: "Active", statusColor: "#66BB6A" },
-            { name: "Corespec Engineering", members: 85, status: "Active", statusColor: "#66BB6A" },
-            { name: "Partner Org", members: 42, status: "Trial", statusColor: "#FFC107" },
-          ].map((org) => (
-            <div
-              key={org.name}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "14px 16px",
-                borderRadius: 12,
-                background: "rgba(255,255,255,0.02)",
-                border: "1px solid rgba(255,255,255,0.07)",
-              }}
-            >
-              <div>
-                <p style={{ fontSize: 14, fontWeight: 600, color: "#E8EDF5", margin: 0 }}>{org.name}</p>
-                <p style={{ fontSize: 12, color: "#8892A4", margin: 0, marginTop: 2 }}>{org.members} members</p>
+      {/* Platform Cohort Breakdown (replaces hardcoded orgs) */}
+      <div style={{ background: "#111827", borderRadius: 16, padding: 24, border: "1px solid rgba(255,255,255,0.07)" }}>
+        <h3 style={{ fontSize: 16, fontWeight: 600, color: "#E8EDF5", margin: 0, marginBottom: 16 }}>User Breakdown by Role</h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {Object.entries({
+            intern: { label: "Interns", color: "#1E88E5" },
+            team_lead: { label: "Team Leads", color: "#66BB6A" },
+            admin: { label: "Admins", color: "#AB47BC" },
+            super_admin: { label: "Super Admins", color: "#EF5350" },
+            instructor: { label: "Instructors", color: "#FFC107" },
+            recruiter: { label: "Recruiters", color: "#26C6DA" },
+            moderator: { label: "Moderators", color: "#FF7043" },
+            finance: { label: "Finance", color: "#43A047" },
+            support: { label: "Support", color: "#8892A4" },
+          }).map(([role, meta]) => {
+            const count = roleBreakdown?.[role] ?? 0;
+            if (count === 0) return null;
+            const total = display.totalUsers || 1;
+            const pct = Math.round((count / total) * 100);
+            return (
+              <div key={role} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 12, color: "#8892A4", width: 96, flexShrink: 0 }}>{meta.label}</span>
+                <div style={{ flex: 1, height: 8, background: "rgba(255,255,255,0.05)", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${pct}%`, background: meta.color, borderRadius: 4, transition: "width 0.4s" }} />
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 700, color: meta.color, width: 28, textAlign: "right", flexShrink: 0 }}>{count}</span>
               </div>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: "#fff",
-                  background: org.statusColor,
-                  padding: "3px 10px",
-                  borderRadius: 999,
-                }}
-              >
-                {org.status}
-              </span>
-            </div>
-          ))}
+            );
+          }).filter(Boolean)}
+          {display.totalUsers === 0 && (
+            <p style={{ fontSize: 13, color: "#8892A4", margin: 0 }}>No users yet. Invite your first users from User Management.</p>
+          )}
         </div>
       </div>
 

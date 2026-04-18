@@ -151,7 +151,7 @@ export async function getCurrentUserTasks(): Promise<DbTask[]> {
 /* ───────────── Analytics helpers (aggregate data) ───────────── */
 
 export async function countUsers(): Promise<number> {
-  const { count, error } = await supabase()
+  const { count, error } = await supabaseAdmin()
     .from("users")
     .select("*", { count: "exact", head: true });
   if (error) return 0;

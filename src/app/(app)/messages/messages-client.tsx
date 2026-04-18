@@ -1137,7 +1137,7 @@ function MessageBubble({
     if (!menuOpen || !menuBtnRef.current) { setMenuPos(null); return; }
     const r = menuBtnRef.current.getBoundingClientRect();
     const menuH = 340; // conservative estimate
-    const menuW = 190;
+    const menuW = 220;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const spaceBelow = vh - r.bottom;
@@ -1253,25 +1253,27 @@ function MessageBubble({
             border: "1px solid rgba(255,255,255,0.1)",
             borderRadius: 14,
             padding: 6,
-            width: 190,
+            width: 220,
             boxShadow: "0 12px 40px rgba(0,0,0,0.6)",
           }}>
             {/* Emoji reaction strip at top */}
             <div style={{
-              display: "flex", gap: 4, padding: "6px 8px 8px",
+              display: "flex", padding: "6px 6px 8px", gap: 2,
               borderBottom: "1px solid rgba(255,255,255,0.07)", marginBottom: 4,
-              justifyContent: "space-between",
-            }}>
+              overflowX: "auto", overflowY: "hidden",
+              scrollbarWidth: "none", msOverflowStyle: "none",
+              WebkitOverflowScrolling: "touch",
+            } as React.CSSProperties}>
               {REACTION_EMOJIS.map((e) => (
                 <button
                   key={e}
                   onClick={() => { onReact(e); onToggleMenu(); }}
                   style={{
                     background: "transparent", border: "none", cursor: "pointer",
-                    fontSize: 22, borderRadius: 8, padding: "2px 3px",
-                    transition: "transform 0.1s",
+                    fontSize: 20, borderRadius: 8, padding: "2px 2px",
+                    transition: "transform 0.15s", flexShrink: 0,
                   }}
-                  onMouseEnter={(el) => (el.currentTarget.style.transform = "scale(1.3)")}
+                  onMouseEnter={(el) => (el.currentTarget.style.transform = "scale(1.35)")}
                   onMouseLeave={(el) => (el.currentTarget.style.transform = "scale(1)")}
                 >{e}</button>
               ))}

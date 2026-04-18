@@ -4,6 +4,7 @@
 import { useState, useTransition } from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
   updateUserRole,
   inviteUser,
@@ -55,6 +56,7 @@ export function UserManagementClient({ initialUsers, initialInvitations }: Props
   const [inviteOpen, setInviteOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState<Role | "all">("all");
+  const isMobile = useIsMobile();
 
   const refresh = () => startTransition(() => router.refresh());
 
@@ -120,16 +122,16 @@ export function UserManagementClient({ initialUsers, initialInvitations }: Props
         background: "linear-gradient(135deg, rgba(239,83,80,0.12), rgba(171,71,188,0.08))",
         border: "1px solid rgba(239,83,80,0.2)",
         borderRadius: 16,
-        padding: "20px 24px",
-        marginBottom: 20,
-        display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
+        padding: isMobile ? "16px 16px" : "20px 24px",
+        marginBottom: 16,
+        display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
       }}>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <span style={{ display: "inline-block", padding: "3px 10px", background: "rgba(239,83,80,0.2)", color: "#EF5350", fontSize: 10, fontWeight: 700, borderRadius: 20, letterSpacing: 0.5, marginBottom: 6 }}>
             SUPER ADMIN
           </span>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#E8EDF5", margin: "2px 0 2px 0" }}>User Management</h1>
-          <p style={{ fontSize: 13, color: "#8892A4", margin: 0 }}>
+          <h1 style={{ fontSize: isMobile ? 18 : 22, fontWeight: 800, color: "#E8EDF5", margin: "2px 0 2px 0" }}>User Management</h1>
+          <p style={{ fontSize: 12, color: "#8892A4", margin: 0 }}>
             {users.length} users · {invitations.length} pending invitations
           </p>
         </div>
@@ -138,20 +140,22 @@ export function UserManagementClient({ initialUsers, initialInvitations }: Props
           style={{
             background: "linear-gradient(135deg, #1E88E5, #1565C0)",
             color: "#fff", border: "none", borderRadius: 10,
-            padding: "10px 20px", fontSize: 13, fontWeight: 700,
+            padding: isMobile ? "9px 14px" : "10px 20px",
+            fontSize: isMobile ? 12 : 13, fontWeight: 700,
             cursor: "pointer", boxShadow: "0 4px 16px rgba(30,136,229,0.3)",
+            flexShrink: 0,
           }}
         >+ Invite User</button>
       </div>
 
       {/* Filters */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
         <input
           placeholder="Search by name or email..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{
-            flex: 1, minWidth: 240,
+            flex: 1, minWidth: isMobile ? 0 : 240,
             padding: "9px 14px", borderRadius: 10,
             background: "#111827", border: "1px solid rgba(255,255,255,0.1)",
             color: "#E8EDF5", fontSize: 13, outline: "none",
@@ -164,6 +168,7 @@ export function UserManagementClient({ initialUsers, initialInvitations }: Props
             padding: "9px 14px", borderRadius: 10,
             background: "#111827", border: "1px solid rgba(255,255,255,0.1)",
             color: "#E8EDF5", fontSize: 13, cursor: "pointer", outline: "none",
+            flexShrink: 0,
           }}
         >
           <option value="all">All Roles</option>
@@ -205,112 +210,168 @@ export function UserManagementClient({ initialUsers, initialInvitations }: Props
         </div>
       )}
 
-      {/* Users Table */}
+      {/* Users List */}
       <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
-        {/* Table header */}
-        <div style={{
-          display: "grid", gridTemplateColumns: "2.5fr 1.5fr 1fr 1fr 1.5fr",
-          padding: "12px 20px", background: "rgba(255,255,255,0.03)",
-          fontSize: 11, fontWeight: 700, color: "#8892A4",
-          textTransform: "uppercase", letterSpacing: 0.5,
-        }}>
-          <div>User</div>
-          <div>Role</div>
-          <div>Status</div>
-          <div>Last Active</div>
-          <div style={{ textAlign: "right" }}>Actions</div>
-        </div>
-
-        {/* Rows */}
         {filtered.length === 0 ? (
-          <div style={{ padding: 32, textAlign: "center", color: "#8892A4" }}>
-            No users found
-          </div>
-        ) : filtered.map(u => {
-          const meta = getRoleMeta(u.role);
-          const displayName = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email;
-          return (
-            <div key={u.id} style={{
-              display: "grid", gridTemplateColumns: "2.5fr 1.5fr 1fr 1fr 1.5fr",
-              padding: "14px 20px", alignItems: "center",
-              borderBottom: "1px solid rgba(255,255,255,0.04)",
-              fontSize: 13,
-            }}>
-              {/* User */}
-              <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                {u.imageUrl ? (
-                  <img src={u.imageUrl} alt={displayName} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                ) : (
-                  <div style={{
-                    width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
-                    background: `linear-gradient(135deg, ${meta.color}, ${meta.color}99)`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontSize: 13, fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif",
-                  }}>
-                    {(u.firstName[0] || u.email[0] || "U").toUpperCase()}
-                    {(u.lastName[0] || u.email[1] || "").toUpperCase()}
+          <div style={{ padding: 32, textAlign: "center", color: "#8892A4" }}>No users found</div>
+        ) : isMobile ? (
+          /* ── Mobile: card list ── */
+          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+            {filtered.map(u => {
+              const meta = getRoleMeta(u.role);
+              const displayName = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email;
+              return (
+                <div key={u.id} style={{ padding: "14px 16px", borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                  {/* Top row: avatar + name + status */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                    {u.imageUrl ? (
+                      <img src={u.imageUrl} alt={displayName} style={{ width: 38, height: 38, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                    ) : (
+                      <div style={{
+                        width: 38, height: 38, borderRadius: "50%", flexShrink: 0,
+                        background: `linear-gradient(135deg, ${meta.color}, ${meta.color}99)`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: "#fff", fontSize: 13, fontWeight: 700,
+                      }}>
+                        {(u.firstName[0] || u.email[0] || "U").toUpperCase()}
+                        {(u.lastName[0] || u.email[1] || "").toUpperCase()}
+                      </div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, color: "#E8EDF5", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{displayName}</div>
+                      <div style={{ fontSize: 11, color: "#5A6478", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email}</div>
+                    </div>
+                    {u.banned ? (
+                      <span style={{ background: "rgba(239,83,80,0.15)", color: "#EF5350", padding: "3px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, flexShrink: 0 }}>Banned</span>
+                    ) : (
+                      <span style={{ background: "rgba(102,187,106,0.15)", color: "#66BB6A", padding: "3px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, flexShrink: 0 }}>Active</span>
+                    )}
                   </div>
-                )}
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ color: "#E8EDF5", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{displayName}</div>
-                  <div style={{ color: "#8892A4", fontSize: 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.email}</div>
+                  {/* Bottom row: role dropdown + last active + actions */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <select
+                      value={u.role}
+                      onChange={e => handleRoleChange(u.id, e.target.value as Role)}
+                      style={{
+                        padding: "5px 8px", borderRadius: 6,
+                        background: `${meta.color}22`, color: meta.color,
+                        border: `1px solid ${meta.color}44`, fontSize: 11, fontWeight: 700,
+                        cursor: "pointer", outline: "none", flexShrink: 0,
+                      }}
+                    >
+                      {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                    </select>
+                    <span style={{ fontSize: 11, color: "#5A6478", flex: 1 }}>{formatDate(u.lastSignInAt)}</span>
+                    <button
+                      onClick={() => handleBan(u.id, u.banned)}
+                      style={{
+                        background: u.banned ? "rgba(102,187,106,0.12)" : "rgba(255,193,7,0.12)",
+                        color: u.banned ? "#66BB6A" : "#FFC107",
+                        border: `1px solid ${u.banned ? "rgba(102,187,106,0.3)" : "rgba(255,193,7,0.3)"}`,
+                        borderRadius: 6, padding: "5px 10px",
+                        fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0,
+                      }}
+                    >{u.banned ? "Unban" : "Ban"}</button>
+                    <button
+                      onClick={() => handleDelete(u.id, displayName)}
+                      style={{
+                        background: "rgba(239,83,80,0.1)", color: "#EF5350",
+                        border: "1px solid rgba(239,83,80,0.3)", borderRadius: 6,
+                        padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer", flexShrink: 0,
+                      }}
+                    >Delete</button>
+                  </div>
                 </div>
-              </div>
-
-              {/* Role dropdown */}
-              <div>
-                <select
-                  value={u.role}
-                  onChange={e => handleRoleChange(u.id, e.target.value as Role)}
-                  style={{
-                    padding: "5px 10px", borderRadius: 6,
-                    background: `${meta.color}22`, color: meta.color,
-                    border: `1px solid ${meta.color}44`, fontSize: 11, fontWeight: 700,
-                    cursor: "pointer", outline: "none",
-                  }}
-                >
-                  {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-                </select>
-              </div>
-
-              {/* Status */}
-              <div>
-                {u.banned ? (
-                  <span style={{ background: "rgba(239,83,80,0.15)", color: "#EF5350", padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Banned</span>
-                ) : (
-                  <span style={{ background: "rgba(102,187,106,0.15)", color: "#66BB6A", padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Active</span>
-                )}
-              </div>
-
-              {/* Last Active */}
-              <div style={{ color: "#8892A4", fontSize: 12 }}>
-                {formatDate(u.lastSignInAt)}
-              </div>
-
-              {/* Actions */}
-              <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                <button
-                  onClick={() => handleBan(u.id, u.banned)}
-                  style={{
-                    background: u.banned ? "rgba(102,187,106,0.12)" : "rgba(255,193,7,0.12)",
-                    color: u.banned ? "#66BB6A" : "#FFC107",
-                    border: `1px solid ${u.banned ? "rgba(102,187,106,0.3)" : "rgba(255,193,7,0.3)"}`,
-                    borderRadius: 6, padding: "5px 10px",
-                    fontSize: 11, fontWeight: 700, cursor: "pointer",
-                  }}
-                >{u.banned ? "Unban" : "Ban"}</button>
-                <button
-                  onClick={() => handleDelete(u.id, displayName)}
-                  style={{
-                    background: "rgba(239,83,80,0.1)", color: "#EF5350",
-                    border: "1px solid rgba(239,83,80,0.3)", borderRadius: 6,
-                    padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer",
-                  }}
-                >Delete</button>
-              </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* ── Desktop: table grid ── */
+          <>
+            <div style={{
+              display: "grid", gridTemplateColumns: "2.5fr 1.5fr 1fr 1fr 1.5fr",
+              padding: "12px 20px", background: "rgba(255,255,255,0.03)",
+              fontSize: 11, fontWeight: 700, color: "#8892A4",
+              textTransform: "uppercase", letterSpacing: 0.5,
+            }}>
+              <div>User</div><div>Role</div><div>Status</div><div>Last Active</div>
+              <div style={{ textAlign: "right" }}>Actions</div>
             </div>
-          );
-        })}
+            {filtered.map(u => {
+              const meta = getRoleMeta(u.role);
+              const displayName = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email;
+              return (
+                <div key={u.id} style={{
+                  display: "grid", gridTemplateColumns: "2.5fr 1.5fr 1fr 1fr 1.5fr",
+                  padding: "14px 20px", alignItems: "center",
+                  borderBottom: "1px solid rgba(255,255,255,0.04)", fontSize: 13,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+                    {u.imageUrl ? (
+                      <img src={u.imageUrl} alt={displayName} style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                    ) : (
+                      <div style={{
+                        width: 36, height: 36, borderRadius: "50%", flexShrink: 0,
+                        background: `linear-gradient(135deg, ${meta.color}, ${meta.color}99)`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        color: "#fff", fontSize: 13, fontWeight: 700,
+                      }}>
+                        {(u.firstName[0] || u.email[0] || "U").toUpperCase()}
+                        {(u.lastName[0] || u.email[1] || "").toUpperCase()}
+                      </div>
+                    )}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ color: "#E8EDF5", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{displayName}</div>
+                      <div style={{ color: "#8892A4", fontSize: 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.email}</div>
+                    </div>
+                  </div>
+                  <div>
+                    <select
+                      value={u.role}
+                      onChange={e => handleRoleChange(u.id, e.target.value as Role)}
+                      style={{
+                        padding: "5px 10px", borderRadius: 6,
+                        background: `${meta.color}22`, color: meta.color,
+                        border: `1px solid ${meta.color}44`, fontSize: 11, fontWeight: 700,
+                        cursor: "pointer", outline: "none",
+                      }}
+                    >
+                      {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    {u.banned ? (
+                      <span style={{ background: "rgba(239,83,80,0.15)", color: "#EF5350", padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Banned</span>
+                    ) : (
+                      <span style={{ background: "rgba(102,187,106,0.15)", color: "#66BB6A", padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Active</span>
+                    )}
+                  </div>
+                  <div style={{ color: "#8892A4", fontSize: 12 }}>{formatDate(u.lastSignInAt)}</div>
+                  <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                    <button
+                      onClick={() => handleBan(u.id, u.banned)}
+                      style={{
+                        background: u.banned ? "rgba(102,187,106,0.12)" : "rgba(255,193,7,0.12)",
+                        color: u.banned ? "#66BB6A" : "#FFC107",
+                        border: `1px solid ${u.banned ? "rgba(102,187,106,0.3)" : "rgba(255,193,7,0.3)"}`,
+                        borderRadius: 6, padding: "5px 10px",
+                        fontSize: 11, fontWeight: 700, cursor: "pointer",
+                      }}
+                    >{u.banned ? "Unban" : "Ban"}</button>
+                    <button
+                      onClick={() => handleDelete(u.id, displayName)}
+                      style={{
+                        background: "rgba(239,83,80,0.1)", color: "#EF5350",
+                        border: "1px solid rgba(239,83,80,0.3)", borderRadius: 6,
+                        padding: "5px 10px", fontSize: 11, fontWeight: 700, cursor: "pointer",
+                      }}
+                    >Delete</button>
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
       </div>
 
       {/* Invite Modal */}

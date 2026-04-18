@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { useAppStore } from "@/store/use-app-store";
+import { useCurrentUser } from "@/lib/use-current-user";
 
 const RECENTS_KEY = "cios-palette-recents";
 function loadRecents(): string[] { try { return JSON.parse(localStorage.getItem(RECENTS_KEY) || "[]"); } catch { return []; } }
@@ -16,51 +18,92 @@ function pushRecent(href: string) {
 interface Cmd {
   id: string;
   label: string;
-  hint?: string;
   emoji: string;
   href: string;
   group: string;
   keywords?: string;
+  // if absent, visible to all roles
+  roles?: string[];
 }
 
-const COMMANDS: Cmd[] = [
-  { id: "dash", label: "Dashboard", emoji: "🏠", href: "/dashboard", group: "Navigate" },
-  { id: "projects", label: "Projects", emoji: "📁", href: "/projects", group: "Navigate", keywords: "assignments eagle" },
-  { id: "msg", label: "Messages", emoji: "💬", href: "/messages", group: "Navigate", keywords: "chat dm" },
-  { id: "tasks", label: "Tasks", emoji: "✅", href: "/tasks", group: "Navigate", keywords: "todo" },
-  { id: "cal", label: "Calendar", emoji: "🗓️", href: "/calendar", group: "Navigate", keywords: "schedule events" },
-  { id: "courses", label: "Courses", emoji: "📚", href: "/courses", group: "Navigate", keywords: "learning" },
-  { id: "classroom", label: "Classroom", emoji: "🎓", href: "/classroom", group: "Navigate", keywords: "live class" },
-  { id: "wallet", label: "Wallet", emoji: "💰", href: "/wallet", group: "Navigate", keywords: "money payouts" },
-  { id: "leader", label: "Leaderboard", emoji: "🏆", href: "/leaderboard", group: "Navigate", keywords: "rank" },
-  { id: "badges", label: "Badges", emoji: "🎖️", href: "/badges", group: "Navigate" },
-  { id: "missions", label: "Missions", emoji: "🎯", href: "/missions", group: "Navigate" },
-  { id: "streaks", label: "Streaks", emoji: "🔥", href: "/streaks", group: "Navigate" },
-  { id: "prod", label: "Productivity Hub", emoji: "⚡", href: "/productivity", group: "Navigate" },
-  { id: "planner", label: "Planner", emoji: "🗒️", href: "/planner", group: "Navigate" },
-  { id: "alarms", label: "Alarms & Clock", emoji: "⏰", href: "/alarms", group: "Navigate" },
-  { id: "reminders", label: "Reminders", emoji: "🔔", href: "/reminders", group: "Navigate" },
-  { id: "focus", label: "Focus mode", emoji: "🧘", href: "/focus-mode", group: "Navigate" },
-  { id: "notes", label: "Notes", emoji: "📝", href: "/notes", group: "Navigate" },
-  { id: "perf", label: "Performance", emoji: "📈", href: "/performance", group: "Navigate" },
-  { id: "comm", label: "Community", emoji: "👥", href: "/community", group: "Navigate" },
-  { id: "ann", label: "Announcements", emoji: "📣", href: "/announcements", group: "Navigate" },
-  { id: "ai", label: "AI Hub", emoji: "🤖", href: "/ai-hub", group: "Navigate" },
-  { id: "docs", label: "Documents", emoji: "📄", href: "/documents", group: "Navigate" },
-  { id: "opps", label: "Opportunities", emoji: "💼", href: "/opportunities", group: "Navigate" },
-  { id: "certs", label: "Certificates", emoji: "🎓", href: "/certificates", group: "Navigate" },
-  { id: "myanal", label: "My Analytics", emoji: "📊", href: "/my-analytics", group: "Navigate" },
-  { id: "notif", label: "Notifications", emoji: "🔔", href: "/notifications", group: "Navigate" },
-  { id: "settings", label: "Settings", emoji: "⚙️", href: "/settings", group: "Navigate" },
-  { id: "profile", label: "Profile", emoji: "👤", href: "/profile", group: "Navigate" },
-  { id: "help", label: "Help & Support", emoji: "💬", href: "/help", group: "Navigate", keywords: "faq ticket contact" },
-  { id: "admin-promos", label: "Admin · Promotion queue", emoji: "🎖", href: "/admin/promotions", group: "Navigate", keywords: "promote rank admin" },
-  { id: "admin-integ", label: "Admin · Integrations", emoji: "🔌", href: "/admin/integrations", group: "Navigate", keywords: "webhooks api tokens" },
+const INTERN_ROLES = ["intern", "team_lead"];
+const ADMIN_ROLES = ["admin", "super_admin"];
+const MOD_ROLES = ["admin", "super_admin", "moderator"];
+const ALL_STAFF = ["admin", "super_admin", "moderator", "instructor", "finance", "support", "team_lead"];
 
-  { id: "new-task", label: "New task", emoji: "➕", href: "/tasks?new=1", group: "Quick action" },
-  { id: "new-event", label: "New calendar event", emoji: "➕", href: "/calendar?new=1", group: "Quick action" },
-  { id: "new-note", label: "New note", emoji: "➕", href: "/notes?new=1", group: "Quick action" },
-  { id: "new-msg", label: "New message", emoji: "✉️", href: "/messages?new=1", group: "Quick action" },
+const COMMANDS: Cmd[] = [
+  // ── Universal ────────────────────────────────────────────────────────────
+  { id: "dash",      label: "Dashboard",        emoji: "🏠", href: "/dashboard",     group: "Navigate" },
+  { id: "msg",       label: "Messages",          emoji: "💬", href: "/messages",      group: "Navigate", keywords: "chat dm" },
+  { id: "notif",     label: "Notifications",     emoji: "🔔", href: "/notifications", group: "Navigate" },
+  { id: "settings",  label: "Settings",          emoji: "⚙️", href: "/settings",      group: "Navigate" },
+  { id: "profile",   label: "Profile",           emoji: "👤", href: "/profile",       group: "Navigate" },
+  { id: "help",      label: "Help & Support",    emoji: "💬", href: "/help",          group: "Navigate", keywords: "faq ticket contact" },
+  { id: "ann",       label: "Announcements",     emoji: "📣", href: "/announcements", group: "Navigate" },
+  { id: "cal",       label: "Calendar",          emoji: "🗓️", href: "/calendar",      group: "Navigate", keywords: "schedule events" },
+  { id: "opps",      label: "Opportunities",     emoji: "💼", href: "/opportunities", group: "Navigate" },
+  { id: "comm",      label: "Community",         emoji: "👥", href: "/community",     group: "Navigate" },
+  { id: "leader",    label: "Leaderboard",       emoji: "🏆", href: "/leaderboard",   group: "Navigate", keywords: "rank" },
+
+  // ── Intern / Team Lead ───────────────────────────────────────────────────
+  { id: "projects",  label: "Projects",          emoji: "📁", href: "/projects",      group: "Navigate", keywords: "assignments eagle", roles: [...INTERN_ROLES, ...ADMIN_ROLES, "moderator"] },
+  { id: "tasks",     label: "Tasks",             emoji: "✅", href: "/tasks",         group: "Navigate", keywords: "todo",              roles: [...INTERN_ROLES, ...ALL_STAFF] },
+  { id: "courses",   label: "Courses",           emoji: "📚", href: "/courses",       group: "Navigate", keywords: "learning",          roles: [...INTERN_ROLES, "instructor", ...ADMIN_ROLES] },
+  { id: "classroom", label: "Classroom",         emoji: "🎓", href: "/classroom",     group: "Navigate", keywords: "live class",        roles: [...INTERN_ROLES, "instructor", ...ADMIN_ROLES] },
+  { id: "wallet",    label: "Wallet",            emoji: "💰", href: "/wallet",        group: "Navigate", keywords: "money payouts",     roles: [...INTERN_ROLES, ...ADMIN_ROLES, "finance"] },
+  { id: "badges",    label: "Badges",            emoji: "🎖️", href: "/badges",        group: "Navigate",                               roles: [...INTERN_ROLES, ...ADMIN_ROLES] },
+  { id: "missions",  label: "Missions",          emoji: "🎯", href: "/missions",      group: "Navigate",                               roles: [...INTERN_ROLES, ...ADMIN_ROLES] },
+  { id: "streaks",   label: "Streaks",           emoji: "🔥", href: "/streaks",       group: "Navigate",                               roles: [...INTERN_ROLES, ...ADMIN_ROLES] },
+  { id: "certs",     label: "Certificates",      emoji: "🎓", href: "/certificates",  group: "Navigate",                               roles: [...INTERN_ROLES, ...ADMIN_ROLES] },
+  { id: "myanal",    label: "My Analytics",      emoji: "📊", href: "/my-analytics",  group: "Navigate",                               roles: [...INTERN_ROLES, ...ADMIN_ROLES] },
+  { id: "perf",      label: "Performance",       emoji: "📈", href: "/performance",   group: "Navigate",                               roles: [...INTERN_ROLES, ...ADMIN_ROLES] },
+  { id: "prod",      label: "Productivity Hub",  emoji: "⚡", href: "/productivity",  group: "Navigate",                               roles: [...INTERN_ROLES, ...ALL_STAFF] },
+  { id: "planner",   label: "Planner",           emoji: "🗒️", href: "/planner",       group: "Navigate",                               roles: [...INTERN_ROLES, ...ALL_STAFF] },
+  { id: "alarms",    label: "Alarms & Clock",    emoji: "⏰", href: "/alarms",        group: "Navigate",                               roles: [...INTERN_ROLES, ...ALL_STAFF] },
+  { id: "reminders", label: "Reminders",         emoji: "🔔", href: "/reminders",     group: "Navigate",                               roles: [...INTERN_ROLES, ...ALL_STAFF] },
+  { id: "focus",     label: "Focus Mode",        emoji: "🧘", href: "/focus-mode",    group: "Navigate",                               roles: [...INTERN_ROLES, ...ALL_STAFF] },
+  { id: "notes",     label: "Notes",             emoji: "📝", href: "/notes",         group: "Navigate",                               roles: [...INTERN_ROLES, ...ALL_STAFF] },
+  { id: "docs",      label: "Documents",         emoji: "📄", href: "/documents",     group: "Navigate",                               roles: [...INTERN_ROLES, ...ALL_STAFF] },
+  { id: "ai",        label: "AI Hub",            emoji: "🤖", href: "/ai-hub",        group: "Navigate",                               roles: [...INTERN_ROLES, ...ADMIN_ROLES, "instructor"] },
+  { id: "peer",      label: "Peer Review",       emoji: "🤝", href: "/peer-review",   group: "Navigate",                               roles: [...INTERN_ROLES] },
+  { id: "buddy",     label: "Study Buddy",       emoji: "📖", href: "/study-buddy",   group: "Navigate",                               roles: [...INTERN_ROLES] },
+  { id: "mentor",    label: "Mentorship",        emoji: "🧑‍🏫", href: "/mentorship",   group: "Navigate",                               roles: [...INTERN_ROLES, "mentor"] },
+  { id: "alumni-p",  label: "Alumni",            emoji: "🎓", href: "/alumni",        group: "Navigate",                               roles: ["alumni", ...ADMIN_ROLES] },
+  { id: "mktplace",  label: "Marketplace",       emoji: "🛒", href: "/marketplace",   group: "Navigate",                               roles: [...INTERN_ROLES, ...ADMIN_ROLES, "alumni"] },
+  { id: "creative",  label: "Creative Space",    emoji: "🏫", href: "/creative-space", group: "Navigate",                              roles: [...INTERN_ROLES, "instructor", ...ADMIN_ROLES] },
+  { id: "wellness",  label: "Wellness",          emoji: "💚", href: "/wellness",      group: "Navigate",                               roles: [...INTERN_ROLES, ...ADMIN_ROLES] },
+
+  // ── Recruiter ────────────────────────────────────────────────────────────
+  { id: "rec-hub",   label: "Recruiter Hub",     emoji: "🏢", href: "/recruiter",           group: "Navigate", roles: ["recruiter", ...ADMIN_ROLES] },
+  { id: "rec-tp",    label: "Talent Pool",       emoji: "🌟", href: "/recruiter/talent-pool", group: "Navigate", roles: ["recruiter", ...ADMIN_ROLES] },
+  { id: "rec-int",   label: "Interviews",        emoji: "🎯", href: "/recruiter/interviews",  group: "Navigate", roles: ["recruiter", ...ADMIN_ROLES] },
+
+  // ── Instructor ───────────────────────────────────────────────────────────
+  { id: "inst",      label: "Instructor Portal", emoji: "🎓", href: "/instructor",    group: "Navigate", roles: ["instructor", ...ADMIN_ROLES] },
+
+  // ── Team Lead ────────────────────────────────────────────────────────────
+  { id: "tl",        label: "Team Lead Portal",  emoji: "👥", href: "/team-lead",     group: "Navigate", roles: ["team_lead", ...ADMIN_ROLES] },
+
+  // ── Admin ────────────────────────────────────────────────────────────────
+  { id: "admin",       label: "Admin Panel",           emoji: "🛡️", href: "/admin",                  group: "Admin", roles: MOD_ROLES },
+  { id: "adm-users",   label: "Admin · Users",         emoji: "👥", href: "/admin/users",             group: "Admin", roles: ADMIN_ROLES },
+  { id: "adm-comp",    label: "Admin · Compliance",    emoji: "📋", href: "/admin/compliance",        group: "Admin", roles: MOD_ROLES },
+  { id: "adm-proj",    label: "Admin · Projects",      emoji: "📁", href: "/admin/projects",          group: "Admin", roles: MOD_ROLES },
+  { id: "adm-well",    label: "Admin · Wellness",      emoji: "💚", href: "/admin/wellness",          group: "Admin", roles: ADMIN_ROLES },
+  { id: "adm-fin",     label: "Admin · Finance",       emoji: "💸", href: "/admin/finance",           group: "Admin", roles: [...ADMIN_ROLES, "finance"] },
+  { id: "adm-promos",  label: "Admin · Promotions",    emoji: "🎖", href: "/admin/promotions",        group: "Admin", roles: ADMIN_ROLES },
+  { id: "adm-integ",   label: "Admin · Integrations",  emoji: "🔌", href: "/admin/integrations",      group: "Admin", roles: ADMIN_ROLES },
+  { id: "adm-broad",   label: "Admin · Broadcast",     emoji: "📢", href: "/admin/broadcast",         group: "Admin", roles: ADMIN_ROLES },
+  { id: "adm-appeals", label: "Admin · Appeals",       emoji: "⚖️", href: "/admin/appeals",           group: "Admin", roles: MOD_ROLES },
+  { id: "adm-mentors", label: "Admin · Mentors",       emoji: "🧑‍🏫", href: "/admin/mentors",          group: "Admin", roles: ADMIN_ROLES },
+  { id: "adm-alumni",  label: "Admin · Alumni",        emoji: "🎓", href: "/admin/alumni",            group: "Admin", roles: ADMIN_ROLES },
+  { id: "super",       label: "Super Admin",           emoji: "👑", href: "/super-admin",             group: "Admin", roles: ["super_admin"] },
+
+  // ── Quick actions ────────────────────────────────────────────────────────
+  { id: "new-task",  label: "New task",              emoji: "➕", href: "/tasks?new=1",    group: "Quick action" },
+  { id: "new-event", label: "New calendar event",    emoji: "➕", href: "/calendar?new=1", group: "Quick action" },
+  { id: "new-note",  label: "New note",              emoji: "➕", href: "/notes?new=1",    group: "Quick action" },
+  { id: "new-msg",   label: "New message",           emoji: "✉️", href: "/messages?new=1", group: "Quick action" },
 ];
 
 export function CommandPalette() {
@@ -72,26 +115,32 @@ export function CommandPalette() {
   const [recents, setRecents] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { if (pathname && COMMANDS.some((c) => c.href === pathname)) pushRecent(pathname); }, [pathname]);
+  // Respect the preview role for super admins
+  const storeRole = useAppStore((s) => s.role);
+  const user = useCurrentUser();
+  const effectiveRole = user.role === "super_admin" ? storeRole : user.role;
+
+  // Role-filtered command list
+  const visibleCommands = useMemo(
+    () => COMMANDS.filter((c) => !c.roles || c.roles.includes(effectiveRole ?? "")),
+    [effectiveRole],
+  );
+
+  useEffect(() => { if (pathname && visibleCommands.some((c) => c.href === pathname)) pushRecent(pathname); }, [pathname, visibleCommands]);
   useEffect(() => { if (open) setRecents(loadRecents()); }, [open]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const isMac = navigator.platform.toLowerCase().includes("mac");
       if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setOpen((o) => !o);
-        return;
+        e.preventDefault(); setOpen((o) => !o); return;
       }
       if (e.key === "Escape" && open) setOpen(false);
     };
     const onOpen = () => setOpen(true);
     window.addEventListener("keydown", onKey);
     window.addEventListener("cios:open-palette", onOpen);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("cios:open-palette", onOpen);
-    };
+    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("cios:open-palette", onOpen); };
   }, [open]);
 
   useEffect(() => {
@@ -102,18 +151,18 @@ export function CommandPalette() {
     const query = q.trim().toLowerCase();
     if (!query) {
       const recentCmds = recents.map((href) => {
-        const c = COMMANDS.find((x) => x.href === href);
+        const c = visibleCommands.find((x) => x.href === href);
         return c ? { ...c, group: "Recent" } : null;
       }).filter(Boolean) as Cmd[];
-      const others = COMMANDS.filter((c) => !recents.includes(c.href));
+      const others = visibleCommands.filter((c) => !recents.includes(c.href));
       return [...recentCmds, ...others];
     }
-    return COMMANDS.filter((c) =>
+    return visibleCommands.filter((c) =>
       c.label.toLowerCase().includes(query) ||
       c.group.toLowerCase().includes(query) ||
       (c.keywords || "").toLowerCase().includes(query),
     );
-  }, [q]);
+  }, [q, recents, visibleCommands]);
 
   const go = (c: Cmd) => { setOpen(false); router.push(c.href); };
 

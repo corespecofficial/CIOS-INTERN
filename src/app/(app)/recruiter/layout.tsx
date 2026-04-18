@@ -46,9 +46,24 @@ export default async function RecruiterLayout({ children }: { children: React.Re
   }
 
   return (
-    <div style={{ maxWidth: 1300, margin: "0 auto", display: "grid", gridTemplateColumns: "220px 1fr", gap: 18, fontFamily: "'Nunito', sans-serif" }}>
-      <RecruiterNav />
-      <div style={{ minWidth: 0 }}>{children}</div>
-    </div>
+    <>
+      <style>{`
+        @media (max-width: 768px) {
+          .recruiter-layout { grid-template-columns: 1fr !important; gap: 0 !important; }
+          .recruiter-sidebar { display: none !important; }
+          .recruiter-mobile-tabs { display: flex !important; }
+        }
+        @media (min-width: 769px) {
+          .recruiter-mobile-tabs { display: none !important; }
+        }
+      `}</style>
+      <div className="recruiter-layout" style={{ maxWidth: 1300, margin: "0 auto", display: "grid", gridTemplateColumns: "220px 1fr", gap: 18, fontFamily: "'Nunito', sans-serif" }}>
+        <div className="recruiter-sidebar"><RecruiterNav /></div>
+        <div style={{ minWidth: 0 }}>
+          <RecruiterNav mobile />
+          {children}
+        </div>
+      </div>
+    </>
   );
 }
