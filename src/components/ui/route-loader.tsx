@@ -79,17 +79,21 @@ export function RouteLoader() {
     const show = () => {
       const startIdx = Math.floor(Math.random() * QUOTES.length);
       navPending.current = true;
-      setLeaving(false);
-      setQuoteIdx(startIdx);
-      setVisible(true);
+      // Defer state updates to avoid scheduling them during React's
+      // useInsertionEffect / render phase (throws in Next.js 16+ / Turbopack)
+      setTimeout(() => {
+        setLeaving(false);
+        setQuoteIdx(startIdx);
+        setVisible(true);
 
-      stopRotation();
-      quoteInterval.current = setInterval(() => {
-        setQuoteIdx((i) => (i + 1) % QUOTES.length);
-      }, 2500);
+        stopRotation();
+        quoteInterval.current = setInterval(() => {
+          setQuoteIdx((i) => (i + 1) % QUOTES.length);
+        }, 2500);
 
-      if (maxTimer.current) clearTimeout(maxTimer.current);
-      maxTimer.current = setTimeout(dismiss, MAX_MS);
+        if (maxTimer.current) clearTimeout(maxTimer.current);
+        maxTimer.current = setTimeout(dismiss, MAX_MS);
+      }, 0);
     };
 
     const tryShow = (fromPath: string, toPath: string) => {

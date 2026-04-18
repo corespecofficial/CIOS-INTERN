@@ -114,15 +114,29 @@ export default async function LevelsPage() {
             🎯 Level Curve (First 15)
           </h2>
           {rows.slice(0, 15).map((r) => (
-            <div key={r.level} className={`level-row${r.current ? " current" : ""}`}>
-              <span style={{ color: r.current ? "#1E88E5" : "#E8EDF5", fontWeight: r.current ? 800 : 500, display: "flex", alignItems: "center", gap: 6 }}>
-                {r.current && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#1E88E5", display: "inline-block" }} />}
-                Level {r.level}
-                {r.current && <span style={{ fontSize: 10, fontWeight: 700, color: "#1E88E5", background: "rgba(30,136,229,0.15)", padding: "1px 7px", borderRadius: 20 }}>YOU</span>}
-              </span>
-              <span style={{ color: r.current ? "#1E88E5" : "#6B7280", fontWeight: r.current ? 700 : 400, fontSize: 12 }}>
-                {formatXP(r.xpNeeded)} XP
-              </span>
+            <div key={r.level} className={`level-row${r.current ? " current" : ""}`} style={r.current ? { flexDirection: "column", alignItems: "stretch", gap: 6 } : {}}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ color: r.current ? "#1E88E5" : "#E8EDF5", fontWeight: r.current ? 800 : 500, display: "flex", alignItems: "center", gap: 6 }}>
+                  {r.current && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#1E88E5", display: "inline-block" }} />}
+                  Level {r.level}
+                  {r.current && <span style={{ fontSize: 10, fontWeight: 700, color: "#1E88E5", background: "rgba(30,136,229,0.15)", padding: "1px 7px", borderRadius: 20 }}>YOU</span>}
+                </span>
+                <span style={{ color: r.current ? "#1E88E5" : "#6B7280", fontWeight: r.current ? 700 : 400, fontSize: 12 }}>
+                  {r.current
+                    ? `${formatXP(xp)} / ${formatXP(progress.nextLevelXP)} XP`
+                    : `${formatXP(r.xpNeeded)} XP`}
+                </span>
+              </div>
+              {r.current && (
+                <div style={{ height: 5, background: "rgba(255,255,255,0.07)", borderRadius: 999, overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%", borderRadius: 999,
+                    background: "linear-gradient(90deg, #1E88E5, #AB47BC)",
+                    width: `${progress.progressPct}%`,
+                    transition: "width 0.6s ease",
+                  }} />
+                </div>
+              )}
             </div>
           ))}
         </section>
@@ -136,17 +150,28 @@ export default async function LevelsPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8 }}>
           {rows.map((r) => (
             <div key={r.level} style={{
-              display: "flex", justifyContent: "space-between", alignItems: "center",
+              display: "flex", flexDirection: "column", gap: 4,
               padding: "8px 12px", borderRadius: 10,
               background: r.current ? "rgba(30,136,229,0.12)" : "rgba(255,255,255,0.03)",
               border: r.current ? "1px solid rgba(30,136,229,0.3)" : "1px solid transparent",
             }}>
-              <span style={{ fontSize: 12, fontWeight: r.current ? 800 : 500, color: r.current ? "#1E88E5" : "#9CA3AF" }}>
-                Lv {r.level}
-              </span>
-              <span style={{ fontSize: 11, color: r.current ? "#1E88E5" : "#4B5563", fontWeight: r.current ? 700 : 400 }}>
-                {formatXP(r.xpNeeded)}
-              </span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 12, fontWeight: r.current ? 800 : 500, color: r.current ? "#1E88E5" : "#9CA3AF" }}>
+                  Lv {r.level}{r.current ? " ◀" : ""}
+                </span>
+                <span style={{ fontSize: 11, color: r.current ? "#1E88E5" : "#4B5563", fontWeight: r.current ? 700 : 400 }}>
+                  {r.current ? formatXP(xp) : formatXP(r.xpNeeded)}
+                </span>
+              </div>
+              {r.current && (
+                <div style={{ height: 3, background: "rgba(255,255,255,0.07)", borderRadius: 999, overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%", borderRadius: 999,
+                    background: "linear-gradient(90deg, #1E88E5, #AB47BC)",
+                    width: `${progress.progressPct}%`,
+                  }} />
+                </div>
+              )}
             </div>
           ))}
         </div>
