@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { setFeatureFlag, setSystemLock, clearPlatformCache, type FeatureFlags } from "@/app/actions/platform-settings";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { motion } from "framer-motion";
 import {
   Shield,
@@ -76,6 +77,7 @@ interface SuperAdminProps {
 export function SuperAdminDashboard({ stats, featureFlags, roleBreakdown }: SuperAdminProps = {}) {
   const display = stats ?? { totalUsers: 0, totalRevenue: 0, orgs: 1, systemHealth: 100 };
   const router = useRouter();
+  const isMobile = useIsMobile();
 
   const defaultFlags: FeatureFlags = { ai_copilot: true, spin_wheel: true, fine_system: true, community: true, payouts: false };
   const [flags, setFlags] = useState<FeatureFlags>(featureFlags ?? defaultFlags);
@@ -129,57 +131,30 @@ export function SuperAdminDashboard({ stats, featureFlags, roleBreakdown }: Supe
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <style>{`
-        @media (max-width: 600px) {
-          .pd-sa-stats { grid-template-columns: repeat(2, 1fr) !important; }
-          .pd-portals-grid { grid-template-columns: 1fr 1fr !important; }
-        }
-      `}</style>
+    <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 14 : 24 }}>
       {/* Banner */}
-      <div
-        style={{
-          background: "linear-gradient(135deg, rgba(239,83,80,0.12), rgba(171,71,188,0.10))",
-          border: "1px solid rgba(239,83,80,0.2)",
-          borderRadius: 16,
-          padding: 24,
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-        }}
-      >
-        <img
-          src={MASCOT}
-          alt="Mascot"
-          style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover" }}
-        />
-        <div style={{ flex: 1 }}>
-          <span
-            style={{
-              display: "inline-block",
-              background: "#EF5350",
-              color: "#fff",
-              fontSize: 11,
-              fontWeight: 600,
-              padding: "3px 10px",
-              borderRadius: 999,
-              marginBottom: 6,
-              letterSpacing: 0.5,
-            }}
-          >
+      <div style={{
+        background: "linear-gradient(135deg, rgba(239,83,80,0.12), rgba(171,71,188,0.10))",
+        border: "1px solid rgba(239,83,80,0.2)",
+        borderRadius: 16, padding: isMobile ? "14px 16px" : 24,
+        display: "flex", alignItems: "center", gap: 12,
+      }}>
+        <img src={MASCOT} alt="Mascot" style={{ width: isMobile ? 44 : 56, height: isMobile ? 44 : 56, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ display: "inline-block", background: "#EF5350", color: "#fff", fontSize: 10, fontWeight: 600, padding: "3px 10px", borderRadius: 999, marginBottom: 4, letterSpacing: 0.5 }}>
             SUPER ADMIN &ndash; CRITICAL ACCESS
           </span>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: "#E8EDF5", margin: 0 }}>
+          <h1 style={{ fontSize: isMobile ? 18 : 24, fontWeight: 700, color: "#E8EDF5", margin: 0, lineHeight: 1.2 }}>
             Super Admin Control Center
           </h1>
-          <p style={{ fontSize: 14, color: "#8892A4", margin: 0, marginTop: 4 }}>
+          <p style={{ fontSize: isMobile ? 11 : 14, color: "#8892A4", margin: 0, marginTop: 4 }}>
             Full system control. All actions are logged and auditable.
           </p>
         </div>
       </div>
 
       {/* 4 Stat Cards */}
-      <div className="pd-sa-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: isMobile ? 10 : 16 }}>
         {[
           { value: display.totalUsers.toLocaleString(), label: "Total Users", color: "#1E88E5" },
           { value: display.orgs.toString(), label: "Organizations", color: "#AB47BC" },
@@ -324,21 +299,10 @@ export function SuperAdminDashboard({ stats, featureFlags, roleBreakdown }: Supe
       </div>
 
       {/* Platform Portals */}
-      <div
-        style={{
-          background: "#111827",
-          borderRadius: 16,
-          padding: 24,
-          border: "1px solid rgba(255,255,255,0.07)",
-        }}
-      >
-        <h3 style={{ fontSize: 16, fontWeight: 600, color: "#E8EDF5", margin: 0, marginBottom: 4 }}>
-          Platform Portals
-        </h3>
-        <p style={{ fontSize: 13, color: "#8892A4", margin: "0 0 20px 0" }}>
-          Quick access to all major portals and admin panels.
-        </p>
-        <div className="pd-portals-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+      <div style={{ background: "#111827", borderRadius: 16, padding: isMobile ? "16px 14px" : 24, border: "1px solid rgba(255,255,255,0.07)" }}>
+        <h3 style={{ fontSize: isMobile ? 14 : 16, fontWeight: 600, color: "#E8EDF5", margin: 0, marginBottom: 4 }}>Platform Portals</h3>
+        <p style={{ fontSize: 12, color: "#8892A4", margin: "0 0 14px 0" }}>Quick access to all major portals and admin panels.</p>
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: isMobile ? 8 : 12 }}>
           {[
             { emoji: "🛒", label: "Marketplace", sub: "Products & seller earnings", href: "/marketplace", color: "#1E88E5" },
             { emoji: "🎨", label: "Creative Spaces", sub: "Hosted learning spaces", href: "/creative-space", color: "#AB47BC" },
@@ -353,43 +317,30 @@ export function SuperAdminDashboard({ stats, featureFlags, roleBreakdown }: Supe
             { emoji: "🏫", label: "Admin Spaces", sub: "Approve creative spaces", href: "/admin/creative-spaces", color: "#AB47BC" },
             { emoji: "👥", label: "Admin Alumni", sub: "Manage graduates", href: "/admin/alumni", color: "#FFC107" },
           ].map((portal) => (
-            <a
-              key={portal.label}
-              href={portal.href}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: "14px 16px",
-                borderRadius: 12,
-                background: "rgba(255,255,255,0.02)",
-                border: `1px solid ${portal.color}33`,
-                textDecoration: "none",
-                transition: "border-color 0.2s",
-              }}
-            >
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  background: `${portal.color}22`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 20,
-                  flexShrink: 0,
-                }}
-              >
+            <a key={portal.label} href={portal.href} style={{
+              display: "flex", alignItems: "center",
+              gap: isMobile ? 8 : 12,
+              padding: isMobile ? "10px 12px" : "14px 16px",
+              borderRadius: 12,
+              background: "rgba(255,255,255,0.02)",
+              border: `1px solid ${portal.color}33`,
+              textDecoration: "none",
+              minWidth: 0, overflow: "hidden",
+            }}>
+              <div style={{
+                width: isMobile ? 32 : 40, height: isMobile ? 32 : 40,
+                borderRadius: isMobile ? 8 : 10,
+                background: `${portal.color}22`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: isMobile ? 16 : 20, flexShrink: 0,
+              }}>
                 {portal.emoji}
               </div>
-              <div style={{ minWidth: 0 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: "#E8EDF5", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <div style={{ minWidth: 0, overflow: "hidden" }}>
+                <p style={{ fontSize: isMobile ? 11 : 13, fontWeight: 600, color: "#E8EDF5", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {portal.label}
                 </p>
-                <p style={{ fontSize: 11, color: "#8892A4", margin: 0, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {portal.sub}
-                </p>
+                {!isMobile && <p style={{ fontSize: 11, color: "#8892A4", margin: 0, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{portal.sub}</p>}
               </div>
             </a>
           ))}
