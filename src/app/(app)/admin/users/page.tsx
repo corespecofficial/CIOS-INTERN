@@ -1,5 +1,3 @@
-"use server";
-
 import { getCurrentDbUser, supabaseAdmin } from "@/lib/db";
 import { redirect } from "next/navigation";
 import AdminUsersClient from "./admin-users-client";
