@@ -3,7 +3,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { AdminUserRow } from "./page";
 
 const ROLE_META: Record<string, { label: string; color: string }> = {
@@ -37,9 +36,12 @@ function formatDate(iso: string | null | undefined): string {
 
 const ROLES_FILTER = ["all", "intern", "team_lead", "admin", "super_admin", "instructor", "moderator", "finance", "support", "recruiter", "mentor", "alumni"];
 
+function isSuspended(u: AdminUserRow) {
+  return u.status === "suspended" || u.status === "banned";
+}
+
 export default function AdminUsersClient({ users }: { users: AdminUserRow[] }) {
   const router = useRouter();
-  const isMobile = useIsMobile();
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState("all");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "suspended">("all");
@@ -48,16 +50,26 @@ export default function AdminUsersClient({ users }: { users: AdminUserRow[] }) {
     const q = search.toLowerCase();
     const matchSearch = !q || (u.name || "").toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q);
     const matchRole = filterRole === "all" || u.role === filterRole;
-    const matchStatus = filterStatus === "all" || (filterStatus === "suspended" ? u.is_suspended : !u.is_suspended);
+    const suspended = isSuspended(u);
+    const matchStatus = filterStatus === "all" || (filterStatus === "suspended" ? suspended : !suspended);
     return matchSearch && matchRole && matchStatus;
   });
 
   const totalInterns = users.filter(u => u.role === "intern").length;
-  const totalSuspended = users.filter(u => u.is_suspended).length;
-  const totalActive = users.filter(u => !u.is_suspended).length;
+  const totalSuspended = users.filter(u => isSuspended(u)).length;
+  const totalActive = users.filter(u => !isSuspended(u)).length;
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", fontFamily: "'Nunito', sans-serif" }}>
+      <style>{`
+        .au-table-wrap { display: block; }
+        .au-cards-wrap { display: none; }
+        @media (max-width: 640px) {
+          .au-table-wrap { display: none; }
+          .au-cards-wrap { display: flex; flex-direction: column; gap: 10px; }
+        }
+      `}</style>
+
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <span style={{
@@ -69,17 +81,18 @@ export default function AdminUsersClient({ users }: { users: AdminUserRow[] }) {
           All Users
         </h1>
         <p style={{ color: "#6B7280", fontSize: 13, margin: 0 }}>
-          {users.length} users total · {totalInterns} interns · {totalActive} active · {totalSuspended} suspended
+          {users.length} users · {totalInterns} interns · {totalActive} active · {totalSuspended} suspended
         </p>
       </div>
 
-      {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
+      {/* Stats 2×2 on mobile, 4×1 on desktop */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 20 }}>
+        <style>{`@media (min-width: 641px) { .au-stats { grid-template-columns: repeat(4, 1fr) !important; } }`}</style>
         {[
-          { label: "Total Users", value: users.length, color: "#1E88E5" },
-          { label: "Interns", value: totalInterns, color: "#AB47BC" },
-          { label: "Active", value: totalActive, color: "#66BB6A" },
-          { label: "Suspended", value: totalSuspended, color: "#EF5350" },
+          { label: "Total Users",  value: users.length,     color: "#1E88E5" },
+          { label: "Interns",      value: totalInterns,     color: "#AB47BC" },
+          { label: "Active",       value: totalActive,      color: "#66BB6A" },
+          { label: "Suspended",    value: totalSuspended,   color: "#EF5350" },
         ].map((s) => (
           <div key={s.label} style={{
             background: "#111827", border: "1px solid rgba(255,255,255,0.07)",
@@ -92,155 +105,163 @@ export default function AdminUsersClient({ users }: { users: AdminUserRow[] }) {
       </div>
 
       {/* Filters */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         <input
           type="text"
-          placeholder="Search by name or email…"
+          placeholder="Search name or email…"
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{
-            flex: 1, minWidth: 200, background: "#111827",
+            flex: 1, minWidth: 160, background: "#111827",
             border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10,
-            padding: "9px 14px", color: "#E8EDF5", fontSize: 13,
-            outline: "none",
+            padding: "9px 12px", color: "#E8EDF5", fontSize: 13, outline: "none",
           }}
         />
-        <select
-          value={filterRole}
-          onChange={e => setFilterRole(e.target.value)}
-          style={{
-            background: "#111827", border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 10, padding: "9px 14px", color: "#E8EDF5",
-            fontSize: 13, cursor: "pointer", outline: "none",
-          }}
-        >
+        <select value={filterRole} onChange={e => setFilterRole(e.target.value)}
+          style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "9px 12px", color: "#E8EDF5", fontSize: 12, cursor: "pointer", outline: "none" }}>
           {ROLES_FILTER.map(r => (
             <option key={r} value={r}>{r === "all" ? "All roles" : getRoleMeta(r).label}</option>
           ))}
         </select>
-        <select
-          value={filterStatus}
-          onChange={e => setFilterStatus(e.target.value as "all" | "active" | "suspended")}
-          style={{
-            background: "#111827", border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 10, padding: "9px 14px", color: "#E8EDF5",
-            fontSize: 13, cursor: "pointer", outline: "none",
-          }}
-        >
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as "all" | "active" | "suspended")}
+          style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "9px 12px", color: "#E8EDF5", fontSize: 12, cursor: "pointer", outline: "none" }}>
           <option value="all">All status</option>
           <option value="active">Active</option>
           <option value="suspended">Suspended</option>
         </select>
       </div>
 
-      {/* Table */}
-      <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                {["User", "Role", "XP / Level", "Performance", "Last Active", "Status"].map(h => (
-                  <th key={h} style={{
-                    padding: "12px 16px", textAlign: "left",
-                    color: "#6B7280", fontWeight: 700, fontSize: 11,
-                    textTransform: "uppercase", letterSpacing: 0.6,
-                    whiteSpace: "nowrap",
-                  }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} style={{ padding: "32px 16px", textAlign: "center", color: "#4B5563" }}>
-                    No users match your filters
-                  </td>
+      {/* ── DESKTOP TABLE ── */}
+      <div className="au-table-wrap">
+        <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                  {["User", "Role", "XP / Level", "Performance", "Last Seen", "Status"].map(h => (
+                    <th key={h} style={{ padding: "12px 16px", textAlign: "left", color: "#6B7280", fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.6, whiteSpace: "nowrap" }}>{h}</th>
+                  ))}
                 </tr>
-              ) : filtered.map((u) => {
-                const rm = getRoleMeta(u.role);
-                return (
-                  <tr
-                    key={u.id}
-                    onClick={() => router.push(`/super-admin/users`)}
-                    style={{
-                      borderBottom: "1px solid rgba(255,255,255,0.04)",
-                      cursor: "pointer",
-                      transition: "background 0.15s",
-                    }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
-                  >
-                    {/* User */}
-                    <td style={{ padding: "12px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        {u.avatar_url ? (
-                          <img src={u.avatar_url} alt="" width={32} height={32}
-                            style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                        ) : (
-                          <div style={{
-                            width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
-                            background: `${rm.color}22`, display: "flex", alignItems: "center",
-                            justifyContent: "center", fontSize: 13, fontWeight: 700, color: rm.color,
-                          }}>
-                            {(u.name || u.email || "?")[0].toUpperCase()}
-                          </div>
-                        )}
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontWeight: 700, color: "#E8EDF5", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
-                            {u.name || "Unnamed"}
-                          </div>
-                          <div style={{ fontSize: 11, color: "#6B7280", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>
-                            {u.email || "—"}
+              </thead>
+              <tbody>
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={6} style={{ padding: "32px 16px", textAlign: "center", color: "#4B5563" }}>No users match</td></tr>
+                ) : filtered.map((u) => {
+                  const rm = getRoleMeta(u.role);
+                  const suspended = isSuspended(u);
+                  const perf = u.performance ?? 0;
+                  return (
+                    <tr key={u.id} onClick={() => router.push(`/super-admin/users`)}
+                      style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", cursor: "pointer" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
+                      onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                    >
+                      <td style={{ padding: "12px 16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          {u.avatar_url
+                            ? <img src={u.avatar_url} alt="" width={32} height={32} style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                            : <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, background: `${rm.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: rm.color }}>{(u.name || u.email || "?")[0].toUpperCase()}</div>
+                          }
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 700, color: "#E8EDF5", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>{u.name || "Unnamed"}</div>
+                            <div style={{ fontSize: 11, color: "#6B7280", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>{u.email || "—"}</div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    {/* Role */}
-                    <td style={{ padding: "12px 16px" }}>
-                      <span style={{
-                        fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
-                        background: `${rm.color}18`, color: rm.color,
-                      }}>{rm.label}</span>
-                    </td>
-                    {/* XP/Level */}
-                    <td style={{ padding: "12px 16px", color: "#FFC107", fontWeight: 700, whiteSpace: "nowrap" }}>
-                      {(u.xp ?? 0).toLocaleString()} XP · Lv {u.level ?? 1}
-                    </td>
-                    {/* Performance */}
-                    <td style={{ padding: "12px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <div style={{ width: 60, height: 4, background: "rgba(255,255,255,0.07)", borderRadius: 999, overflow: "hidden" }}>
-                          <div style={{
-                            height: "100%", borderRadius: 999,
-                            width: `${Math.min(100, u.performance ?? 0)}%`,
-                            background: (u.performance ?? 0) >= 70 ? "#66BB6A" : (u.performance ?? 0) >= 40 ? "#FFC107" : "#EF5350",
-                          }} />
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: `${rm.color}18`, color: rm.color }}>{rm.label}</span>
+                      </td>
+                      <td style={{ padding: "12px 16px", color: "#FFC107", fontWeight: 700, whiteSpace: "nowrap" }}>
+                        {(u.xp ?? 0).toLocaleString()} XP · Lv {u.level}
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ width: 60, height: 4, background: "rgba(255,255,255,0.07)", borderRadius: 999, overflow: "hidden" }}>
+                            <div style={{ height: "100%", borderRadius: 999, width: `${Math.min(100, perf)}%`, background: perf >= 70 ? "#66BB6A" : perf >= 40 ? "#FFC107" : "#EF5350" }} />
+                          </div>
+                          <span style={{ fontSize: 12, color: "#9CA3AF" }}>{perf}%</span>
                         </div>
-                        <span style={{ fontSize: 12, color: "#9CA3AF" }}>{u.performance ?? 0}%</span>
-                      </div>
-                    </td>
-                    {/* Last Active */}
-                    <td style={{ padding: "12px 16px", color: "#6B7280", whiteSpace: "nowrap" }}>
-                      {formatDate(u.last_active_at || u.created_at)}
-                    </td>
-                    {/* Status */}
-                    <td style={{ padding: "12px 16px" }}>
-                      <span style={{
-                        fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
-                        background: u.is_suspended ? "rgba(239,83,80,0.15)" : "rgba(102,187,106,0.15)",
-                        color: u.is_suspended ? "#EF5350" : "#66BB6A",
-                      }}>
-                        {u.is_suspended ? "Suspended" : "Active"}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td style={{ padding: "12px 16px", color: "#6B7280", whiteSpace: "nowrap", fontSize: 12 }}>
+                        {formatDate(u.last_seen || u.created_at)}
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: suspended ? "rgba(239,83,80,0.15)" : "rgba(102,187,106,0.15)", color: suspended ? "#EF5350" : "#66BB6A" }}>
+                          {suspended ? "Suspended" : "Active"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ padding: "10px 16px", color: "#4B5563", fontSize: 12, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+            Showing {filtered.length} of {users.length} · Full role management: Super Admin → Manage Users
+          </div>
         </div>
-        <div style={{ padding: "10px 16px", color: "#4B5563", fontSize: 12, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-          Showing {filtered.length} of {users.length} users · For full role management, use Super Admin → Manage Users
+      </div>
+
+      {/* ── MOBILE CARDS ── */}
+      <div className="au-cards-wrap">
+        {filtered.length === 0 && (
+          <div style={{ padding: "32px 16px", textAlign: "center", color: "#4B5563", background: "#111827", borderRadius: 12, fontSize: 13 }}>
+            No users match
+          </div>
+        )}
+        {filtered.map((u) => {
+          const rm = getRoleMeta(u.role);
+          const suspended = isSuspended(u);
+          const perf = u.performance ?? 0;
+          return (
+            <div key={u.id}
+              onClick={() => router.push(`/super-admin/users`)}
+              style={{
+                background: "#111827", border: "1px solid rgba(255,255,255,0.07)",
+                borderRadius: 12, padding: "14px 16px", cursor: "pointer",
+              }}
+            >
+              {/* Avatar + name + role */}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                {u.avatar_url
+                  ? <img src={u.avatar_url} alt="" width={36} height={36} style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                  : <div style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0, background: `${rm.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: rm.color }}>{(u.name || u.email || "?")[0].toUpperCase()}</div>
+                }
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, color: "#E8EDF5", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name || "Unnamed"}</div>
+                  <div style={{ fontSize: 11, color: "#6B7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.email || "—"}</div>
+                </div>
+                <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: `${rm.color}18`, color: rm.color }}>{rm.label}</span>
+              </div>
+
+              {/* Stats row */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+                <div style={{ background: "rgba(255,193,7,0.07)", borderRadius: 8, padding: "6px 8px", textAlign: "center" }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#FFC107" }}>{(u.xp ?? 0).toLocaleString()}</div>
+                  <div style={{ fontSize: 10, color: "#6B7280" }}>XP</div>
+                </div>
+                <div style={{ background: "rgba(30,136,229,0.07)", borderRadius: 8, padding: "6px 8px", textAlign: "center" }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "#1E88E5" }}>Lv {u.level}</div>
+                  <div style={{ fontSize: 10, color: "#6B7280" }}>Level</div>
+                </div>
+                <div style={{ background: perf >= 70 ? "rgba(102,187,106,0.07)" : perf >= 40 ? "rgba(255,193,7,0.07)" : "rgba(239,83,80,0.07)", borderRadius: 8, padding: "6px 8px", textAlign: "center" }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: perf >= 70 ? "#66BB6A" : perf >= 40 ? "#FFC107" : "#EF5350" }}>{perf}%</div>
+                  <div style={{ fontSize: 10, color: "#6B7280" }}>Perf.</div>
+                </div>
+              </div>
+
+              {/* Last seen + status */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11, color: "#6B7280" }}>Last seen: {formatDate(u.last_seen || u.created_at)}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: suspended ? "rgba(239,83,80,0.15)" : "rgba(102,187,106,0.15)", color: suspended ? "#EF5350" : "#66BB6A" }}>
+                  {suspended ? "Suspended" : "Active"}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+        <div style={{ padding: "10px 0", color: "#4B5563", fontSize: 12, textAlign: "center" }}>
+          {filtered.length} of {users.length} users shown
         </div>
       </div>
     </div>

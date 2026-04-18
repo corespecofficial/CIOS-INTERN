@@ -42,26 +42,58 @@ export function AdminTemplatesClient({ initial }: { initial: NoteTemplateRow[] }
         </div>
       ) : (
         <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 140px 90px 90px 120px", gap: 10, padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.05)", fontSize: 10, color: "#5A6478", fontWeight: 800, textTransform: "uppercase", letterSpacing: 1 }}>
-            <span />
-            <span>Name</span>
-            <span>Category</span>
-            <span>Premium</span>
-            <span>Active</span>
-            <span />
+          <style>{`
+            .nt-header { display: grid; grid-template-columns: 48px 1fr 140px 90px 90px 120px; gap: 10px; padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 10px; color: #5A6478; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+            .nt-row-desktop { display: grid; grid-template-columns: 48px 1fr 140px 90px 90px 120px; gap: 10px; padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.03); align-items: center; }
+            .nt-row-mobile { display: none; }
+            @media (max-width: 640px) {
+              .nt-header { display: none; }
+              .nt-row-desktop { display: none; }
+              .nt-row-mobile { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.05); }
+            }
+          `}</style>
+          <div className="nt-header">
+            <span /><span>Name</span><span>Category</span><span>Premium</span><span>Active</span><span />
           </div>
           {rows.map((r) => (
-            <div key={r.id} style={{ display: "grid", gridTemplateColumns: "48px 1fr 140px 90px 90px 120px", gap: 10, padding: "12px 16px", borderTop: "1px solid rgba(255,255,255,0.03)", alignItems: "center" }}>
-              <div style={{ width: 32, height: 32, borderRadius: 6, background: r.accent, color: "#fff", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                {r.name.slice(0, 2).toUpperCase()}
+            <div key={r.id}>
+              {/* Desktop row */}
+              <div className="nt-row-desktop">
+                <div style={{ width: 32, height: 32, borderRadius: 6, background: r.accent, color: "#fff", fontSize: 11, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center" }}>{r.name.slice(0, 2).toUpperCase()}</div>
+                <div style={{ fontSize: 13, color: "#E8EDF5", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</div>
+                <div style={{ fontSize: 11, color: "#8892A4" }}>{r.category}</div>
+                <Toggle on={r.is_premium} disabled={pending} onChange={() => toggle(r, "is_premium")} />
+                <Toggle on={r.is_active} disabled={pending} onChange={() => toggle(r, "is_active")} />
+                <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                  <button onClick={() => setEditing(r)} style={btnGhost}>Edit</button>
+                  <button onClick={() => remove(r)} disabled={pending} style={{ ...btnGhost, color: "#EF5350" }}>✕</button>
+                </div>
               </div>
-              <div style={{ fontSize: 13, color: "#E8EDF5", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</div>
-              <div style={{ fontSize: 11, color: "#8892A4" }}>{r.category}</div>
-              <Toggle on={r.is_premium} disabled={pending} onChange={() => toggle(r, "is_premium")} />
-              <Toggle on={r.is_active} disabled={pending} onChange={() => toggle(r, "is_active")} />
-              <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                <button onClick={() => setEditing(r)} style={btnGhost}>Edit</button>
-                <button onClick={() => remove(r)} disabled={pending} style={{ ...btnGhost, color: "#EF5350" }}>✕</button>
+              {/* Mobile card */}
+              <div className="nt-row-mobile">
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: r.accent, color: "#fff", fontSize: 12, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{r.name.slice(0, 2).toUpperCase()}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, color: "#E8EDF5", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.name}</div>
+                    <div style={{ fontSize: 11, color: "#8892A4" }}>{r.category}</div>
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                  <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#8892A4" }}>
+                      <Toggle on={r.is_premium} disabled={pending} onChange={() => toggle(r, "is_premium")} />
+                      Premium
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#8892A4" }}>
+                      <Toggle on={r.is_active} disabled={pending} onChange={() => toggle(r, "is_active")} />
+                      Active
+                    </label>
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => setEditing(r)} style={btnGhost}>Edit</button>
+                    <button onClick={() => remove(r)} disabled={pending} style={{ ...btnGhost, color: "#EF5350" }}>✕</button>
+                  </div>
+                </div>
               </div>
             </div>
           ))}
@@ -105,7 +137,8 @@ function TemplateEditor({ row, onClose, onSaved }: { row: NoteTemplateRow | null
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "#0D1220", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 20, width: "100%", maxWidth: 980, maxHeight: "90vh", overflowY: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "#0D1220", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 20, width: "100%", maxWidth: 980, maxHeight: "90vh", overflowY: "auto", display: "grid", gridTemplateColumns: "min(100%, 460px) 1fr", gap: 18 }}>
+        <style>{`@media (max-width: 640px) { .nt-editor-grid { grid-template-columns: 1fr !important; } }`}</style>
         {/* Form */}
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

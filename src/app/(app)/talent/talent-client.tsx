@@ -2,15 +2,24 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { rankFromLevel } from "@/lib/gamification-shared";
 import type { TalentRow } from "@/app/actions/talent";
 
 export function TalentClient({ initial }: { initial: TalentRow[] }) {
+  const router = useRouter();
   const [q, setQ] = useState("");
   const [skill, setSkill] = useState("");
   const [minLevel, setMinLevel] = useState(0);
   const [sort, setSort] = useState<"performance" | "xp" | "reputation" | "level">("performance");
+  const [refreshing, setRefreshing] = useState(false);
+
+  const refresh = useCallback(() => {
+    setRefreshing(true);
+    router.refresh();
+    setTimeout(() => setRefreshing(false), 1200);
+  }, [router]);
 
   const filtered = useMemo(() => {
     const qq = q.toLowerCase();
@@ -34,7 +43,12 @@ export function TalentClient({ initial }: { initial: TalentRow[] }) {
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>🌟 Top CIOS interns & alumni</h1>
           <p style={{ fontSize: 13, color: "#8892A4", margin: "2px 0 0 0" }}>Discover verified talent ranked by real performance, XP, and reputation</p>
         </div>
-        <Link href="/recruiter" style={btnPrimary}>← Recruiter portal</Link>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={refresh} disabled={refreshing} style={{ ...btnPrimary, background: "rgba(255,255,255,0.07)", color: "#8892A4", border: "1px solid rgba(255,255,255,0.12)" }}>
+            {refreshing ? "⟳ Refreshing…" : "⟳ Refresh"}
+          </button>
+          <Link href="/recruiter" style={btnPrimary}>← Recruiter portal</Link>
+        </div>
       </div>
 
       {/* Filters */}

@@ -1,6 +1,7 @@
 "use server";
 
 import { getCurrentDbUser, supabaseAdmin } from "@/lib/db";
+import { levelFromXP } from "@/lib/gamification-shared";
 import { matchApplicant, type ApplicantLike, type OpportunityLike, type MatchResult } from "@/lib/talent-match";
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
@@ -50,7 +51,12 @@ export async function listTalent(filter: TalentFilter = {}): Promise<R<TalentRow
 
     const final: TalentRow[] = rows
       .filter((r) => !filter.skill || (r.skills || []).some((s) => s.toLowerCase().includes(filter.skill!.toLowerCase())))
-      .map((r) => ({ ...r, skills: r.skills || [], badges_count: badgeCount.get(r.id) || 0 }));
+      .map((r) => ({
+        ...r,
+        level: levelFromXP(r.xp ?? 0), // compute from actual XP, not stale DB column
+        skills: r.skills || [],
+        badges_count: badgeCount.get(r.id) || 0,
+      }));
 
     return { ok: true, data: final };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }

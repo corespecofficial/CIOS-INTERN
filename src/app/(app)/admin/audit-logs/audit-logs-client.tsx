@@ -65,6 +65,18 @@ export function AuditLogsClient({ rows, total, filters }: { rows: Row[]; total: 
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", fontFamily: "'Nunito', sans-serif" }}>
+      <style>{`
+        .al-table-wrap { display: block; }
+        .al-cards-wrap { display: none; }
+        .al-filter-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; gap: 8px; }
+        @media (max-width: 640px) {
+          .al-table-wrap { display: none; }
+          .al-cards-wrap { display: flex; flex-direction: column; gap: 8px; }
+          .al-filter-grid { grid-template-columns: 1fr 1fr; }
+          .al-filter-search { grid-column: 1 / -1; }
+          .al-filter-export { grid-column: 1 / -1; display: flex; gap: 6px; }
+        }
+      `}</style>
       <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div>
           <span style={{ display: "inline-block", padding: "3px 10px", background: "rgba(239,83,80,0.15)", color: "#EF5350", fontSize: 11, fontWeight: 700, borderRadius: 20, letterSpacing: 0.5, marginBottom: 6 }}>AUDIT LOGS</span>
@@ -79,8 +91,8 @@ export function AuditLogsClient({ rows, total, filters }: { rows: Row[]; total: 
       </div>
 
       {/* Filters */}
-      <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: 12, marginBottom: 14, display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr auto", gap: 8 }}>
-        <input placeholder="Search summary…" value={q} onChange={(e) => setQ(e.target.value)}
+      <div className="al-filter-grid" style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: 12, marginBottom: 14 }}>
+        <input className="al-filter-search" placeholder="Search summary…" value={q} onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") applyFilter({ q }); }}
           style={input} />
         <select value={filters.category || ""} onChange={(e) => applyFilter({ category: e.target.value })} style={input}>
@@ -100,34 +112,71 @@ export function AuditLogsClient({ rows, total, filters }: { rows: Row[]; total: 
           <option value="false">Failures only</option>
         </select>
         <input placeholder="Action code…" value={filters.actionCode || ""} onChange={(e) => applyFilter({ action: e.target.value })} style={input} />
-        <div style={{ display: "flex", gap: 6 }}>
+        <div className="al-filter-export" style={{ display: "flex", gap: 6 }}>
           <button onClick={() => onExport("csv")} disabled={pending} style={btnSmall}>CSV</button>
           <button onClick={() => onExport("json")} disabled={pending} style={btnSmall}>JSON</button>
         </div>
       </div>
 
-      {/* Table */}
-      <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "130px 110px 90px 1fr 130px 90px 60px", padding: "10px 14px", background: "#0A0E1A", fontSize: 10, fontWeight: 700, color: "#8892A4", letterSpacing: 1, textTransform: "uppercase", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-          <div>Time</div><div>Category</div><div>Severity</div><div>Summary</div><div>Actor</div><div>Action</div><div>Risk</div>
+      {/* ── DESKTOP TABLE ── */}
+      <div className="al-table-wrap">
+        <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "130px 110px 90px 1fr 130px 90px 60px", padding: "10px 14px", background: "#0A0E1A", fontSize: 10, fontWeight: 700, color: "#8892A4", letterSpacing: 1, textTransform: "uppercase", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+            <div>Time</div><div>Category</div><div>Severity</div><div>Summary</div><div>Actor</div><div>Action</div><div>Risk</div>
+          </div>
+          {rows.length === 0 && <div style={{ padding: 40, textAlign: "center", color: "#8892A4" }}>No events match.</div>}
+          {rows.map((r) => (
+            <Link key={r.id} href={`/admin/audit-logs/${r.id}`} style={{
+              display: "grid", gridTemplateColumns: "130px 110px 90px 1fr 130px 90px 60px",
+              padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.04)",
+              textDecoration: "none", color: "#E8EDF5", fontSize: 12, alignItems: "center",
+              background: r.severity === "critical" ? "rgba(239,83,80,0.05)" : "transparent",
+            }}>
+              <div style={{ color: "#8892A4", fontSize: 11 }}>{new Date(r.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+              <div style={{ fontSize: 11 }}>{CATEGORY_LABEL[r.category] || r.category}</div>
+              <div><span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: `${SEVERITY_COLOR[r.severity] || "#8892A4"}22`, color: SEVERITY_COLOR[r.severity] || "#8892A4", textTransform: "uppercase" }}>{r.severity}</span></div>
+              <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{!r.success && <span style={{ color: "#EF5350", marginRight: 4 }}>✗</span>}{r.summary}</div>
+              <div style={{ fontSize: 11, color: "#8892A4", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.actor_name || "System"}</div>
+              <div style={{ fontSize: 10, color: "#8892A4", fontFamily: "monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.action_code || r.action}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: r.risk_score >= 60 ? "#EF5350" : r.risk_score >= 30 ? "#FFC107" : "#8892A4", textAlign: "right" }}>{r.risk_score}</div>
+            </Link>
+          ))}
         </div>
-        {rows.length === 0 && <div style={{ padding: 40, textAlign: "center", color: "#8892A4" }}>No events match these filters.</div>}
-        {rows.map((r) => (
-          <Link key={r.id} href={`/admin/audit-logs/${r.id}`} style={{
-            display: "grid", gridTemplateColumns: "130px 110px 90px 1fr 130px 90px 60px",
-            padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.04)",
-            textDecoration: "none", color: "#E8EDF5", fontSize: 12, alignItems: "center",
-            background: r.severity === "critical" ? "rgba(239,83,80,0.05)" : "transparent",
-          }}>
-            <div style={{ color: "#8892A4", fontSize: 11 }}>{new Date(r.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
-            <div style={{ fontSize: 11 }}>{CATEGORY_LABEL[r.category] || r.category}</div>
-            <div><span style={{ padding: "2px 8px", borderRadius: 99, fontSize: 10, fontWeight: 700, background: `${SEVERITY_COLOR[r.severity] || "#8892A4"}22`, color: SEVERITY_COLOR[r.severity] || "#8892A4", textTransform: "uppercase" }}>{r.severity}</span></div>
-            <div style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{!r.success && <span style={{ color: "#EF5350", marginRight: 4 }}>✗</span>}{r.summary}</div>
-            <div style={{ fontSize: 11, color: "#8892A4", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.actor_name || "System"}</div>
-            <div style={{ fontSize: 10, color: "#8892A4", fontFamily: "monospace", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.action_code || r.action}</div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: r.risk_score >= 60 ? "#EF5350" : r.risk_score >= 30 ? "#FFC107" : "#8892A4", textAlign: "right" }}>{r.risk_score}</div>
-          </Link>
-        ))}
+      </div>
+
+      {/* ── MOBILE CARDS ── */}
+      <div className="al-cards-wrap">
+        {rows.length === 0 && <div style={{ padding: 40, textAlign: "center", color: "#8892A4", background: "#111827", borderRadius: 12, fontSize: 13 }}>No events match.</div>}
+        {rows.map((r) => {
+          const sc = SEVERITY_COLOR[r.severity] || "#8892A4";
+          return (
+            <Link key={r.id} href={`/admin/audit-logs/${r.id}`} style={{
+              display: "block", textDecoration: "none",
+              background: "#111827", border: `1px solid ${sc}22`,
+              borderLeft: `4px solid ${sc}`, borderRadius: 12, padding: "12px 14px",
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6, gap: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: "0 0 2px", fontSize: 12, fontWeight: 700, color: "#E8EDF5", wordBreak: "break-word" }}>
+                    {!r.success && <span style={{ color: "#EF5350", marginRight: 4 }}>✗</span>}
+                    {r.summary}
+                  </p>
+                  <p style={{ margin: 0, fontSize: 10, color: "#8892A4" }}>
+                    {CATEGORY_LABEL[r.category] || r.category} · {r.actor_name || "System"}
+                  </p>
+                </div>
+                <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                  <span style={{ padding: "2px 7px", borderRadius: 99, fontSize: 9, fontWeight: 700, background: `${sc}22`, color: sc, textTransform: "uppercase" }}>{r.severity}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: r.risk_score >= 60 ? "#EF5350" : r.risk_score >= 30 ? "#FFC107" : "#8892A4" }}>Risk: {r.risk_score}</span>
+                </div>
+              </div>
+              <div style={{ fontSize: 10, color: "#5A6478" }}>
+                {new Date(r.created_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                {r.action_code && <span style={{ marginLeft: 8, fontFamily: "monospace" }}>{r.action_code}</span>}
+              </div>
+            </Link>
+          );
+        })}
       </div>
 
       {/* Pagination */}
