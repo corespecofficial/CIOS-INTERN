@@ -24,7 +24,9 @@ export type XPEventType =
   | "late_attendance"
   | "overdue_task"
   | "warning_issued"
-  | "spam_flagged";
+  | "spam_flagged"
+  | "eagle_submitted"
+  | "eagle_perfect_score";
 
 export const XP_RULES: Record<XPEventType, number> = {
   lesson_completed: 20,
@@ -50,6 +52,8 @@ export const XP_RULES: Record<XPEventType, number> = {
   overdue_task: -15,
   warning_issued: -25,
   spam_flagged: -50,
+  eagle_submitted: 200,
+  eagle_perfect_score: 500,
 };
 
 /** Level curve: quadratic-ish growth. xpForLevel(n) = 50 * n * (n-1). */
