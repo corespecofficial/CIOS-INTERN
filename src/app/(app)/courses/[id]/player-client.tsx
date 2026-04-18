@@ -449,7 +449,7 @@ export function PlayerClient({
         )}
       </div>
 
-      {enrolled && <StudyBuddyWidget courseId={course.id} />}
+      {enrolled && !isQuizOrAssignment && <StudyBuddyWidget courseId={course.id} />}
     </div>
   );
 }
