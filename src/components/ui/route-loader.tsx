@@ -92,6 +92,14 @@ export function RouteLoader() {
       maxTimer.current = setTimeout(dismiss, MAX_MS);
     };
 
+    const tryShow = (fromPath: string, toPath: string) => {
+      if (navPending.current) return; // already showing
+      if (isMarketingPath(fromPath) || isMarketingPath(toPath)) return;
+      if (toPath === fromPath) return;
+      show();
+    };
+
+    // 1. Click listener — catches <Link> / <a> taps on both desktop and mobile
     const onClick = (e: MouseEvent) => {
       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       const a = (e.target as HTMLElement | null)?.closest("a");
@@ -101,17 +109,28 @@ export function RouteLoader() {
       try {
         const url = new URL(href, window.location.origin);
         if (url.origin !== window.location.origin) return;
-        if (url.pathname === window.location.pathname) return;
-        // Only fire for portal → portal transitions
-        if (isMarketingPath(window.location.pathname)) return;
-        if (isMarketingPath(url.pathname)) return;
+        tryShow(window.location.pathname, url.pathname);
       } catch { return; }
-      show();
+    };
+
+    // 2. history.pushState interceptor — catches router.push() calls (command palette,
+    //    programmatic navigation) and iOS where click fires after navigation completes.
+    const origPushState = history.pushState.bind(history);
+    (history as History).pushState = function(state: unknown, title: string, url?: string | URL | null) {
+      const prevPath = window.location.pathname;
+      origPushState(state as Parameters<typeof history.pushState>[0], title, url as string);
+      if (url) {
+        try {
+          const newPath = new URL(String(url), window.location.origin).pathname;
+          tryShow(prevPath, newPath);
+        } catch {}
+      }
     };
 
     document.addEventListener("click", onClick, true);
     return () => {
       document.removeEventListener("click", onClick, true);
+      (history as History).pushState = origPushState;
       if (maxTimer.current) clearTimeout(maxTimer.current);
       stopRotation();
     };
