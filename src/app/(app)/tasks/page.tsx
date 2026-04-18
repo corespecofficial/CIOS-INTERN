@@ -22,6 +22,7 @@ export default async function TasksPage() {
   const tasks: TaskVM[] = dbTasks.map((t) => ({
     title: t.title,
     due: formatDue(t.due_date),
+    dueIso: t.due_date,
     xp: t.xp_reward,
     status: mapStatus(t.status),
     priority: t.priority,

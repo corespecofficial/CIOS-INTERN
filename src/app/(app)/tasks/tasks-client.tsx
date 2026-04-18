@@ -9,6 +9,7 @@ const tabItems = ["Daily", "Weekly", "Assignments"];
 export interface TaskVM {
   title: string;
   due: string;
+  dueIso: string;
   xp: number;
   status: "In Progress" | "Pending" | "Done";
   priority: "low" | "medium" | "high" | "urgent";
@@ -55,11 +56,26 @@ export default function TasksClient({
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0A0E1A", color: "#E8EDF5", padding: "32px" }}>
-      <h1 style={{ fontSize: 26, fontWeight: 700, margin: "0 0 20px 0" }}>Tasks</h1>
+    <div style={{ color: "#E8EDF5" }}>
+      <style>{`
+        .tk-wrap { padding: 0; }
+        .tk-h1 { font-size: 26px; }
+        .tk-stats { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+        .tk-row { display: flex; align-items: center; gap: 14px; }
+        .tk-row-title { font-size: 15px; }
+        .tk-tabs { flex-wrap: nowrap; overflow-x: auto; }
+        @media (max-width: 640px) {
+          .tk-h1 { font-size: 22px !important; }
+          .tk-stats { grid-template-columns: 1fr !important; }
+          .tk-row { flex-wrap: wrap; gap: 8px; }
+          .tk-row-title { font-size: 14px !important; }
+          .tk-tabs { scrollbar-width: none; }
+        }
+      `}</style>
+      <h1 className="tk-h1" style={{ fontWeight: 700, margin: "0 0 20px 0" }}>Tasks</h1>
 
       {/* Progress + Streak + Performance row */}
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 14, marginBottom: 20 }}>
+      <div className="tk-stats">
         <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: 18 }}>
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: "#8892A4" }}>TODAY&apos;S PROGRESS</span>
@@ -97,7 +113,7 @@ export default function TasksClient({
       </div>
 
       {/* Tab Group */}
-      <div style={{ display: "flex", gap: 4, background: "#111827", padding: 4, borderRadius: 12, width: "fit-content", marginBottom: 20 }}>
+      <div className="tk-tabs" style={{ display: "flex", gap: 4, background: "#111827", padding: 4, borderRadius: 12, width: "fit-content", marginBottom: 20 }}>
         {tabItems.map((tab) => (
           <button
             key={tab}
@@ -116,62 +132,67 @@ export default function TasksClient({
       </div>
 
       {/* Task Items */}
-      {activeTab === "Daily" && tasks.length === 0 && (
-        <EmptyState icon="📋" title="No tasks yet"
-          hint="Your instructor will post assignments here. Meanwhile, warm up in the classroom or practice with AI Hub."
-          action="/classroom" actionLabel="Open classroom" />
-      )}
-      {activeTab === "Daily" && tasks.length > 0 && (
-        <div>
-          {tasks.map((task, i) => {
-            const badge = statusBadge(task.status);
-            const pri = PRIORITY_STYLE[task.priority];
-            const isDone = task.status === "Done";
-            return (
-              <div key={i} style={{ background: "#111827", borderRadius: 12, padding: 16, marginBottom: 10, display: "flex", alignItems: "center", gap: 14 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 6, border: isDone ? "none" : "2px solid #8892A4", background: isDone ? "#66BB6A" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
-                  {isDone && (
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <path d="M2.5 7L5.5 10L11.5 4" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <p style={{ fontSize: 15, fontWeight: 600, margin: 0, textDecoration: isDone ? "line-through" : "none", color: isDone ? "#8892A4" : "#E8EDF5" }}>
-                      {task.title}
-                    </p>
-                    <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700, background: pri.bg, color: pri.color, textTransform: "uppercase", letterSpacing: 0.4 }}>
-                      {pri.label}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: 13, color: isDone ? "#66BB6A" : "#8892A4", margin: "4px 0 0 0" }}>
-                    {isDone ? (
-                      <span style={{ color: "#66BB6A" }}>+{task.xp} XP earned</span>
-                    ) : (
-                      <>{task.due} &middot; <span style={{ color: "#66BB6A" }}>+{task.xp} XP</span></>
-                    )}
-                  </p>
-                </div>
-                <span style={{ padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 600, background: badge.background, color: badge.color, whiteSpace: "nowrap", flexShrink: 0 }}>
-                  {badge.label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {(activeTab === "Daily" || activeTab === "Weekly" || activeTab === "Assignments") && (() => {
+        const now = new Date();
+        const in7 = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const listed =
+          activeTab === "Weekly"
+            ? tasks.filter((t) => {
+                const due = new Date(t.dueIso);
+                return due >= now && due <= in7;
+              })
+            : activeTab === "Assignments"
+            ? tasks.filter((t) => t.title.includes("[Masterclass") || t.title.includes("Assignment") || t.title.includes("Project"))
+            : tasks;
 
-      {activeTab === "Weekly" && (
-        <div style={{ background: "#111827", borderRadius: 12, padding: 20, color: "#8892A4", fontSize: 14 }}>
-          Weekly rollup: filter the Daily list by deadlines falling in the next 7 days (coming next).
-        </div>
-      )}
-      {activeTab === "Assignments" && (
-        <div style={{ background: "#111827", borderRadius: 12, padding: 20, color: "#8892A4", fontSize: 14 }}>
-          Assignments tied to courses — wire once course-tasks relation is populated.
-        </div>
-      )}
+        if (listed.length === 0)
+          return (
+            <EmptyState icon="📋" title="No tasks here"
+              hint={activeTab === "Assignments" ? "Assignment tasks from your instructor will appear here." : "No tasks matching this filter yet."}
+              action="/classroom" actionLabel="Open classroom" />
+          );
+
+        return (
+          <div>
+            {listed.map((task, i) => {
+              const badge = statusBadge(task.status);
+              const pri = PRIORITY_STYLE[task.priority];
+              const isDone = task.status === "Done";
+              return (
+                <div key={i} className="tk-row" style={{ background: "#111827", borderRadius: 12, padding: 14, marginBottom: 10 }}>
+                  <div style={{ width: 24, height: 24, borderRadius: 6, border: isDone ? "none" : "2px solid #8892A4", background: isDone ? "#66BB6A" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, cursor: "pointer" }}>
+                    {isDone && (
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                        <path d="M2.5 7L5.5 10L11.5 4" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <p className="tk-row-title" style={{ fontWeight: 600, margin: 0, textDecoration: isDone ? "line-through" : "none", color: isDone ? "#8892A4" : "#E8EDF5", wordBreak: "break-word" }}>
+                        {task.title}
+                      </p>
+                      <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700, background: pri.bg, color: pri.color, textTransform: "uppercase", letterSpacing: 0.4, flexShrink: 0 }}>
+                        {pri.label}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 12, color: isDone ? "#66BB6A" : "#8892A4", margin: "4px 0 0 0" }}>
+                      {isDone ? (
+                        <span style={{ color: "#66BB6A" }}>+{task.xp} XP earned</span>
+                      ) : (
+                        <>{task.due} &middot; <span style={{ color: "#66BB6A" }}>+{task.xp} XP</span></>
+                      )}
+                    </p>
+                  </div>
+                  <span style={{ padding: "4px 10px", borderRadius: 999, fontSize: 11, fontWeight: 600, background: badge.background, color: badge.color, whiteSpace: "nowrap", flexShrink: 0 }}>
+                    {badge.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
     </div>
   );
 }

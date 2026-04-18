@@ -11,9 +11,17 @@ interface Mission {
   progress: number; claimed: boolean; complete: boolean;
 }
 
+const MASTERCLASS_KEYS = [
+  "social_media_pioneer", "digital_products_builder", "meta_business_setup",
+  "content_calendar_built", "first_posts_live", "masterclass_complete",
+];
+
 export function MissionsClient({ missions }: { missions: Mission[] }) {
-  const daily = missions.filter((m) => m.cadence === "daily");
-  const weekly = missions.filter((m) => m.cadence === "weekly");
+  const masterclass = missions.filter((m) => MASTERCLASS_KEYS.includes(m.key));
+  const daily = missions.filter((m) => m.cadence === "daily" && !MASTERCLASS_KEYS.includes(m.key));
+  const weekly = missions.filter((m) => m.cadence === "weekly" && !MASTERCLASS_KEYS.includes(m.key));
+  const totalXp = masterclass.reduce((s, m) => s + m.xp_reward, 0);
+  const completedMc = masterclass.filter((m) => m.complete).length;
 
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", fontFamily: "'Nunito', sans-serif" }}>
@@ -21,6 +29,34 @@ export function MissionsClient({ missions }: { missions: Mission[] }) {
         <span style={{ display: "inline-block", padding: "3px 10px", background: "rgba(30,136,229,0.15)", color: "#1E88E5", fontSize: 11, fontWeight: 700, borderRadius: 20, letterSpacing: 0.5, marginBottom: 6 }}>MISSIONS</span>
         <h1 style={{ fontSize: 24, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>Complete missions · Earn XP & coins</h1>
       </div>
+
+      {/* Masterclass Mission Block */}
+      {masterclass.length > 0 && (
+        <section style={{ marginBottom: 24 }}>
+          <div style={{
+            background: "linear-gradient(135deg, rgba(255,193,7,0.08), rgba(255,112,67,0.06))",
+            border: "1px solid rgba(255,193,7,0.2)",
+            borderRadius: 14, padding: "14px 16px", marginBottom: 10,
+            display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8,
+          }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#FFC107", letterSpacing: 0.5, textTransform: "uppercase" }}>ACTIVE ASSIGNMENT</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#E8EDF5", marginTop: 2 }}>📱 Social Media & Digital Products Masterclass</div>
+              <div style={{ fontSize: 12, color: "#8892A4", marginTop: 2 }}>Complete all 6 missions to earn up to {totalXp.toLocaleString()} XP</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: "#FFC107", fontFamily: "'Space Grotesk', sans-serif" }}>{completedMc}/{masterclass.length}</div>
+              <div style={{ fontSize: 10, color: "#8892A4" }}>missions done</div>
+            </div>
+          </div>
+          <div style={{ height: 6, background: "rgba(255,255,255,0.06)", borderRadius: 99, overflow: "hidden", marginBottom: 14 }}>
+            <div style={{ width: `${masterclass.length > 0 ? (completedMc / masterclass.length) * 100 : 0}%`, height: "100%", background: "linear-gradient(90deg, #FFC107, #FF7043)", transition: "width 0.4s" }} />
+          </div>
+          <div style={{ display: "grid", gap: 10 }}>
+            {masterclass.map((m) => <Row key={m.id} m={m} />)}
+          </div>
+        </section>
+      )}
 
       {daily.length > 0 && (
         <section style={{ marginBottom: 20 }}>
