@@ -9,6 +9,7 @@ import { claimMissionAction } from "@/app/actions/gamification";
 import { buyStreakSaver, getMyReferralCode } from "@/app/actions/engagement";
 import { celebrateAward, fireConfetti } from "@/lib/celebrate";
 import { useEffect } from "react";
+import { SpinWheel } from "@/components/ui/spin-wheel";
 
 interface UserSummary {
   id: string; name: string; avatarUrl: string | null; role: string;
@@ -63,6 +64,24 @@ export function GamificationHub({
         <NavTile href="/levels"            emoji="📈" label="Levels" />
         <NavTile href="/rewards-history"   emoji="📜" label="History" />
         <NavTile href="/challenges"        emoji="⚔️" label="Challenges" />
+      </div>
+
+      {/* Daily Spin Wheel */}
+      <div style={{
+        background: "linear-gradient(135deg, rgba(245,158,11,0.08), rgba(239,68,68,0.06))",
+        border: "1px solid rgba(245,158,11,0.2)",
+        borderRadius: 16, padding: 24, marginBottom: 20,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+          <span style={{ fontSize: 22 }}>🎰</span>
+          <div>
+            <h2 style={{ fontSize: 16, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>Daily Spin Wheel</h2>
+            <p style={{ fontSize: 12, color: "#8892A4", margin: 0 }}>Spin once a day to win XP, wallet credits, or a bonus spin!</p>
+          </div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <SpinWheel />
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 16, alignItems: "start" }}>

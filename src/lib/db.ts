@@ -72,7 +72,8 @@ export interface DbUser {
 export async function getCurrentDbUser(): Promise<DbUser | null> {
   const { userId } = await auth();
   if (!userId) return null;
-  const { data, error } = await supabase()
+  // Use admin client so RLS never blocks reading the current user's own row
+  const { data, error } = await supabaseAdmin()
     .from("users")
     .select("*")
     .eq("clerk_id", userId)
