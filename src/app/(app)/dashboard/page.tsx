@@ -13,6 +13,7 @@ import {
   getInstructorRecentGrades,
 } from "@/lib/db";
 import { computePersonalMetrics, getWeights } from "@/lib/performance";
+import { levelFromXP } from "@/lib/gamification-shared";
 import DashboardClient from "./dashboard-client";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +54,7 @@ export default async function DashboardPage() {
     .slice(0, 5)
     .map((m, i) => ({ rank: i + 1, name: m.name || "Unnamed", xp: m.xp, avatarUrl: m.avatar_url }));
 
-  const level = dbUser?.level ?? 1;
+  const level = levelFromXP(dbUser?.xp ?? 0);
 
   const stats = {
     xp: dbUser?.xp ?? 0,

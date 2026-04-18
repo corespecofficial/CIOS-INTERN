@@ -272,7 +272,7 @@ export async function getLeaderboard(mode: LeaderboardMode, limit = 50): Promise
     const { data: users } = await sb.from("users").select("id, name, avatar_url, role, xp, level, streak, reputation").in("id", ids);
     const rows = (users || []).map((u) => ({
       id: u.id as string, name: u.name as string, avatarUrl: u.avatar_url as string | null, role: u.role as string,
-      xp: u.xp as number, level: u.level as number, streak: u.streak as number, reputation: u.reputation as number,
+      xp: u.xp as number, level: levelFromXP(u.xp as number), streak: u.streak as number, reputation: u.reputation as number,
       score: sums.get(u.id as string) || 0, rank: 0,
     }));
     rows.sort((a, b) => b.score - a.score);
@@ -284,7 +284,7 @@ export async function getLeaderboard(mode: LeaderboardMode, limit = 50): Promise
   const { data } = await sb.from("users").select("id, name, avatar_url, role, xp, level, streak, reputation").order(sortCol, { ascending: false }).limit(limit);
   const rows = (data || []).map((u, i) => ({
     id: u.id as string, name: u.name as string, avatarUrl: u.avatar_url as string | null, role: u.role as string,
-    xp: u.xp as number, level: u.level as number, streak: u.streak as number, reputation: u.reputation as number,
+    xp: u.xp as number, level: levelFromXP(u.xp as number), streak: u.streak as number, reputation: u.reputation as number,
     score: (u[sortCol as "xp" | "reputation" | "streak"] as number) || 0, rank: i + 1,
   }));
   return rows;
@@ -304,6 +304,13 @@ export async function getUserGamificationSnapshot(userId: string) {
     safe(admin.from("user_missions").select("mission_id, progress, claimed_at, cycle_start, missions(id, key, title, description, cadence, target, xp_reward, coin_reward)").eq("user_id", userId).order("cycle_start", { ascending: false }).limit(20),
       { data: [] } as { data: Array<{ mission_id: string; progress: number; claimed_at: string | null; cycle_start: string; missions: { id: string; key: string; title: string; description: string; cadence: string; target: number; xp_reward: number; coin_reward: number } }> }),
   ]);
+  // Heal stale users.level if it drifted from actual XP (e.g. after formula change)
+  const u = userRes.data;
+  if (u && levelFromXP(u.xp) !== u.level) {
+    supabaseAdmin().from("users").update({ level: levelFromXP(u.xp) }).eq("id", userId).then(() => {}).catch(() => {});
+    // Return corrected level inline so the page sees the right value immediately
+    userRes.data = { ...u, level: levelFromXP(u.xp) };
+  }
   return { user: userRes.data, badges: badgesRes.data || [], events: eventsRes.data || [], streaks: streaksRes.data || [], missions: missionsRes.data || [] };
 }
 

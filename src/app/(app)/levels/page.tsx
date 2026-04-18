@@ -74,7 +74,7 @@ export default async function LevelsPage() {
             <div style={{
               height: "100%", borderRadius: 999,
               background: `linear-gradient(90deg, ${rank.color}, ${rank.color}99)`,
-              width: `${Math.round((1 - progress.xpToNext / xpForLevel(progress.nextLevel)) * 100)}%`,
+              width: `${progress.progressPct}%`,
               transition: "width 0.6s ease",
             }} />
           </div>
