@@ -40,12 +40,12 @@ export async function getFeatureFlags(): Promise<FeatureFlags> {
 
 export async function setFeatureFlag(name: keyof FeatureFlags, enabled: boolean): Promise<R> {
   try {
-    const me = await assertSuperAdmin();
+    await assertSuperAdmin();
     const sb = supabaseAdmin();
     const current = await getFeatureFlags();
     const updated = { ...current, [name]: enabled };
     const { error } = await sb.from("platform_settings").upsert(
-      { key: "feature_flags", value: updated, updated_at: new Date().toISOString(), updated_by: me.id },
+      { key: "feature_flags", value: updated, updated_at: new Date().toISOString() },
       { onConflict: "key" }
     );
     if (error) return { ok: false, error: error.message };
@@ -74,12 +74,10 @@ export async function setSystemLock(lock: boolean): Promise<R> {
         key: "system_lock",
         value: { locked: lock, locked_at: lock ? new Date().toISOString() : null },
         updated_at: new Date().toISOString(),
-        updated_by: me.id,
       },
       { onConflict: "key" }
     );
     if (error) return { ok: false, error: error.message };
-    // Log audit event
     await sb.from("audit_logs").insert({
       actor_id: me.id, actor_name: me.name,
       action: lock ? "SYSTEM_LOCK" : "SYSTEM_UNLOCK",
@@ -98,17 +96,4 @@ export async function clearPlatformCache(): Promise<R> {
     revalidatePath("/", "layout");
     return { ok: true };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
-}
-
-/* ── Real user count (admin) ── */
-
-export async function getRoleBreakdown(): Promise<Record<string, number>> {
-  try {
-    const sb = supabaseAdmin();
-    const { data } = await sb.from("users").select("role");
-    if (!data) return {};
-    const counts: Record<string, number> = {};
-    for (const row of data) counts[row.role] = (counts[row.role] || 0) + 1;
-    return counts;
-  } catch { return {}; }
 }
