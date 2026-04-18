@@ -3,6 +3,7 @@
 import { getCurrentDbUser, supabaseAdmin } from "@/lib/db";
 import { awardXPAction } from "@/app/actions/gamification";
 import { pushNotification } from "@/app/actions/notifications";
+import { isPastEagleDeadline } from "@/lib/eagle-helpers";
 
 type R<T> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -93,23 +94,6 @@ export interface SectionScore {
 
 // ── Deadline helpers ───────────────────────────────────────────────────────────
 
-/** Returns the deadline Date for the current week's Eagle Project (Tuesday 19:45 WAT).
- *  WAT is UTC+1, so 19:45 WAT = 18:45 UTC. */
-export function getEagleDeadline(): Date {
-  const now = new Date();
-  // Find next (or current) Tuesday
-  const day = now.getUTCDay(); // 0=Sun, 2=Tue
-  const daysUntilTue = day <= 2 ? 2 - day : 9 - day;
-  const tuesday = new Date(now);
-  tuesday.setUTCDate(now.getUTCDate() + daysUntilTue);
-  tuesday.setUTCHours(18, 45, 0, 0); // 19:45 WAT = 18:45 UTC
-  return tuesday;
-}
-
-function isPastDeadline(): boolean {
-  return new Date() > getEagleDeadline();
-}
-
 // ── Intern-facing actions ──────────────────────────────────────────────────────
 
 export async function getMyEagleSubmission(): Promise<R<EagleSubmission | null>> {
@@ -191,7 +175,7 @@ export async function submitEagleProject(): Promise<R<{ late: boolean }>> {
       return { ok: false, error: "Already submitted." };
     }
 
-    const late = isPastDeadline();
+    const late = isPastEagleDeadline();
     const now = new Date().toISOString();
 
     const upsertPayload = {
@@ -236,7 +220,7 @@ export async function submitEagleProject(): Promise<R<{ late: boolean }>> {
         ? "Your Eagle Project was submitted after the deadline. A ₦500 fine has been applied. Your coach will review it soon."
         : "Great work! Your Eagle Project has been submitted. Your coach will grade it and notify you.",
       type: late ? "warning" : "success",
-      actionUrl: `/eagle`,
+      actionUrl: `/projects/eagle`,
     });
 
     return { ok: true, data: { late } };
@@ -480,7 +464,7 @@ export async function finalizeEagleGrading(
         ? `Excellent! You scored ${total}/100 on your Eagle Project. +500 bonus XP awarded!`
         : `Your Eagle Project has been graded. You scored ${total}/100. Check the feedback for details.`,
       type: total >= 70 ? "success" : "info",
-      actionUrl: `/eagle/${submissionId}`,
+      actionUrl: `/projects/eagle/${submissionId}`,
     });
 
     return { ok: true, data: { total_score: total } };

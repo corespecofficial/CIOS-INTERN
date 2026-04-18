@@ -156,7 +156,7 @@ export function EagleLandingClient({ submission, deadline, userName }: Props) {
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         {(!status || status === "draft") && (
           <button
-            onClick={() => router.push("/eagle/submit")}
+            onClick={() => router.push("/projects/eagle/submit")}
             style={{
               flex: 1, minWidth: 200, padding: "14px 24px",
               background: "linear-gradient(135deg,#1E88E5,#FFC107)",
@@ -169,7 +169,7 @@ export function EagleLandingClient({ submission, deadline, userName }: Props) {
         )}
         {(status === "submitted" || status === "late" || status === "graded") && (
           <button
-            onClick={() => router.push(`/eagle/${submission!.id}`)}
+            onClick={() => router.push(`/projects/eagle/${submission!.id}`)}
             style={{
               flex: 1, minWidth: 200, padding: "14px 24px",
               background: "#1E2640", color: "#E8EDF5", fontWeight: 700, fontSize: 15,
@@ -180,7 +180,7 @@ export function EagleLandingClient({ submission, deadline, userName }: Props) {
           </button>
         )}
         <button
-          onClick={() => router.push("/eagle/wall")}
+          onClick={() => router.push("/projects/eagle/wall")}
           style={{
             padding: "14px 24px",
             background: "transparent", color: "#FFC107", fontWeight: 700, fontSize: 15,

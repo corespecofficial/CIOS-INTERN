@@ -321,7 +321,7 @@ function SectionFForm({ data, onChange }: { data: SectionF; onChange: (d: Sectio
         </label>
       </div>
       <Input label="1. Your Full Name (as it should appear on the design)" value={data.design_url ? (data.rationale ? "filled" : data.north_star ?? "") : ""} onChange={() => {}} placeholder="" />
-      <Input label="Personal Tagline — one sentence: who you are becoming" value={data.tagline ?? ""} onChange={(v) => onChange({ ...data, tagline: v })} placeholder='"I am a digital architect building Africa\'s future."' />
+      <Input label="Personal Tagline — one sentence: who you are becoming" value={data.tagline ?? ""} onChange={(v) => onChange({ ...data, tagline: v })} placeholder='"I am a digital architect building Africa&apos;s future."' />
       <div style={{ marginBottom: 14 }}>
         <label style={{ color: "#E8EDF5", fontSize: 14, fontWeight: 600, display: "block", marginBottom: 6 }}>Your CIOS Track</label>
         <select value={data.track ?? ""} onChange={(e) => onChange({ ...data, track: e.target.value })} style={{ width: "100%", background: "#0D1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#E8EDF5", fontSize: 14, padding: "10px 14px" }}>
@@ -513,7 +513,7 @@ export function EagleWizardClient({ initialSubmission, deadline, userName }: Pro
         toast.success(res.data.late
           ? "Submitted (late) — a ₦500 fine has been applied."
           : "Eagle Project submitted! 🦅 +200 XP earned!");
-        router.push("/eagle");
+        router.push("/projects/eagle");
       } else {
         toast.error(res.error);
       }

@@ -155,7 +155,7 @@ export function EagleSubmissionView({ submission }: Props) {
       })}
 
       <button
-        onClick={() => router.push("/eagle")}
+        onClick={() => router.push("/projects/eagle")}
         style={{
           marginTop: 8, padding: "10px 22px",
           background: "#1E2640", border: "1px solid rgba(255,255,255,0.1)",
