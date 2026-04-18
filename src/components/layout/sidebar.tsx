@@ -83,8 +83,6 @@ const NAV_ITEMS: NavItem[] = [
   { emoji: "🧑‍🏫", label: "Mentors", href: "/admin/mentors", section: "ADMIN", dataRole: ["admin", "super_admin"] },
   { emoji: "🎓", label: "Alumni", href: "/admin/alumni", section: "ADMIN", dataRole: ["admin", "super_admin"] },
   { emoji: "📋", label: "Manage Projects", href: "/admin/projects", section: "ADMIN", dataRole: ["admin", "super_admin", "moderator"] },
-  { emoji: "🦅", label: "Eagle Grading", href: "/admin/eagle-grading", section: "ADMIN", dataRole: ["admin", "super_admin", "moderator"] },
-  { emoji: "📊", label: "Eagle Analytics", href: "/admin/eagle-analytics", section: "ADMIN", dataRole: ["admin", "super_admin"] },
   // SUPER ADMIN
   { emoji: "\u{1F451}", label: "Super Admin", href: "/super-admin", section: "ADMIN", dataRole: ["super_admin"] },
   { emoji: "\u{1F465}", label: "Manage Users", href: "/super-admin/users", section: "ADMIN", dataRole: ["super_admin"] },
