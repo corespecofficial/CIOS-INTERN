@@ -6,7 +6,6 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import { type CreativeSpace, SPACE_CATEGORIES } from "@/app/actions/creative-spaces-types";
 import { enrollInSpace } from "@/app/actions/creative-spaces";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 
 const ACCENT = "#26C6DA";
 const ACCENT_DIM = "rgba(38,198,218,0.15)";
@@ -22,8 +21,6 @@ export function CreativeSpaceClient({ spaces }: { spaces: CreativeSpace[] }) {
   const [category, setCategory] = useState("All");
   const [format, setFormat] = useState("All");
   const [search, setSearch] = useState("");
-  const isMobile = useIsMobile();
-
   const filtered = useMemo(() => {
     let list = spaces;
     if (category !== "All") list = list.filter((s) => s.category === category);
@@ -46,17 +43,31 @@ export function CreativeSpaceClient({ spaces }: { spaces: CreativeSpace[] }) {
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", fontFamily: "'Nunito', sans-serif" }}>
+      <style>{`
+        .cs-hero { padding: 28px; align-items: center; flex-direction: row; }
+        .cs-host-btn { align-self: auto; }
+        .cs-h1 { font-size: 26px; }
+        .cs-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+        .cs-card { padding: 18px; }
+        .cs-card-title { font-size: 15px; }
+        @media (max-width: 640px) {
+          .cs-hero { padding: 16px !important; align-items: flex-start !important; flex-direction: column !important; }
+          .cs-host-btn { align-self: stretch !important; text-align: center; }
+          .cs-h1 { font-size: 20px !important; }
+          .cs-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+          .cs-card { padding: 14px !important; }
+          .cs-card-title { font-size: 14px !important; }
+        }
+      `}</style>
       {/* Hero */}
       <div
+        className="cs-hero"
         style={{
           background: `linear-gradient(135deg, ${ACCENT_DIM}, rgba(38,198,218,0.05))`,
           border: `1px solid ${ACCENT_BORDER}`,
           borderRadius: 16,
-          padding: isMobile ? "16px" : "28px",
           marginBottom: 16,
           display: "flex",
-          alignItems: isMobile ? "flex-start" : "center",
-          flexDirection: isMobile ? "column" : "row",
           justifyContent: "space-between",
           gap: 14,
         }}
@@ -67,7 +78,7 @@ export function CreativeSpaceClient({ spaces }: { spaces: CreativeSpace[] }) {
           </span>
           <h1
             style={{
-              fontSize: isMobile ? 20 : 26,
+              fontSize: 26,
               fontWeight: 800,
               color: "#E8EDF5",
               margin: "4px 0 6px",
@@ -92,7 +103,7 @@ export function CreativeSpaceClient({ spaces }: { spaces: CreativeSpace[] }) {
             fontWeight: 700,
             textDecoration: "none",
             whiteSpace: "nowrap",
-            alignSelf: isMobile ? "stretch" : "auto",
+            alignSelf: "auto",
             textAlign: "center",
           }}
         >
@@ -213,15 +224,9 @@ export function CreativeSpaceClient({ spaces }: { spaces: CreativeSpace[] }) {
             : "No spaces match your filters."}
         </div>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: isMobile ? 12 : 16,
-          }}
-        >
+        <div className="cs-grid" style={{ display: "grid" }}>
           {filtered.map((s) => (
-            <SpaceCard key={s.id} space={s} isMobile={isMobile} />
+            <SpaceCard key={s.id} space={s} />
           ))}
         </div>
       )}
@@ -229,7 +234,7 @@ export function CreativeSpaceClient({ spaces }: { spaces: CreativeSpace[] }) {
   );
 }
 
-function SpaceCard({ space: s, isMobile }: { space: CreativeSpace; isMobile: boolean }) {
+function SpaceCard({ space: s }: { space: CreativeSpace }) {
   const [pending, start] = useTransition();
   const formatColor = FORMAT_COLORS[s.format] || ACCENT;
   const isFull = s.enrollment_count >= s.capacity;
@@ -252,7 +257,7 @@ function SpaceCard({ space: s, isMobile }: { space: CreativeSpace; isMobile: boo
         background: "#111827",
         border: `1px solid ${s.is_live ? "rgba(239,83,80,0.35)" : "rgba(255,255,255,0.07)"}`,
         borderRadius: 14,
-        padding: isMobile ? "14px" : "18px",
+        padding: "18px",
         display: "flex",
         flexDirection: "column",
         gap: 10,
@@ -275,7 +280,7 @@ function SpaceCard({ space: s, isMobile }: { space: CreativeSpace; isMobile: boo
       </div>
 
       {/* Title */}
-      <div style={{ fontSize: isMobile ? 14 : 15, fontWeight: 700, color: "#E8EDF5", lineHeight: 1.3, fontFamily: "'Space Grotesk', sans-serif" }}>
+      <div style={{ fontSize: 15, fontWeight: 700, color: "#E8EDF5", lineHeight: 1.3, fontFamily: "'Space Grotesk', sans-serif" }}>
         {s.title}
       </div>
 
@@ -318,7 +323,7 @@ function SpaceCard({ space: s, isMobile }: { space: CreativeSpace; isMobile: boo
       {/* Tags */}
       {s.tags && s.tags.length > 0 && (
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-          {s.tags.slice(0, isMobile ? 3 : 4).map((tag) => (
+          {s.tags.slice(0, 4).map((tag) => (
             <span key={tag} style={{ fontSize: 10, padding: "2px 7px", borderRadius: 4, background: "rgba(255,255,255,0.05)", color: "#8892A4", border: "1px solid rgba(255,255,255,0.08)" }}>
               #{tag}
             </span>

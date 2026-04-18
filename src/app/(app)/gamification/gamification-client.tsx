@@ -39,6 +39,18 @@ export function GamificationHub({
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", fontFamily: "'Nunito', sans-serif" }}>
+      <style>{`
+        .gh-level-row { grid-template-columns: repeat(8, 1fr); }
+        .gh-main-grid { grid-template-columns: 1.4fr 1fr; }
+        .gh-bottom-grid { grid-template-columns: 1fr 1fr; }
+        .gh-engage-grid { grid-template-columns: 1fr 1fr; }
+        @media (max-width: 640px) {
+          .gh-level-row { grid-template-columns: repeat(4, 1fr) !important; }
+          .gh-main-grid { grid-template-columns: 1fr !important; }
+          .gh-bottom-grid { grid-template-columns: 1fr !important; }
+          .gh-engage-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
 
       {/* ── Hero ── */}
       <div style={{
@@ -76,12 +88,7 @@ export function GamificationHub({
       </div>
 
       {/* ── Quick Nav ── */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: isMobile ? "repeat(4, 1fr)" : "repeat(8, 1fr)",
-        gap: isMobile ? 8 : 8,
-        marginBottom: isMobile ? 14 : 20,
-      }}>
+      <div className="gh-level-row" style={{ display: "grid", gap: 8, marginBottom: 16 }}>
         {[
           { href: "/leaderboard",    emoji: "🏆", label: "Board" },
           { href: "/badges",         emoji: "🎖️", label: "Badges" },
@@ -135,7 +142,7 @@ export function GamificationHub({
       </div>
 
       {/* ── Missions + Top 10 ── */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.4fr 1fr", gap: 14, alignItems: "start" }}>
+      <div className="gh-main-grid" style={{ display: "grid", gap: 14, alignItems: "start" }}>
         <section style={panel(isMobile)}>
           <div style={sectionHeader}>
             <span>🎯 Active missions</span>
@@ -169,7 +176,7 @@ export function GamificationHub({
       </div>
 
       {/* ── Badges + Recent XP ── */}
-      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 14, marginTop: 14 }}>
+      <div className="gh-bottom-grid" style={{ display: "grid", gap: 14, marginTop: 14 }}>
         <section style={panel(isMobile)}>
           <div style={sectionHeader}>
             <span>🎖️ Recent badges</span>
@@ -224,7 +231,7 @@ function EngagementBlock({ currentXp, currentStreak, isMobile }: { currentXp: nu
   };
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 12, marginTop: 14 }}>
+    <div className="gh-engage-grid" style={{ display: "grid", gap: 12, marginTop: 14 }}>
       {/* Streak Saver */}
       <section style={{ background: "linear-gradient(135deg, rgba(255,112,67,0.12), #111827)", border: "1px solid rgba(255,112,67,0.25)", borderRadius: 14, padding: isMobile ? "14px" : 18 }}>
         <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#FF7043", marginBottom: 6 }}>🛟 STREAK SAVER</div>

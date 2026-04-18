@@ -49,6 +49,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // sidebarCollapsed is now sourced from the same Zustand store the Sidebar writes to,
   // so marginLeft always stays in sync with the actual sidebar width.
 
+  // Lock to portrait on mobile PWA (Android rotation override)
+  useEffect(() => {
+    try {
+      if (screen?.orientation && typeof screen.orientation.lock === "function") {
+        screen.orientation.lock("portrait").catch(() => {});
+      }
+    } catch {}
+  }, []);
+
   // Daily login bonus — fires once per day per user (idempotent server-side)
   useEffect(() => {
     const today = new Date().toISOString().slice(0, 10);
