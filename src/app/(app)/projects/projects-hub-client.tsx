@@ -23,15 +23,15 @@ export function ProjectsHubClient({ eagleStatus, eagleScore, customProjects }: P
   const eagleCfg = eagleStatus ? STATUS_CONFIG[eagleStatus] : null;
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: isMobile ? "0 0 40px" : undefined }}>
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: "#E8EDF5" }}>📁 Projects</h1>
-        <p style={{ margin: "6px 0 0", color: "#5A6478", fontSize: 14 }}>
+    <div style={{ maxWidth: 900, margin: "0 auto", padding: isMobile ? "16px 16px 90px" : "0 0 40px" }}>
+      <div style={{ marginBottom: isMobile ? 20 : 28 }}>
+        <h1 style={{ margin: 0, fontSize: isMobile ? 22 : 26, fontWeight: 800, color: "#E8EDF5" }}>📁 Projects</h1>
+        <p style={{ margin: "6px 0 0", color: "#5A6478", fontSize: 13 }}>
           All class assignments and projects. New ones appear automatically when assigned.
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(280px, 1fr))", gap: isMobile ? 14 : 18 }}>
         {/* Eagle Project card */}
         <div
           onClick={() => router.push("/projects/eagle")}
@@ -89,7 +89,7 @@ export function ProjectsHubClient({ eagleStatus, eagleScore, customProjects }: P
               style={{
                 background: "#131929",
                 border: `1px solid ${subCfg ? subCfg.color + "40" : "rgba(255,255,255,0.06)"}`,
-                borderRadius: 14, padding: "22px 24px", cursor: "pointer",
+                borderRadius: 14, padding: isMobile ? "18px 20px" : "22px 24px", cursor: "pointer",
                 transition: "border-color 0.2s, transform 0.15s",
               }}
               onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-2px)")}
