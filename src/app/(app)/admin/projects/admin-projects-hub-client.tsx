@@ -490,8 +490,11 @@ function CustomProjectGradingPanel({
   const [aiRunning, setAiRunning] = useState<string | null>(null);
   const [bulkRunning, setBulkRunning] = useState(false);
 
-  useState(() => {
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
     getProjectSubmissionById(submissionId).then((res) => {
+      if (cancelled) return;
       if (res.ok) {
         setSubmission(res.data as FullProjectSub);
         const initial: Record<string, { score: string; feedback: string }> = {};
@@ -503,7 +506,8 @@ function CustomProjectGradingPanel({
       }
       setLoading(false);
     });
-  });
+    return () => { cancelled = true; };
+  }, [submissionId]);
 
   const answers = (submission?.answers ?? {}) as Record<string, unknown>;
   const totalScored = sections.reduce((sum, sec) => sum + (parseInt(scores[sec.id]?.score ?? "0") || 0), 0);
