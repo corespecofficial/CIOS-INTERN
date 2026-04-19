@@ -35,6 +35,7 @@ const NAV: NavItem[] = [
   },
   { label: "How It Works", href: "/#how-it-works" },
   { label: "Pricing",      href: "/pricing" },
+  { label: "Resources",    href: "/resources" },
   { label: "Book a Demo",  href: "/demo" },
   {
     label: "Portals",

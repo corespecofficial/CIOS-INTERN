@@ -1,12 +1,18 @@
-import { DeferredPage } from "@/components/deferred-page";
+import { getInstructorEarnings } from "@/app/actions/instructor-earnings";
+import EarningsClient from "./earnings-client";
 
-export default function EarningsPage() {
-  return (
-    <DeferredPage
-      icon="💰"
-      title="Earnings & payouts"
-      description="Revenue dashboards, sales history, payout requests, coupons and refund tracking require Paystack integration (P3.1). Your course sale records will accumulate here once payments are live."
-      alternatives={[{ label: "Course analytics", href: "/analytics" }]}
-    />
-  );
+export const dynamic = "force-dynamic";
+
+export default async function EarningsPage() {
+  const res = await getInstructorEarnings();
+
+  if (!res.ok) {
+    return (
+      <div style={{ padding: 32, color: "#EF5350", fontFamily: "sans-serif" }}>
+        Failed to load earnings: {res.error}
+      </div>
+    );
+  }
+
+  return <EarningsClient data={res.data} />;
 }

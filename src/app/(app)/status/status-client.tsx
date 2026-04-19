@@ -403,6 +403,68 @@ export default function StatusClient({
 
   return (
     <div style={{ background: COLORS.bg, minHeight: "100vh", color: COLORS.text, padding: 24 }}>
+      <style>{`
+        .st-banner {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          flex-wrap: wrap;
+        }
+        .st-banner-logo {
+          width: 80px;
+          height: 80px;
+          object-fit: contain;
+          flex-shrink: 0;
+        }
+        .st-admin-btns {
+          display: flex;
+          gap: 10px;
+          flex-shrink: 0;
+        }
+        .st-status-card {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+        }
+        .st-svc-row {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        .st-svc-ms {
+          width: 70px;
+          text-align: right;
+          font-size: 13px;
+          color: ${COLORS.dim};
+          flex-shrink: 0;
+        }
+        .st-inc-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 16px;
+        }
+        .st-inc-date {
+          width: 130px;
+          font-size: 12px;
+          color: ${COLORS.dim};
+          flex-shrink: 0;
+          padding-top: 2px;
+        }
+        @media (max-width: 600px) {
+          .st-banner { flex-direction: column; align-items: flex-start; gap: 14px; padding: 20px 18px !important; }
+          .st-banner-logo { width: 52px; height: 52px; }
+          .st-banner h1 { font-size: 20px !important; }
+          .st-admin-btns { flex-wrap: wrap; width: 100%; }
+          .st-admin-btns button { flex: 1; min-width: 0; font-size: 12px !important; padding: 9px 10px !important; }
+          .st-status-card { gap: 14px; }
+          .st-status-card > div:first-child { width: 52px !important; height: 52px !important; font-size: 26px !important; }
+          .st-svc-row { gap: 10px; }
+          .st-svc-ms { display: none; }
+          .st-inc-row { flex-direction: column; gap: 8px; }
+          .st-inc-date { width: auto; padding-top: 0; }
+          .st-inc-row > div:last-child { flex-direction: row !important; align-items: center !important; gap: 6px !important; }
+        }
+      `}</style>
       {/* Modals */}
       {showIncidentForm && (
         <AddIncidentForm
@@ -419,21 +481,20 @@ export default function StatusClient({
 
       {/* Banner */}
       <div
+        className="st-banner"
         style={{
           borderRadius: 20,
           padding: "28px 32px",
           background: `linear-gradient(135deg, ${bannerColor}33 0%, ${COLORS.blue}15 100%)`,
           border: `1px solid ${COLORS.border}`,
-          display: "flex",
-          alignItems: "center",
-          gap: 20,
           marginBottom: 24,
         }}
       >
         <img
           src={LOGO}
           alt="CIOS"
-          style={{ width: 80, height: 80, objectFit: "contain", flexShrink: 0 }}
+          className="st-banner-logo"
+          style={{ objectFit: "contain", flexShrink: 0 }}
         />
         <div style={{ flex: 1 }}>
           <span
@@ -459,7 +520,7 @@ export default function StatusClient({
           </p>
         </div>
         {isAdmin && (
-          <div style={{ display: "flex", gap: 10, flexShrink: 0 }}>
+          <div className="st-admin-btns">
             <button
               onClick={() => setShowIncidentForm(true)}
               style={{
@@ -489,14 +550,12 @@ export default function StatusClient({
 
       {/* Overall status summary */}
       <div
+        className="st-status-card"
         style={{
           background: COLORS.card,
           border: `1px solid ${COLORS.border}`,
           borderRadius: 16,
           padding: 28,
-          display: "flex",
-          alignItems: "center",
-          gap: 20,
           marginBottom: 24,
         }}
       >
@@ -617,12 +676,10 @@ export default function StatusClient({
             return (
               <div
                 key={s.name}
+                className="st-svc-row"
                 style={{
-                  display: "flex",
-                  alignItems: "center",
                   padding: "16px 20px",
                   borderBottom: i < services.length - 1 ? `1px solid ${COLORS.border}` : "none",
-                  gap: 16,
                 }}
               >
                 <div style={{ flex: 1, fontWeight: 600, fontSize: 14 }}>{s.name}</div>
@@ -642,7 +699,7 @@ export default function StatusClient({
                   <span style={{ fontSize: 10 }}>{serviceStatusIcon(s.status)}</span>
                   {serviceStatusLabel(s.status)}
                 </span>
-                <div style={{ width: 70, textAlign: "right", fontSize: 13, color: COLORS.dim }}>
+                <div className="st-svc-ms">
                   {s.responseMs != null ? `${s.responseMs}ms` : "—"}
                 </div>
               </div>
@@ -682,15 +739,13 @@ export default function StatusClient({
             return (
               <div
                 key={inc.id}
+                className="st-inc-row"
                 style={{
                   padding: "16px 20px",
                   borderBottom: i < incidents.length - 1 ? `1px solid ${COLORS.border}` : "none",
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 16,
                 }}
               >
-                <div style={{ width: 130, fontSize: 12, color: COLORS.dim, flexShrink: 0, paddingTop: 2 }}>
+                <div className="st-inc-date">
                   {formatDate(inc.created_at)}
                 </div>
                 <div style={{ flex: 1 }}>

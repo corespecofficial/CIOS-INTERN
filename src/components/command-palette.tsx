@@ -136,6 +136,7 @@ const COMMANDS: Cmd[] = [
   { id: "adm-appeals",   label: "Admin · Appeals",          emoji: "⚖️", href: "/admin/appeals",                group: "Admin", roles: MOD_ROLES },
   { id: "adm-mentors",   label: "Admin · Mentors",          emoji: "🧑‍🏫",href: "/admin/mentors",               group: "Admin", roles: ADMIN_ROLES },
   { id: "adm-alumni",    label: "Admin · Alumni",           emoji: "🎓", href: "/admin/alumni",                  group: "Admin", roles: ADMIN_ROLES },
+  { id: "adm-cdocs",     label: "Admin · Company Library",  emoji: "📚", href: "/admin/company-docs",            group: "Admin", roles: ADMIN_ROLES, keywords: "pitch deck investor blueprint resources documents" },
   { id: "adm-hack",      label: "Admin · Hackathons",       emoji: "🏆", href: "/admin/hackathons",              group: "Admin", roles: ADMIN_ROLES },
   { id: "adm-spaces",    label: "Admin · Creative Spaces",  emoji: "🏫", href: "/admin/creative-spaces",         group: "Admin", roles: ADMIN_ROLES },
   { id: "adm-engage",    label: "Admin · Engagement",       emoji: "📊", href: "/admin/engagement",              group: "Admin", roles: MOD_ROLES },
