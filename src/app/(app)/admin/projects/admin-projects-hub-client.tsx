@@ -601,15 +601,16 @@ function CustomProjectGradingPanel({
                             (async () => {
                               const res = await aiSuggestProjectSectionScore(submissionId, activeSection!);
                               setAiRunning(null);
-                              if (!res.ok) { toast.error(`AI: ${res.error}`); return; }
+                              if (!res.ok) { toast.error(`Grade failed: ${res.error}`); return; }
                               setAiSuggestions((prev) => ({ ...prev, [activeSection!]: res.data }));
-                              toast.success(`AI suggested ${res.data.suggested_score}/${sec.points}`);
+                              const engine = res.data.source === "heuristic" ? "Local" : "AI";
+                              toast.success(`${engine} graded: ${res.data.suggested_score}/${sec.points}`);
                             })();
                           }}
                           disabled={aiRunning === activeSection || bulkRunning}
                           style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(124,58,237,0.4)", background: "rgba(124,58,237,0.12)", color: "#C4B5FD", cursor: "pointer", fontSize: 11, fontWeight: 700 }}
                         >
-                          {aiRunning === activeSection ? "🤖 Grading…" : "🤖 Suggest with AI"}
+                          {aiRunning === activeSection ? "⚡ Analysing…" : "⚡ Auto-grade"}
                         </button>
                       </div>
                       <SectionRenderer section={sec} answer={answers[sec.id]} readOnly />
@@ -620,8 +621,13 @@ function CustomProjectGradingPanel({
                       const sug = aiSuggestions[activeSection];
                       return (
                         <div style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.10), rgba(124,58,237,0.03))", border: "1px solid rgba(124,58,237,0.3)", borderRadius: 10, padding: 16, marginBottom: 16 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                            <div style={{ color: "#C4B5FD", fontSize: 12, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>🤖 AI Grading Suggestion</div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8, flexWrap: "wrap" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                              <div style={{ color: "#C4B5FD", fontSize: 12, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>⚡ Auto-grade Suggestion</div>
+                              <span style={{ fontSize: 9, letterSpacing: 1, padding: "2px 7px", borderRadius: 999, background: sug.source === "ai" ? "rgba(124,58,237,0.25)" : "rgba(30,136,229,0.2)", color: sug.source === "ai" ? "#C4B5FD" : "#7CBFFF", fontWeight: 700, textTransform: "uppercase" }}>
+                                {sug.source === "ai" ? "AI" : "Local heuristic"}
+                              </span>
+                            </div>
                             <div style={{ color: "#E8EDF5", fontWeight: 800, fontSize: 15 }}>{sug.suggested_score}/{sug.max_score}</div>
                           </div>
                           {sug.strengths.length > 0 && (
@@ -729,12 +735,12 @@ function CustomProjectGradingPanel({
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button
                   onClick={() => {
-                    if (!confirm(`Run AI grader on ALL ${sections.length} sections? The AI's scores & feedback will pre-fill your grading form for review.`)) return;
+                    if (!confirm(`Auto-grade all ${sections.length} sections? Uses AI if configured, otherwise falls back to the local heuristic grader. Scores + feedback pre-fill for your review.`)) return;
                     setBulkRunning(true);
                     (async () => {
                       const res = await aiGradeAllSections(submissionId);
                       setBulkRunning(false);
-                      if (!res.ok) { toast.error(`AI: ${res.error}`); return; }
+                      if (!res.ok) { toast.error(`Grade failed: ${res.error}`); return; }
                       // Pre-fill all sections in the UI
                       const nextScores: Record<string, { score: string; feedback: string }> = { ...scores };
                       const nextSugg: Record<string, AiSectionSuggestion> = { ...aiSuggestions };
@@ -756,7 +762,7 @@ function CustomProjectGradingPanel({
                   disabled={bulkRunning || isPending || submission.status === "graded"}
                   style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid rgba(124,58,237,0.5)", background: "rgba(124,58,237,0.15)", color: "#C4B5FD", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
                 >
-                  {bulkRunning ? "🤖 AI grading all…" : "🤖 AI Grade All"}
+                  {bulkRunning ? "⚡ Grading all…" : "⚡ Auto-grade All"}
                 </button>
                 <button onClick={() => {
                   if (!confirm("Finalize grading? This will notify the intern.")) return;
@@ -967,7 +973,7 @@ function ProjectsTab({ projects, onNewProject, onEditProject }: {
                               {sub.total_score !== null ? `${sub.total_score}/${project.sections.reduce((s, sec) => s + sec.points, 0)}` : "—"}
                             </td>
                             <td style={{ padding: "10px 20px" }}>
-                              {["submitted", "late", "graded"].includes(sub.status) && (
+                              {["draft", "submitted", "late", "graded"].includes(sub.status) && (
                                 <button
                                   onClick={() => { setGradingProject({ id: project.id, sections: project.sections }); setGradingSubId(sub.id); }}
                                   style={S.btn(sub.status === "graded" ? "#5A6478" : "#1E88E5")}

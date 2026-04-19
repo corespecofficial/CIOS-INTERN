@@ -4,6 +4,7 @@ import { getCurrentDbUser, supabaseAdmin } from "@/lib/db";
 import { pushNotification } from "@/app/actions/notifications";
 import { awardXP } from "@/lib/gamification";
 import { callLLM, logAiUsage } from "@/lib/ai-client";
+import { heuristicGradeSection } from "@/lib/heuristic-grader";
 import { revalidatePath } from "next/cache";
 import type {
   Project, ProjectSubmission, ProjectInput,
@@ -608,6 +609,7 @@ export interface AiSectionSuggestion {
   strengths: string[];
   weaknesses: string[];
   feedback: string;
+  source: "ai" | "heuristic";
 }
 
 function stripCodeFence(s: string): string {
@@ -677,6 +679,7 @@ function parseAiSuggestion(
     strengths: asList(parsed.strengths),
     weaknesses: asList(parsed.weaknesses),
     feedback: typeof parsed.feedback === "string" ? parsed.feedback.trim() : "",
+    source: "ai",
   };
 }
 
@@ -706,28 +709,24 @@ export async function aiSuggestProjectSectionScore(
 
     const answer = ((sub as { answers: Record<string, unknown> }).answers ?? {})[sectionId];
 
-    const prompt = buildSectionRubricPrompt(section, answer);
-    const { text, provider, model } = await callLLM(prompt, {
-      system:
-        "You are a rigorous but kind internship grading coach. Your job: evaluate one section of a weekend-assignment submission, identify specific strengths and weaknesses, and suggest a score. Always return strict JSON.",
-      maxTokens: 700,
-      temperature: 0.2,
-    });
-
-    let suggestion: AiSectionSuggestion;
+    // Try AI first — fall back to local heuristic on ANY failure (no key, rate-limit,
+    // network, invalid JSON). Admin never sees a dead button.
     try {
-      suggestion = parseAiSuggestion(text, sectionId, section.points);
-    } catch (e) {
-      return {
-        ok: false,
-        error: `AI returned invalid JSON (${provider}/${model}): ${(e as Error).message}. Raw: ${text.slice(0, 200)}`,
-      };
+      const prompt = buildSectionRubricPrompt(section, answer);
+      const { text, provider } = await callLLM(prompt, {
+        system:
+          "You are a rigorous but kind internship grading coach. Your job: evaluate one section of a weekend-assignment submission, identify specific strengths and weaknesses, and suggest a score. Always return strict JSON.",
+        maxTokens: 700,
+        temperature: 0.2,
+      });
+      const suggestion = parseAiSuggestion(text, sectionId, section.points);
+      logAiUsage(me.id, "project_grading", provider).catch(() => {});
+      return { ok: true, data: suggestion };
+    } catch {
+      // AI unavailable — compute deterministically. Still 100% useful.
+      const heuristic = heuristicGradeSection(section, answer);
+      return { ok: true, data: heuristic };
     }
-
-    // Best-effort usage log (non-blocking)
-    logAiUsage(me.id, "project_grading", provider).catch(() => {});
-
-    return { ok: true, data: suggestion };
   } catch (e: unknown) {
     return { ok: false, error: (e as Error).message };
   }
