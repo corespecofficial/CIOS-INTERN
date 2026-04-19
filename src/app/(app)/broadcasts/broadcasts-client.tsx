@@ -11,6 +11,7 @@ import {
   deleteBroadcast,
   type Broadcast,
 } from "@/app/actions/broadcasts";
+import { createLiveBroadcast } from "@/app/actions/livekit";
 
 const C = {
   bg: "#0A0E1A",
@@ -96,6 +97,7 @@ export default function BroadcastsClient({ initialBroadcasts, canBroadcast }: Pr
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", color: C.text, padding: "20px 16px 60px", maxWidth: 900, margin: "0 auto" }}>
+      <style>{`@keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }`}</style>
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 22, flexWrap: "wrap" }}>
         <div style={{ flex: 1 }}>
           <div style={{ display: "inline-block", background: "rgba(239,83,80,0.12)", border: "1px solid rgba(239,83,80,0.3)", padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 700, letterSpacing: 2, color: C.accent, marginBottom: 10, textTransform: "uppercase" }}>
@@ -107,9 +109,23 @@ export default function BroadcastsClient({ initialBroadcasts, canBroadcast }: Pr
           </p>
         </div>
         {canBroadcast && (
-          <button onClick={() => setShowRecorder(true)} style={{ padding: "10px 18px", background: C.accent, color: "#fff", border: "none", borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
-            🔴 Record a broadcast
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={async () => {
+                const title = prompt("Title for this live broadcast?");
+                if (!title?.trim()) return;
+                const res = await createLiveBroadcast({ title, start_now: true });
+                if (!res.ok) { alert(res.error); return; }
+                if (res.data) router.push(`/broadcasts/live/${res.data.broadcast_id}`);
+              }}
+              style={{ padding: "10px 16px", background: C.accent, color: "#fff", border: "none", borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: "pointer" }}
+            >
+              🔴 Go Live
+            </button>
+            <button onClick={() => setShowRecorder(true)} style={{ padding: "10px 16px", background: "transparent", color: C.text, border: `1px solid ${C.border}`, borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+              📹 Record
+            </button>
+          </div>
         )}
       </div>
 
@@ -123,9 +139,9 @@ export default function BroadcastsClient({ initialBroadcasts, canBroadcast }: Pr
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {broadcasts.map((b) => (
-            <div key={b.id} style={{ background: C.card, border: `1px solid ${b.pinned ? "#FFC10744" : C.border}`, borderRadius: 12, padding: 16, display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap" }}>
+            <div key={b.id} style={{ background: C.card, border: `1px solid ${b.is_live ? C.accent + "88" : b.pinned ? "#FFC10744" : C.border}`, borderRadius: 12, padding: 16, display: "flex", gap: 14, alignItems: "flex-start", flexWrap: "wrap" }}>
               <button
-                onClick={() => onPlay(b)}
+                onClick={() => b.is_live ? router.push(`/broadcasts/live/${b.id}`) : onPlay(b)}
                 style={{
                   flex: "0 0 180px",
                   aspectRatio: "16/9",
@@ -138,15 +154,25 @@ export default function BroadcastsClient({ initialBroadcasts, canBroadcast }: Pr
                 }}
               >
                 <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 8 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.92)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: "#000" }}>▶</div>
+                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: b.is_live ? C.accent : "rgba(255,255,255,0.92)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: b.is_live ? "#fff" : "#000" }}>
+                    {b.is_live ? "🔴" : "▶"}
+                  </div>
                 </div>
-                {b.duration_sec && (
+                {b.is_live && (
+                  <div style={{ position: "absolute", top: 6, left: 6, background: C.accent, color: "#fff", padding: "3px 10px", borderRadius: 999, fontSize: 10, fontWeight: 800, letterSpacing: 1, animation: "live-pulse 1.5s infinite" }}>
+                    ● LIVE
+                  </div>
+                )}
+                {!b.is_live && b.duration_sec && (
                   <div style={{ position: "absolute", bottom: 6, right: 6, background: "rgba(0,0,0,0.8)", color: "#fff", padding: "2px 8px", borderRadius: 4, fontSize: 10, fontWeight: 700 }}>
                     {fmtDuration(b.duration_sec)}
                   </div>
                 )}
-                {b.pinned && (
+                {b.pinned && !b.is_live && (
                   <div style={{ position: "absolute", top: 6, left: 6, background: "rgba(255,193,7,0.95)", color: "#000", padding: "2px 8px", borderRadius: 999, fontSize: 9, fontWeight: 800 }}>📌 PINNED</div>
+                )}
+                {b.mode === "scheduled" && b.scheduled_at && !b.is_live && (
+                  <div style={{ position: "absolute", top: 6, left: 6, background: "rgba(77,168,255,0.95)", color: "#fff", padding: "2px 8px", borderRadius: 999, fontSize: 9, fontWeight: 800 }}>⏰ SCHEDULED</div>
                 )}
               </button>
               <div style={{ flex: 1, minWidth: 220 }}>

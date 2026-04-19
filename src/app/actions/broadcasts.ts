@@ -12,7 +12,7 @@ export interface Broadcast {
   author_avatar: string | null;
   title: string;
   description: string | null;
-  video_url: string;
+  video_url: string | null;
   thumbnail_url: string | null;
   duration_sec: number | null;
   audience: "all" | "cohort" | "roles" | "group";
@@ -20,6 +20,12 @@ export interface Broadcast {
   view_count: number;
   pinned: boolean;
   status: "draft" | "published" | "archived";
+  mode: "recorded" | "live" | "scheduled";
+  room_name: string | null;
+  scheduled_at: string | null;
+  is_live: boolean;
+  live_started_at: string | null;
+  live_ended_at: string | null;
   created_at: string;
   viewed_by_me: boolean;
   my_reactions: string[];
