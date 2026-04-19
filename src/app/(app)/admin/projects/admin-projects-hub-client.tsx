@@ -748,6 +748,10 @@ function ProjectsTab({ projects, onNewProject, onEditProject }: {
             total_score: s.total_score,
           })),
         }));
+      } else {
+        // Surface the failure so the UI doesn't stick on "Loading submissions..."
+        toast.error(`Failed to load submissions: ${res.error}`);
+        setProjectSubs((p) => ({ ...p, [project.id]: [] }));
       }
     });
   }

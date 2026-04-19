@@ -407,7 +407,7 @@ export async function getProjectSubmissions(
 
     let q = sb
       .from("project_submissions")
-      .select(`*, users!project_submissions_user_id_fkey(full_name, avatar_url), project_section_scores(id)`)
+      .select(`*, users!project_submissions_user_id_fkey(name, avatar_url), project_section_scores(id)`)
       .eq("project_id", projectId)
       .order("submitted_at", { ascending: false });
 
@@ -417,13 +417,15 @@ export async function getProjectSubmissions(
     if (error) return { ok: false, error: error.message };
 
     let rows = (data ?? []).map((row: Record<string, unknown>) => {
-      const user = row.users as { full_name: string; avatar_url: string | null } | null;
+      const user = row.users as { name: string; avatar_url: string | null } | null;
       const scores = row.project_section_scores as { id: string }[] | null;
       const { users: _u, project_section_scores: _s, ...rest } = row;
       void _u; void _s;
       return {
         ...(rest as ProjectSubmission),
-        submitter: user ?? { full_name: "Unknown", avatar_url: null },
+        submitter: user
+          ? { full_name: user.name, avatar_url: user.avatar_url }
+          : { full_name: "Unknown", avatar_url: null },
         section_scores_count: scores?.length ?? 0,
       };
     });
@@ -451,7 +453,7 @@ export async function getProjectSubmissionById(submissionId: string): Promise<R<
 
     const { data, error } = await sb
       .from("project_submissions")
-      .select(`*, users!project_submissions_user_id_fkey(full_name, avatar_url), projects!project_submissions_project_id_fkey(title, sections)`)
+      .select(`*, users!project_submissions_user_id_fkey(name, avatar_url), projects!project_submissions_project_id_fkey(title, sections)`)
       .eq("id", submissionId)
       .single();
 
@@ -467,7 +469,7 @@ export async function getProjectSubmissionById(submissionId: string): Promise<R<
       .select("*")
       .eq("submission_id", submissionId);
 
-    const user = data.users as { full_name: string; avatar_url: string | null } | null;
+    const user = data.users as { name: string; avatar_url: string | null } | null;
     const project = data.projects as { title: string; sections: SectionConfig[] } | null;
     const { users: _u, projects: _p, ...rest } = data;
     void _u; void _p;
@@ -477,7 +479,7 @@ export async function getProjectSubmissionById(submissionId: string): Promise<R<
       data: {
         ...(rest as ProjectSubmission),
         section_scores: (scores ?? []) as ProjectSectionScore[],
-        submitter: user,
+        submitter: user ? { full_name: user.name, avatar_url: user.avatar_url } : null,
         project: project ?? { title: "Unknown", sections: [] },
       },
     };
