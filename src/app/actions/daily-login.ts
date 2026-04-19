@@ -11,6 +11,11 @@ const STREAK_BONUS_MULTIPLIER = 0.5; // +50% on 7-day streak
 /**
  * Award the daily-login bonus once per UTC day.
  * Idempotent: returns already=true if claimed today.
+ *
+ * Idempotency is enforced by a UNIQUE(user_id, date) constraint on the
+ * daily_logins table. We attempt the insert first — if it fails with a
+ * unique-violation, we know the user already claimed today and bail out
+ * without touching users.xp. This is race-safe across concurrent tabs.
  */
 export async function claimDailyLogin(): Promise<R<{ already: boolean; xpGranted: number; streak: number }>> {
   try {
@@ -19,21 +24,52 @@ export async function claimDailyLogin(): Promise<R<{ already: boolean; xpGranted
     const sb = supabaseAdmin();
 
     const today = new Date().toISOString().slice(0, 10);
-    const { data: existing } = await sb.from("daily_logins").select("date").eq("user_id", me.id).eq("date", today).maybeSingle();
-    if (existing) return { ok: true, data: { already: true, xpGranted: 0, streak: me.streak ?? 0 } };
+    const yesterday = new Date(Date.now() - 86400_000).toISOString().slice(0, 10);
 
     // Compute streak — was yesterday claimed?
-    const yesterday = new Date(Date.now() - 86400_000).toISOString().slice(0, 10);
-    const { data: yest } = await sb.from("daily_logins").select("date").eq("user_id", me.id).eq("date", yesterday).maybeSingle();
+    const { data: yest } = await sb
+      .from("daily_logins")
+      .select("date")
+      .eq("user_id", me.id)
+      .eq("date", yesterday)
+      .maybeSingle();
     const newStreak = yest ? ((me.streak ?? 0) + 1) : 1;
 
     const bonus = newStreak >= 7 ? Math.round(DAILY_XP * (1 + STREAK_BONUS_MULTIPLIER)) : DAILY_XP;
 
-    await sb.from("daily_logins").insert({ user_id: me.id, date: today, xp_granted: bonus });
-    await sb.from("users").update({ xp: (me.xp ?? 0) + bonus, streak: newStreak, last_seen: new Date().toISOString() }).eq("id", me.id);
+    // Atomic insert — the UNIQUE (user_id, date) constraint is the source of
+    // truth for idempotency. Attempting the insert FIRST means a second
+    // concurrent request cannot sneak past a stale SELECT and double-award.
+    const { error: insertError } = await sb
+      .from("daily_logins")
+      .insert({ user_id: me.id, date: today, xp_granted: bonus });
+
+    if (insertError) {
+      // 23505 = unique_violation → already claimed today → idempotent success
+      if (insertError.code === "23505") {
+        return { ok: true, data: { already: true, xpGranted: 0, streak: me.streak ?? 0 } };
+      }
+      // 42P01 = undefined_table → migration p379 not run yet. Fail loud instead
+      // of silently falling through and awarding XP every page load (the old bug).
+      if (insertError.code === "42P01") {
+        return { ok: false, error: "daily_logins table missing — run migration p379_daily_logins.sql" };
+      }
+      throw insertError;
+    }
+
+    // Only reached on a genuine first insert of the day — safe to award XP
+    await sb
+      .from("users")
+      .update({
+        xp: (me.xp ?? 0) + bonus,
+        streak: newStreak,
+        last_seen: new Date().toISOString(),
+      })
+      .eq("id", me.id);
 
     pushNotification({
-      userId: me.id, kind: "achievement",
+      userId: me.id,
+      kind: "achievement",
       title: `🎁 +${bonus} XP — Daily login!`,
       body: newStreak >= 7 ? `🔥 ${newStreak}-day streak — bonus applied!` : `Day ${newStreak} of your streak`,
       url: "/gamification",
