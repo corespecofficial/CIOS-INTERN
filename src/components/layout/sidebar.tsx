@@ -72,6 +72,7 @@ const NAV_ITEMS: NavItem[] = [
   { emoji: "📱", label: "Stories", href: "/stories", section: "SOCIAL", dataRole: ["intern", "team_lead", "mentor", "alumni", "admin", "super_admin"] },
   { emoji: "📰", label: "Articles", href: "/articles", section: "SOCIAL", dataRole: ["intern", "team_lead", "mentor", "alumni", "admin", "super_admin"] },
   { emoji: "🏆", label: "Project of the Week", href: "/voting", section: "SOCIAL", dataRole: ["intern", "team_lead", "mentor", "alumni", "admin", "super_admin"] },
+  { emoji: "🏪", label: "Reward Store", href: "/rewards-store", section: "PROGRESS", dataRole: ["intern", "team_lead", "mentor", "alumni"] },
   { emoji: "💚", label: "Wellness", href: "/wellness", section: "PROGRESS", dataRole: ["intern", "team_lead"] },
   { emoji: "📁", label: "Projects", href: "/projects", section: "PROGRESS", dataRole: ["intern", "team_lead"] },
   { emoji: "📚", label: "Library", href: "/library", section: "PROGRESS", dataRole: ["intern", "team_lead", "instructor", "admin", "super_admin"] },
