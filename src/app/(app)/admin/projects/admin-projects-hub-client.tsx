@@ -8,6 +8,8 @@ import toast from "react-hot-toast";
 import {
   archiveProject, publishProject,
   gradeProjectSection, finalizeProjectGrading, getProjectSubmissionById,
+  aiSuggestProjectSectionScore, aiGradeAllSections, getProjectAnalytics,
+  type AiSectionSuggestion, type ProjectAnalytics,
 } from "@/app/actions/custom-projects";
 import {
   gradeEagleSection, finalizeEagleGrading, getEagleSubmissionById,
@@ -484,6 +486,9 @@ function CustomProjectGradingPanel({
   const [activeSection, setActiveSection] = useState<string | null>(sections[0]?.id ?? null);
   const [isPending, startTransition] = useTransition();
   const [savedSections, setSavedSections] = useState<Set<string>>(new Set());
+  const [aiSuggestions, setAiSuggestions] = useState<Record<string, AiSectionSuggestion>>({});
+  const [aiRunning, setAiRunning] = useState<string | null>(null);
+  const [bulkRunning, setBulkRunning] = useState(false);
 
   useState(() => {
     getProjectSubmissionById(submissionId).then((res) => {
@@ -588,9 +593,75 @@ function CustomProjectGradingPanel({
 
                     {/* Intern answer */}
                     <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: 16, marginBottom: 16 }}>
-                      <div style={{ ...S.label, marginBottom: 10 }}>Intern&apos;s Answer</div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                        <div style={S.label}>Intern&apos;s Answer</div>
+                        <button
+                          onClick={() => {
+                            setAiRunning(activeSection);
+                            (async () => {
+                              const res = await aiSuggestProjectSectionScore(submissionId, activeSection!);
+                              setAiRunning(null);
+                              if (!res.ok) { toast.error(`AI: ${res.error}`); return; }
+                              setAiSuggestions((prev) => ({ ...prev, [activeSection!]: res.data }));
+                              toast.success(`AI suggested ${res.data.suggested_score}/${sec.points}`);
+                            })();
+                          }}
+                          disabled={aiRunning === activeSection || bulkRunning}
+                          style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(124,58,237,0.4)", background: "rgba(124,58,237,0.12)", color: "#C4B5FD", cursor: "pointer", fontSize: 11, fontWeight: 700 }}
+                        >
+                          {aiRunning === activeSection ? "🤖 Grading…" : "🤖 Suggest with AI"}
+                        </button>
+                      </div>
                       <SectionRenderer section={sec} answer={answers[sec.id]} readOnly />
                     </div>
+
+                    {/* AI suggestion panel */}
+                    {aiSuggestions[activeSection] && (() => {
+                      const sug = aiSuggestions[activeSection];
+                      return (
+                        <div style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.10), rgba(124,58,237,0.03))", border: "1px solid rgba(124,58,237,0.3)", borderRadius: 10, padding: 16, marginBottom: 16 }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                            <div style={{ color: "#C4B5FD", fontSize: 12, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>🤖 AI Grading Suggestion</div>
+                            <div style={{ color: "#E8EDF5", fontWeight: 800, fontSize: 15 }}>{sug.suggested_score}/{sug.max_score}</div>
+                          </div>
+                          {sug.strengths.length > 0 && (
+                            <div style={{ marginBottom: 8 }}>
+                              <div style={{ color: "#4CAF50", fontSize: 11, fontWeight: 700, marginBottom: 4 }}>✅ Strengths</div>
+                              <ul style={{ margin: 0, paddingLeft: 18, color: "#E8EDF5", fontSize: 12.5, lineHeight: 1.6 }}>
+                                {sug.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                          {sug.weaknesses.length > 0 && (
+                            <div style={{ marginBottom: 8 }}>
+                              <div style={{ color: "#FF7043", fontSize: 11, fontWeight: 700, marginBottom: 4 }}>⚠️ Weaknesses</div>
+                              <ul style={{ margin: 0, paddingLeft: 18, color: "#E8EDF5", fontSize: 12.5, lineHeight: 1.6 }}>
+                                {sug.weaknesses.map((s, i) => <li key={i}>{s}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                          {sug.feedback && (
+                            <div style={{ color: "#9CA3AF", fontSize: 12.5, lineHeight: 1.6, fontStyle: "italic", marginTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 8 }}>
+                              {sug.feedback}
+                            </div>
+                          )}
+                          <button
+                            onClick={() => {
+                              const combinedFeedback = [
+                                sug.strengths.length ? `✅ Strengths: ${sug.strengths.join("; ")}` : "",
+                                sug.weaknesses.length ? `⚠️ Weaknesses: ${sug.weaknesses.join("; ")}` : "",
+                                sug.feedback,
+                              ].filter(Boolean).join("\n\n");
+                              setScores((p) => ({ ...p, [activeSection!]: { score: String(sug.suggested_score), feedback: combinedFeedback } }));
+                              toast.success("Score + feedback pre-filled. Review and save.");
+                            }}
+                            style={{ marginTop: 10, padding: "7px 14px", borderRadius: 8, border: "none", background: "#7C3AED", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
+                          >
+                            Accept AI suggestion →
+                          </button>
+                        </div>
+                      );
+                    })()}
 
                     {/* Score input */}
                     <div style={S.cardPad}>
@@ -650,21 +721,54 @@ function CustomProjectGradingPanel({
               placeholder="Overall feedback..."
               style={{ ...S.textarea, marginBottom: 12 }}
             />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <div style={{ color: "#5A6478", fontSize: 13 }}>
                 Total: <strong style={{ color: "#E8EDF5" }}>{totalScored}/{totalMax}</strong>
                 {totalMax > 0 && <span style={{ color: "#5A6478", marginLeft: 6, fontSize: 11 }}>({Math.round((totalScored / totalMax) * 100)}%)</span>}
               </div>
-              <button onClick={() => {
-                if (!confirm("Finalize grading? This will notify the intern.")) return;
-                startTransition(async () => {
-                  const res = await finalizeProjectGrading(submissionId, overallFeedback || "");
-                  if (res.ok) { toast.success("Graded!"); onClose(); }
-                  else toast.error(res.error);
-                });
-              }} disabled={isPending || submission.status === "graded"} style={S.btnPrimary}>
-                {submission.status === "graded" ? "Already Graded" : isPending ? "Finalizing..." : "✅ Finalize Grading"}
-              </button>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  onClick={() => {
+                    if (!confirm(`Run AI grader on ALL ${sections.length} sections? The AI's scores & feedback will pre-fill your grading form for review.`)) return;
+                    setBulkRunning(true);
+                    (async () => {
+                      const res = await aiGradeAllSections(submissionId);
+                      setBulkRunning(false);
+                      if (!res.ok) { toast.error(`AI: ${res.error}`); return; }
+                      // Pre-fill all sections in the UI
+                      const nextScores: Record<string, { score: string; feedback: string }> = { ...scores };
+                      const nextSugg: Record<string, AiSectionSuggestion> = { ...aiSuggestions };
+                      for (const s of res.data.suggestions) {
+                        nextSugg[s.section_id] = s;
+                        const fb = [
+                          s.strengths.length ? `✅ Strengths: ${s.strengths.join("; ")}` : "",
+                          s.weaknesses.length ? `⚠️ Weaknesses: ${s.weaknesses.join("; ")}` : "",
+                          s.feedback,
+                        ].filter(Boolean).join("\n\n");
+                        nextScores[s.section_id] = { score: String(s.suggested_score), feedback: fb };
+                      }
+                      setAiSuggestions(nextSugg);
+                      setScores(nextScores);
+                      setSavedSections(new Set(res.data.suggestions.map((s) => s.section_id)));
+                      toast.success(`AI graded ${res.data.suggestions.length} sections. Review & finalize.`);
+                    })();
+                  }}
+                  disabled={bulkRunning || isPending || submission.status === "graded"}
+                  style={{ padding: "9px 16px", borderRadius: 8, border: "1px solid rgba(124,58,237,0.5)", background: "rgba(124,58,237,0.15)", color: "#C4B5FD", cursor: "pointer", fontSize: 12, fontWeight: 700 }}
+                >
+                  {bulkRunning ? "🤖 AI grading all…" : "🤖 AI Grade All"}
+                </button>
+                <button onClick={() => {
+                  if (!confirm("Finalize grading? This will notify the intern.")) return;
+                  startTransition(async () => {
+                    const res = await finalizeProjectGrading(submissionId, overallFeedback || "");
+                    if (res.ok) { toast.success("Graded!"); onClose(); }
+                    else toast.error(res.error);
+                  });
+                }} disabled={isPending || submission.status === "graded"} style={S.btnPrimary}>
+                  {submission.status === "graded" ? "Already Graded" : isPending ? "Finalizing..." : "✅ Finalize Grading"}
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -913,11 +1017,23 @@ function CustomProjectGradingSubTab({ project }: { project: ProjectWithCount }) 
 
   const totalPoints = project.sections.reduce((s, sec) => s + sec.points, 0);
 
-  const visible = (subs ?? []).filter((s) => {
-    if (filter !== "all" && s.status !== filter) return false;
-    if (search && !s.submitter.full_name.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  const visible = (subs ?? [])
+    .filter((s) => {
+      if (filter !== "all" && s.status !== filter) return false;
+      if (search && !s.submitter.full_name.toLowerCase().includes(search.toLowerCase())) return false;
+      return true;
+    })
+    // Rank: graded subs first by score desc, then by status, then by submission date
+    .slice()
+    .sort((a, b) => {
+      const aGraded = a.status === "graded" && a.total_score !== null;
+      const bGraded = b.status === "graded" && b.total_score !== null;
+      if (aGraded && bGraded) return (b.total_score ?? 0) - (a.total_score ?? 0);
+      if (aGraded) return -1;
+      if (bGraded) return 1;
+      const order: Record<string, number> = { submitted: 0, late: 1, draft: 2 };
+      return (order[a.status] ?? 99) - (order[b.status] ?? 99);
+    });
 
   const stats = subs ? {
     total: subs.length,
@@ -1031,40 +1147,28 @@ function CustomProjectGradingSubTab({ project }: { project: ProjectWithCount }) 
 
 function CustomProjectAnalyticsSubTab({ project }: { project: ProjectWithCount }) {
   const isMobile = useIsMobile();
-  type SubRow = ProjectSubmission & {
-    submitter: { full_name: string; avatar_url: string | null };
-    section_scores_count: number;
-  };
-
-  const [subs, setSubs] = useState<SubRow[] | null>(null);
+  const [analytics, setAnalytics] = useState<ProjectAnalytics | null>(null);
   const [loading, startLoad] = useTransition();
+  const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
+    setErr(null);
     startLoad(async () => {
-      const { getProjectSubmissions } = await import("@/app/actions/custom-projects");
-      const res = await getProjectSubmissions(project.id);
-      if (res.ok) setSubs(res.data as SubRow[]);
+      const res = await getProjectAnalytics(project.id);
+      if (res.ok) setAnalytics(res.data);
+      else setErr(res.error);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id]);
 
-  if (loading || subs === null) {
+  if (loading || (!analytics && !err)) {
     return <div style={{ ...S.cardPad, textAlign: "center", color: "#5A6478" }}>Loading analytics...</div>;
   }
+  if (err || !analytics) {
+    return <div style={{ ...S.cardPad, textAlign: "center", color: "#EF5350" }}>Failed: {err}</div>;
+  }
 
-  const totalPoints = project.sections.reduce((s, sec) => s + sec.points, 0);
-  const gradedSubs = subs.filter((s) => s.status === "graded" && s.total_score !== null);
-  const avgScore = gradedSubs.length > 0
-    ? Math.round(gradedSubs.reduce((s, sub) => s + (sub.total_score ?? 0), 0) / gradedSubs.length)
-    : null;
-
-  const submissionRate = subs.length > 0
-    ? Math.round((subs.filter((s) => s.status !== "draft").length / subs.length) * 100) : 0;
-
-  const topTen = [...gradedSubs]
-    .sort((a, b) => (b.total_score ?? 0) - (a.total_score ?? 0))
-    .slice(0, 10);
-
+  const totalPoints = analytics.max_score;
   const COLORS = ["#1E88E5", "#4CAF50", "#FFC107", "#FF7043", "#AB47BC", "#00BCD4", "#E91E63", "#8BC34A"];
 
   return (
@@ -1072,12 +1176,13 @@ function CustomProjectAnalyticsSubTab({ project }: { project: ProjectWithCount }
       {/* Summary stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(140px,1fr))", gap: 10, marginBottom: 24 }}>
         {[
-          { label: "Submissions", value: subs.length, color: "#E8EDF5" },
-          { label: "Submitted", value: subs.filter((s) => s.status !== "draft").length, color: "#4CAF50" },
-          { label: "Graded", value: gradedSubs.length, color: "#1E88E5" },
-          { label: "Late", value: subs.filter((s) => s.status === "late").length, color: "#FF7043" },
-          { label: "Submit rate", value: `${submissionRate}%`, color: "#FFC107" },
-          { label: "Avg score", value: avgScore !== null ? `${avgScore}/${totalPoints}` : "—", color: "#AB47BC" },
+          { label: "Total interns", value: analytics.total, color: "#E8EDF5" },
+          { label: "Submitted", value: analytics.submitted, color: "#4CAF50" },
+          { label: "Graded", value: analytics.graded, color: "#1E88E5" },
+          { label: "Late", value: analytics.late, color: "#FF7043" },
+          { label: "Submission rate", value: `${analytics.submission_rate_pct}%`, color: "#FFC107" },
+          { label: "Pass rate", value: analytics.pass_rate_pct !== null ? `${analytics.pass_rate_pct}%` : "—", color: "#AB47BC" },
+          { label: "Avg score", value: analytics.avg_score !== null ? `${analytics.avg_score}/${totalPoints}` : "—", color: "#00BCD4" },
         ].map((s) => (
           <div key={s.label} style={S.statCard}>
             <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</div>
@@ -1086,47 +1191,70 @@ function CustomProjectAnalyticsSubTab({ project }: { project: ProjectWithCount }
         ))}
       </div>
 
-      {subs.length === 0 ? (
+      {/* Strength/weakness banner */}
+      {(analytics.weakest_section || analytics.strongest_section) && (
+        <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+          {analytics.strongest_section && (
+            <div style={{ ...S.cardPad, flex: 1, minWidth: 260, background: "linear-gradient(135deg,rgba(76,175,80,0.10),transparent)" }}>
+              <div style={{ fontSize: 11, color: "#4CAF50", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>✅ Strongest section</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#E8EDF5", marginTop: 4 }}>{analytics.strongest_section}</div>
+            </div>
+          )}
+          {analytics.weakest_section && (
+            <div style={{ ...S.cardPad, flex: 1, minWidth: 260, background: "linear-gradient(135deg,rgba(255,112,67,0.10),transparent)" }}>
+              <div style={{ fontSize: 11, color: "#FF7043", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>⚠️ Needs coaching</div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "#E8EDF5", marginTop: 4 }}>{analytics.weakest_section}</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {analytics.total === 0 ? (
         <div style={{ ...S.cardPad, textAlign: "center", color: "#5A6478" }}>No submissions yet.</div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 300px", gap: 16 }}>
-          {/* Section score breakdown */}
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 320px", gap: 16 }}>
+          {/* Section performance (REAL data: avg actual score per section) */}
           <div style={S.cardPad}>
-            <h2 style={S.h2}>Sections ({project.sections.length} · {totalPoints} pts total)</h2>
-            {project.sections.map((sec, i) => (
-              <div key={sec.id} style={{ marginBottom: 14 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ color: "#E8EDF5", fontSize: 13 }}>
-                    {SECTION_TYPE_ICONS[sec.type]} {sec.label}
-                  </span>
-                  <span style={{ color: "#5A6478", fontSize: 12 }}>{sec.points} pts</span>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ flex: 1, height: 8, background: "rgba(255,255,255,0.06)", borderRadius: 4 }}>
-                    <div style={{ width: `${(sec.points / totalPoints) * 100}%`, height: "100%", background: COLORS[i % COLORS.length], borderRadius: 4 }} />
+            <h2 style={S.h2}>Section Performance <span style={{ color: "#5A6478", fontWeight: 400, fontSize: 12 }}>· avg actual score (graded subs)</span></h2>
+            {analytics.section_breakdown.map((sec, i) => {
+              const color = COLORS[i % COLORS.length];
+              const pct = sec.avg_percent ?? 0;
+              return (
+                <div key={sec.section_id} style={{ marginBottom: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ color: "#E8EDF5", fontSize: 13 }}>{sec.label}</span>
+                    <span style={{ color: "#5A6478", fontSize: 12 }}>
+                      {sec.avg_score !== null ? `${sec.avg_score}/${sec.max_points}` : "not graded yet"} · {sec.graded_count} graded
+                    </span>
                   </div>
-                  <span style={{ color: COLORS[i % COLORS.length], fontSize: 12, fontWeight: 700, minWidth: 40, textAlign: "right" }}>
-                    {((sec.points / totalPoints) * 100).toFixed(0)}%
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ flex: 1, height: 8, background: "rgba(255,255,255,0.06)", borderRadius: 4, overflow: "hidden" }}>
+                      <div style={{ width: `${pct}%`, height: "100%", background: color, borderRadius: 4, transition: "width 0.5s" }} />
+                    </div>
+                    <span style={{ color, fontSize: 12, fontWeight: 700, minWidth: 40, textAlign: "right" }}>
+                      {sec.avg_percent !== null ? `${sec.avg_percent}%` : "—"}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Top performers */}
           <div style={S.cardPad}>
-            <h2 style={{ ...S.h2, fontSize: 14 }}>Top Performers</h2>
-            {topTen.length === 0 ? (
+            <h2 style={{ ...S.h2, fontSize: 14 }}>🏆 Top Performers</h2>
+            {analytics.top_performers.length === 0 ? (
               <div style={{ color: "#5A6478", fontSize: 13 }}>No graded submissions yet.</div>
-            ) : topTen.map((s, i) => (
-              <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            ) : analytics.top_performers.map((s, i) => (
+              <div key={s.submission_id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
                 <span style={{ color: i < 3 ? "#FFC107" : "#5A6478", fontWeight: 800, minWidth: 20, fontSize: 13 }}>#{i + 1}</span>
-                {s.submitter.avatar_url
-                  ? <img src={s.submitter.avatar_url} alt="" width={26} height={26} style={{ borderRadius: "50%" }} />
-                  : <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg,#1E88E5,#FFC107)", display: "flex", alignItems: "center", justifyContent: "center", color: "#0A0E1A", fontWeight: 800, fontSize: 11 }}>{s.submitter.full_name.charAt(0)}</div>
+                {s.avatar_url
+                  ? <img src={s.avatar_url} alt="" width={26} height={26} style={{ borderRadius: "50%" }} />
+                  : <div style={{ width: 26, height: 26, borderRadius: "50%", background: "linear-gradient(135deg,#1E88E5,#FFC107)", display: "flex", alignItems: "center", justifyContent: "center", color: "#0A0E1A", fontWeight: 800, fontSize: 11 }}>{s.name.charAt(0)}</div>
                 }
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ color: "#E8EDF5", fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.submitter.full_name}</div>
+                  <div style={{ color: "#E8EDF5", fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.name}</div>
+                  <div style={{ color: "#5A6478", fontSize: 10 }}>{s.percent}%</div>
                 </div>
                 <span style={{ color: "#4CAF50", fontWeight: 800, fontSize: 13 }}>{s.total_score}/{totalPoints}</span>
               </div>
@@ -1134,6 +1262,23 @@ function CustomProjectAnalyticsSubTab({ project }: { project: ProjectWithCount }
           </div>
         </div>
       )}
+
+      {/* Submission velocity */}
+      <div style={{ ...S.cardPad, marginTop: 16 }}>
+        <h2 style={S.h2}>📈 Submission velocity <span style={{ color: "#5A6478", fontWeight: 400, fontSize: 12 }}>· last 14 days</span></h2>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 80, marginTop: 10 }}>
+          {analytics.submissions_by_day.map((d) => {
+            const maxCount = Math.max(1, ...analytics.submissions_by_day.map((x) => x.count));
+            const h = (d.count / maxCount) * 70;
+            return (
+              <div key={d.date} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }} title={`${d.date}: ${d.count} submission${d.count === 1 ? "" : "s"}`}>
+                <div style={{ width: "100%", height: Math.max(2, h), background: d.count > 0 ? "#1E88E5" : "rgba(255,255,255,0.05)", borderRadius: 3, transition: "height 0.4s" }} />
+                <div style={{ fontSize: 9, color: "#5A6478", fontFamily: "monospace" }}>{d.date.slice(5)}</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
