@@ -7,6 +7,8 @@ import toast from "react-hot-toast";
 import type { PublicProfile } from "@/lib/db";
 import { updateMyProfile, aiSuggestBio } from "@/app/actions/profile";
 import { MiniBadgesGrid } from "@/components/engagement/mini-badges-grid";
+import { ActivityHeatmap } from "@/components/profile/activity-heatmap";
+import type { ActivityHeatmap as HeatmapData } from "@/app/actions/activity-heatmap";
 import { uploadToCloudinary, compressImage } from "@/lib/cloudinary-upload";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 
@@ -16,7 +18,7 @@ const ROLE_COLORS: Record<string, string> = {
   finance: "#66BB6A", support: "#26C6DA",
 };
 
-export function ProfileClient({ profile, editable }: { profile: PublicProfile; editable: boolean }) {
+export function ProfileClient({ profile, editable, heatmap }: { profile: PublicProfile; editable: boolean; heatmap?: HeatmapData | null }) {
   const [p, setP] = useState<PublicProfile>(profile);
   const [editing, setEditing] = useState(false);
   const coverInput = useRef<HTMLInputElement>(null);
@@ -357,6 +359,12 @@ function EditModal({ profile, isMobile, onClose, onSaved }: { profile: PublicPro
               <button onClick={save} disabled={busy} style={btnPrimary}>{busy ? "Saving…" : "Save changes"}</button>
             </div>
           </div>
+
+          {heatmap && (
+            <div style={{ marginTop: 18 }}>
+              <ActivityHeatmap data={heatmap} title="Activity — last 12 months" />
+            </div>
+          )}
 
           <div style={{ marginTop: 18 }}>
             <MiniBadgesGrid userId={profile.id} />
