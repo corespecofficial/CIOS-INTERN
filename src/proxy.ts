@@ -90,7 +90,9 @@ const isProtectedRoute = createRouteMatcher([
   '/onboarding(.*)', '/productivity(.*)', '/certificates(.*)', '/my-analytics(.*)',
   '/recruiter', '/recruiter/(.*)', '/opportunities', '/opportunities/(.*)', '/talent', '/talent/(.*)',
   '/announcements', '/announcements/(.*)',
-  '/marketplace', '/marketplace/(.*)',
+  // Marketplace: public-first (Phase 1). Browse + detail + creator profile are
+  // anonymous; /marketplace/sell still requires auth.
+  '/marketplace/sell', '/marketplace/sell/(.*)',
   '/creative-space', '/creative-space/(.*)',
   '/wellness', '/wellness/(.*)',
   // Mentor portal requires auth (interactive dashboard); alumni + mentorship are public-browseable

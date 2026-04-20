@@ -13,6 +13,9 @@ export interface PortalTileMetric {
   signedUpThisWeek: number | null;
   activeThisWeek: number | null;
   revenueThisMonth: number | null;
+  /** Optional label overrides — lets a tile reuse the 4 metric slots with
+      domain-specific copy (e.g. Marketplace uses "Products" not "Users"). */
+  metricLabels?: { primary?: string; active?: string; signup?: string; revenue?: string };
   notes?: string;
 }
 
@@ -61,8 +64,31 @@ export async function getPublicPortalsOverview(): Promise<R<PublicPortalsOvervie
     .is("deleted_at", null)
     .gt("expires_at", new Date().toISOString());
 
+  // ── Phase 1: real marketplace metrics ─────────────────────────────────────
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const [mkProductsCount, mkSalesWeek, mkRevenueMonth] = await Promise.all([
+    sb.from("marketplace_products").select("id", { count: "exact", head: true }).eq("status", "active"),
+    sb.from("marketplace_purchases").select("id", { count: "exact", head: true }).gt("purchased_at", weekAgo),
+    sb.from("marketplace_purchases").select("amount_paid").gt("purchased_at", monthStart),
+  ]);
+  const marketplaceRevenue = ((mkRevenueMonth.data || []) as Array<{ amount_paid: number }>)
+    .reduce((a, r) => a + Number(r.amount_paid || 0), 0);
+
   const tiles: PortalTileMetric[] = [
-    { id: "marketplace", label: "Marketplace", href: "/marketplace", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 1" },
+    {
+      id: "marketplace",
+      label: "Marketplace",
+      href: "/marketplace",
+      publicUsers: mkProductsCount.count ?? 0,
+      signedUpThisWeek: null,
+      activeThisWeek: mkSalesWeek.count ?? 0,
+      revenueThisMonth: Math.round(marketplaceRevenue),
+      metricLabels: { primary: "Products", active: "Sales/wk", signup: "—", revenue: "Rev /mo \u20a6" },
+      notes: "LIVE",
+    },
     { id: "creative-space", label: "Creative Spaces", href: "/creative-space", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 2" },
     { id: "opportunities", label: "Opportunities", href: "/opportunities", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 3" },
     { id: "hackathons", label: "Hackathons", href: "/hackathons", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 4" },

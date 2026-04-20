@@ -101,10 +101,10 @@ export default async function SuperAdminPublicPortalsPage() {
               )}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8, fontSize: 12 }}>
-              <Kv label="Users" value={t.publicUsers} />
-              <Kv label="Active/wk" value={t.activeThisWeek} />
-              <Kv label="New/wk" value={t.signedUpThisWeek} />
-              <Kv label="Rev /mo ₦" value={t.revenueThisMonth} />
+              <Kv label={t.metricLabels?.primary ?? "Users"} value={t.publicUsers} />
+              <Kv label={t.metricLabels?.active ?? "Active/wk"} value={t.activeThisWeek} />
+              <Kv label={t.metricLabels?.signup ?? "New/wk"} value={t.signedUpThisWeek} />
+              <Kv label={t.metricLabels?.revenue ?? "Rev /mo \u20a6"} value={t.revenueThisMonth} />
             </div>
             <div style={{ marginTop: 10 }}>
               <Link href={t.href} style={{ fontSize: 12, color: "#60A5FA", textDecoration: "none", fontWeight: 700 }}>
