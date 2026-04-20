@@ -31,6 +31,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Public Investors + Startups (Phase 5)
     { path: "/investors", priority: 0.9, changeFrequency: "daily" },
     { path: "/investor/onboarding", priority: 0.7, changeFrequency: "monthly" },
+    // Public Tools Trilogy (Phase 6)
+    { path: "/study-buddy", priority: 0.85, changeFrequency: "weekly" },
+    { path: "/ai-hub",      priority: 0.85, changeFrequency: "weekly" },
+    { path: "/documents",   priority: 0.85, changeFrequency: "weekly" },
   ];
 
   const base = staticRoutes.map((r) => ({

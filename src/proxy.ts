@@ -86,7 +86,11 @@ const isProtectedRoute = createRouteMatcher([
   '/gamification(.*)', '/performance(.*)', '/notes(.*)', '/calendar(.*)',
   '/notifications(.*)', '/settings(.*)', '/admin(.*)', '/super-admin(.*)',
   '/team-lead(.*)', '/instructor(.*)', '/moderator(.*)', '/finance(.*)', '/support(.*)',
-  '/analytics(.*)', '/documents(.*)', '/ai-hub(.*)', '/recruitment(.*)', '/status(.*)',
+  '/analytics(.*)', '/recruitment(.*)', '/status(.*)',
+  // Phase 6: study-buddy, ai-hub, documents are now PUBLIC-first surfaces.
+  // Anonymous visitors can browse the empty state + see the marketing copy.
+  // Sending a message / generating a doc still requires auth — enforced in
+  // the server actions, NOT at the route level.
   '/onboarding(.*)', '/productivity(.*)', '/certificates(.*)', '/my-analytics(.*)',
   '/recruiter', '/recruiter/(.*)', '/talent', '/talent/(.*)',
   // Opportunities: browse + detail + public recruiter profile are public (Phase 3).

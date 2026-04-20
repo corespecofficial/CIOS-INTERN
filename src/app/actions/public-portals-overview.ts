@@ -93,9 +93,9 @@ export async function getPublicPortalsOverview(): Promise<R<PublicPortalsOvervie
     await buildOpportunitiesTile(sb, monthStart, weekAgo),
     await buildHackathonsTile(sb, weekAgo),
     await buildInvestorsTile(sb, weekAgo),
-    { id: "study-buddy", label: "Study Buddy", href: "/study-buddy", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 6" },
-    { id: "ai-hub", label: "AI Hub", href: "/ai-hub", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 6" },
-    { id: "documents", label: "Documents", href: "/documents", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 6" },
+    await buildStudyBuddyTile(sb, weekAgo),
+    await buildAiHubTile(sb, weekAgo),
+    await buildDocumentsTile(sb, monthStart, weekAgo),
     { id: "partner", label: "Partner Portals", href: "/partner-portal", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 7" },
   ];
 
@@ -221,6 +221,85 @@ async function buildOpportunitiesTile(
     activeThisWeek: appsWeek.count ?? 0,
     revenueThisMonth: Math.round(revenue),
     metricLabels: { primary: "Open roles", signup: "Paid recruiters", active: "Applications/wk", revenue: "Placement fees /mo \u20a6" },
+    notes: "LIVE",
+  };
+}
+
+// ── Public Tools Trilogy tiles (Phase 6) ─────────────────────────────────
+
+async function buildStudyBuddyTile(sb: Sb, weekAgo: string): Promise<PortalTileMetric> {
+  // study_buddy_threads/messages from p318. Counts are best-effort and
+  // tolerant to a missing table (in case the migration hasn't run on a fresh
+  // env yet).
+  let threads = 0;
+  let messagesWeek = 0;
+  try {
+    const tRes = await sb.from("study_buddy_threads").select("id", { count: "exact", head: true });
+    threads = tRes.count ?? 0;
+    const mRes = await sb.from("study_buddy_messages").select("id", { count: "exact", head: true }).gt("created_at", weekAgo);
+    messagesWeek = mRes.count ?? 0;
+  } catch { /* table may be missing in some envs — keep zeros */ }
+  return {
+    id: "study-buddy",
+    label: "Study Buddy",
+    href: "/study-buddy",
+    publicUsers: threads,
+    signedUpThisWeek: null,
+    activeThisWeek: messagesWeek,
+    revenueThisMonth: null,
+    metricLabels: { primary: "Threads", signup: "—", active: "Messages/wk", revenue: "—" },
+    notes: "LIVE",
+  };
+}
+
+async function buildAiHubTile(sb: Sb, weekAgo: string): Promise<PortalTileMetric> {
+  // ai_usage_logs is the source of truth for AI Hub activity (per Phase 0
+  // ecosystem schema). Falls back to zero if missing.
+  let usageWeek = 0;
+  let convCount = 0;
+  try {
+    const uRes = await sb.from("ai_usage_logs").select("id", { count: "exact", head: true }).gt("created_at", weekAgo);
+    usageWeek = uRes.count ?? 0;
+    const cRes = await sb.from("ai_hub_conversations").select("id", { count: "exact", head: true });
+    convCount = cRes.count ?? 0;
+  } catch { /* tables may be missing — keep zeros */ }
+  return {
+    id: "ai-hub",
+    label: "AI Hub",
+    href: "/ai-hub",
+    publicUsers: convCount,
+    signedUpThisWeek: null,
+    activeThisWeek: usageWeek,
+    revenueThisMonth: null,
+    metricLabels: { primary: "Conversations", signup: "—", active: "AI calls/wk", revenue: "—" },
+    notes: "LIVE",
+  };
+}
+
+async function buildDocumentsTile(sb: Sb, monthStart: string, weekAgo: string): Promise<PortalTileMetric> {
+  let docCount = 0;
+  let genWeek = 0;
+  let revenueMonth = 0;
+  let proUsers = 0;
+  try {
+    const dRes = await sb.from("documents").select("id", { count: "exact", head: true }).is("deleted_at", null);
+    docCount = dRes.count ?? 0;
+    const gRes = await sb.from("document_generations").select("id", { count: "exact", head: true }).gt("created_at", weekAgo);
+    genWeek = gRes.count ?? 0;
+    const rRes = await sb.from("document_generations").select("charged_ngn").gt("created_at", monthStart);
+    revenueMonth = ((rRes.data || []) as Array<{ charged_ngn: number }>).reduce((a, r) => a + Number(r.charged_ngn || 0), 0);
+    const pRes = await sb.from("users").select("id", { count: "exact", head: true }).in("doc_plan_tier", ["pro", "pro_plus"]);
+    proUsers = pRes.count ?? 0;
+  } catch { /* fall through with zeros */ }
+  return {
+    id: "documents",
+    label: "Documents",
+    href: "/documents",
+    publicUsers: docCount,
+    signedUpThisWeek: proUsers,
+    activeThisWeek: genWeek,
+    revenueThisMonth: Math.round(revenueMonth),
+    metricLabels: { primary: "Total docs", signup: "Pro users", active: "Generations/wk", revenue: "Revenue /mo \u20a6" },
     notes: "LIVE",
   };
 }
