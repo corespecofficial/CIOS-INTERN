@@ -236,7 +236,10 @@ function EagleGradingTab({ submissions: initial }: { submissions: EagleSubRow[] 
                         </span>
                       </td>
                       <td style={{ padding: "12px 16px", color: "#9CA3AF", fontSize: 12 }}>
-                        {s.submitted_at ? new Date(s.submitted_at).toLocaleDateString() : "—"}
+                        {(() => {
+                          const date = s.submitted_at ?? s.graded_at ?? (s.status !== "draft" ? s.updated_at : null);
+                          return date ? new Date(date).toLocaleDateString() : "—";
+                        })()}
                       </td>
                       <td style={{ padding: "12px 16px", color: s.total_score !== null ? "#4CAF50" : "#5A6478", fontSize: 14, fontWeight: 700 }}>
                         {s.total_score !== null ? `${s.total_score}/100` : "—"}
@@ -789,12 +792,23 @@ function CustomProjectGradingPanel({
 
 // ── Projects Tab ──────────────────────────────────────────────────────────────
 
-function ProjectsTab({ projects, onNewProject, onEditProject }: {
+function ProjectsTab({ projects, eagleSubmissions, onNewProject, onEditProject }: {
   projects: ProjectWithCount[];
+  eagleSubmissions: EagleSubRow[];
   onNewProject: () => void;
   onEditProject: (id: string) => void;
 }) {
   const isMobile = useIsMobile();
+  const router = useRouter();
+
+  // Eagle Project is a built-in system assignment — surfaced as a pinned
+  // read-only entry at the top of the list so admins can reach its
+  // dashboards without having to jump to a separate page.
+  const eagleStats = {
+    total: eagleSubmissions.length,
+    submitted: eagleSubmissions.filter((s) => s.status !== "draft").length,
+    graded: eagleSubmissions.filter((s) => s.status === "graded").length,
+  };
   const [tab, setTab] = useState<"all" | "draft" | "published" | "archived">("all");
   const [search, setSearch] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -814,12 +828,25 @@ function ProjectsTab({ projects, onNewProject, onEditProject }: {
     return true;
   });
 
+  // Eagle is a pinned system entry that behaves like a permanently-published
+  // project: counts toward All + Published, honours search, never draft/archived.
+  const eagleVisible =
+    (tab === "all" || tab === "published") &&
+    (!search || "eagle project".includes(search.toLowerCase()));
+
   const counts = {
-    all: projects.length,
+    all: projects.length + 1, // +1 for pinned Eagle
     draft: projects.filter((p) => p.status === "draft").length,
-    published: projects.filter((p) => p.status === "published").length,
+    published: projects.filter((p) => p.status === "published").length + 1, // +1 for pinned Eagle
     archived: projects.filter((p) => p.status === "archived").length,
   };
+
+  // Lightweight realtime: refresh the server component every 30s so Eagle
+  // stats + custom project submission counts stay fresh without a full reload.
+  useEffect(() => {
+    const id = setInterval(() => router.refresh(), 30_000);
+    return () => clearInterval(id);
+  }, [router]);
 
   function handlePublish(id: string) {
     setActionId(id);
@@ -901,7 +928,45 @@ function ProjectsTab({ projects, onNewProject, onEditProject }: {
         style={{ ...S.input, marginBottom: 16 }}
       />
 
-      {filtered.length === 0 ? (
+      {/* Pinned: Eagle Project — built-in system assignment. Surfaces in All + Published, honours search. */}
+      {eagleVisible && (
+        <div style={{
+          ...S.card,
+          overflow: "hidden",
+          marginBottom: 10,
+          border: "1px solid rgba(255,193,7,0.25)",
+          background: "linear-gradient(135deg,rgba(255,193,7,0.08),rgba(30,136,229,0.05))",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 20px" }}>
+            <span style={{ fontSize: 28, flexShrink: 0 }}>🦅</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ color: "#E8EDF5", fontWeight: 700, fontSize: 14 }}>Eagle Project</span>
+                <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: "rgba(255,193,7,0.18)", color: "#FFC107" }}>
+                  system · built-in
+                </span>
+              </div>
+              <div style={{ color: "#9CA3AF", fontSize: 12, marginTop: 3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                Weekend covenant assignment · 8 sections · 100 XP cap · fixed template, not editable
+              </div>
+              <div style={{ display: "flex", gap: 14, marginTop: 5, flexWrap: "wrap" }}>
+                <span style={{ color: "#5A6478", fontSize: 11 }}>📦 8 sections</span>
+                <span style={{ color: "#5A6478", fontSize: 11 }}>📬 {eagleStats.total} submissions</span>
+                <span style={{ color: "#5A6478", fontSize: 11 }}>✅ {eagleStats.graded} graded</span>
+                <span style={{ color: "#5A6478", fontSize: 11 }}>📝 {eagleStats.submitted - eagleStats.graded} pending</span>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <button onClick={() => router.push("/admin/eagle-analytics")} style={S.btn("#9CA3AF")}>Analytics</button>
+              <button onClick={() => router.push("/admin/eagle-grading")} style={S.btn("#1E88E5")}>
+                {eagleStats.total > 0 ? `Grade (${eagleStats.total})` : "Open Dashboard"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {filtered.length === 0 && !eagleVisible ? (
         <div style={{ ...S.cardPad, textAlign: "center", padding: 60 }}>
           <div style={{ fontSize: 40, marginBottom: 10, opacity: 0.3 }}>📋</div>
           <div style={{ color: "#5A6478" }}>No projects found. {tab === "all" && "Create your first project."}</div>
@@ -1131,7 +1196,12 @@ function CustomProjectGradingSubTab({ project }: { project: ProjectWithCount }) 
                     {s.total_score !== null ? `${s.total_score}/${totalPoints}` : "—"}
                   </td>
                   <td style={{ padding: "12px 16px", color: "#9CA3AF", fontSize: 12 }}>
-                    {s.submitted_at ? new Date(s.submitted_at).toLocaleDateString() : "—"}
+                    {(() => {
+                      // Fall back to graded_at / updated_at for records where the
+                      // intern was graded without an explicit submit (direct-from-draft grading)
+                      const date = s.submitted_at ?? s.graded_at ?? (s.status !== "draft" ? s.updated_at : null);
+                      return date ? new Date(date).toLocaleDateString() : "—";
+                    })()}
                   </td>
                   <td style={{ padding: "12px 16px", color: "#9CA3AF", fontSize: 12 }}>
                     {s.section_scores_count}/{project.sections.length}
@@ -1421,6 +1491,7 @@ export function AdminProjectsHubClient({ projects, eagleSubmissions, eagleAnalyt
       {tab === "projects" && (
         <ProjectsTab
           projects={projects}
+          eagleSubmissions={eagleSubmissions}
           onNewProject={() => router.push("/admin/projects/new")}
           onEditProject={(id) => router.push(`/admin/projects/${id}`)}
         />

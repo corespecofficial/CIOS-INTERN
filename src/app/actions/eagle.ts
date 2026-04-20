@@ -241,29 +241,36 @@ export async function getCovenantWall(): Promise<R<Array<{
     const sb = supabaseAdmin();
     const { data, error } = await sb
       .from("eagle_submissions")
-      .select(`id, section_h, users!eagle_submissions_user_id_fkey(full_name, track, avatar_url)`)
+      .select(`id, user_id, section_h`)
       .in("status", ["submitted", "late", "graded"])
       .order("submitted_at", { ascending: false });
 
     if (error) return { ok: false, error: error.message };
 
-    const wall = (data || [])
-      .filter((row: Record<string, unknown>) => {
-        const h = row.section_h as SectionH;
-        return h?.agreed && h?.signature_name && h?.signed_at;
-      })
-      .map((row: Record<string, unknown>) => {
-        const h = row.section_h as SectionH;
-        const user = row.users as { full_name: string; track: string | null; avatar_url: string | null } | null;
-        return {
-          id: row.id as string,
-          full_name: user?.full_name ?? "CIOS Intern",
-          track: user?.track ?? null,
-          avatar_url: user?.avatar_url ?? null,
-          signature_name: h.signature_name!,
-          signed_at: h.signed_at!,
-        };
-      });
+    const signedRows = (data ?? []).filter((row: Record<string, unknown>) => {
+      const h = row.section_h as SectionH;
+      return h?.agreed && h?.signature_name && h?.signed_at;
+    });
+
+    const userIds = Array.from(new Set(signedRows.map((r: { user_id: string }) => r.user_id)));
+    const { data: users } = userIds.length
+      ? await sb.from("users").select("id, name, avatar_url").in("id", userIds)
+      : { data: [] as Array<{ id: string; name: string; avatar_url: string | null }> };
+    const userMap = new Map<string, { name: string; track: string | null; avatar_url: string | null }>();
+    for (const u of users ?? []) userMap.set(u.id, { name: u.name, track: null, avatar_url: u.avatar_url });
+
+    const wall = signedRows.map((row: Record<string, unknown>) => {
+      const h = row.section_h as SectionH;
+      const u = userMap.get(row.user_id as string);
+      return {
+        id: row.id as string,
+        full_name: u?.name ?? "CIOS Intern",
+        track: u?.track ?? null,
+        avatar_url: u?.avatar_url ?? null,
+        signature_name: h.signature_name!,
+        signed_at: h.signed_at!,
+      };
+    });
 
     return { ok: true, data: wall };
   } catch (e: unknown) {
@@ -279,7 +286,7 @@ export async function getEagleSubmissionById(id: string): Promise<R<EagleSubmiss
 
     const { data, error } = await sb
       .from("eagle_submissions")
-      .select(`*, users!eagle_submissions_user_id_fkey(full_name, track, avatar_url)`)
+      .select("*")
       .eq("id", id)
       .single();
 
@@ -291,19 +298,18 @@ export async function getEagleSubmissionById(id: string): Promise<R<EagleSubmiss
       return { ok: false, error: "Not authorized to view this submission." };
     }
 
-    const { data: scores } = await sb
-      .from("eagle_section_scores")
-      .select("*")
-      .eq("submission_id", id)
-      .order("section");
+    const [{ data: scores }, { data: userRow }] = await Promise.all([
+      sb.from("eagle_section_scores").select("*").eq("submission_id", id).order("section"),
+      sb.from("users").select("name, avatar_url").eq("id", data.user_id).maybeSingle(),
+    ]);
 
-    const submitter = data.users as { full_name: string; track: string | null; avatar_url: string | null } | null;
-    const { users: _users, ...submission } = data;
-    void _users;
+    const submitter = userRow
+      ? { full_name: userRow.name, track: null, avatar_url: userRow.avatar_url }
+      : null;
 
     return {
       ok: true,
-      data: { ...(submission as EagleSubmission), section_scores: (scores || []) as SectionScore[], submitter },
+      data: { ...(data as EagleSubmission), section_scores: (scores || []) as SectionScore[], submitter },
     };
   } catch (e: unknown) {
     return { ok: false, error: (e as Error).message };
@@ -326,25 +332,45 @@ export async function getEagleSubmissionsForGrading(filters?: {
     }
     const sb = supabaseAdmin();
 
-    let q = sb
+    // Three-step fetch instead of PostgREST join: the !fkname hint was
+    // returning 0 rows (likely a constraint-name mismatch on the live DB).
+    // Splitting the query is trivially cheap and guaranteed to work.
+    let subQ = sb
       .from("eagle_submissions")
-      .select(`*, users!eagle_submissions_user_id_fkey(full_name, track, avatar_url), eagle_section_scores(id)`)
+      .select("*")
       .order("submitted_at", { ascending: false });
+    if (filters?.status) subQ = subQ.eq("status", filters.status);
+    const { data: subs, error: subErr } = await subQ;
+    if (subErr) return { ok: false, error: subErr.message };
+    if (!subs || subs.length === 0) return { ok: true, data: [] };
 
-    if (filters?.status) q = q.eq("status", filters.status);
+    const userIds = Array.from(new Set(subs.map((s: { user_id: string }) => s.user_id)));
+    const subIds = subs.map((s: { id: string }) => s.id);
 
-    const { data, error } = await q;
-    if (error) return { ok: false, error: error.message };
+    // Note: users has no `track` column — tracks live in a separate
+    // career_path table. Leaving track as null for now.
+    const [{ data: users }, { data: scoreRows }] = await Promise.all([
+      sb.from("users").select("id, name, avatar_url").in("id", userIds),
+      sb.from("eagle_section_scores").select("id, submission_id").in("submission_id", subIds),
+    ]);
 
-    let rows = (data || []).map((row: Record<string, unknown>) => {
-      const user = row.users as { full_name: string; track: string | null; avatar_url: string | null } | null;
-      const scoresArr = row.eagle_section_scores as { id: string }[] | null;
-      const { users: _u, eagle_section_scores: _s, ...submission } = row;
-      void _u; void _s;
+    const userMap = new Map<string, { name: string; track: string | null; avatar_url: string | null }>();
+    for (const u of users ?? []) {
+      userMap.set(u.id, { name: u.name, track: null, avatar_url: u.avatar_url });
+    }
+    const scoresBySub = new Map<string, number>();
+    for (const sc of scoreRows ?? []) {
+      scoresBySub.set(sc.submission_id, (scoresBySub.get(sc.submission_id) ?? 0) + 1);
+    }
+
+    let rows = subs.map((sub: Record<string, unknown>) => {
+      const u = userMap.get(sub.user_id as string);
       return {
-        ...(submission as EagleSubmission),
-        submitter: user ?? { full_name: "Unknown", track: null, avatar_url: null },
-        scores_count: scoresArr?.length ?? 0,
+        ...(sub as EagleSubmission),
+        submitter: u
+          ? { full_name: u.name, track: u.track, avatar_url: u.avatar_url }
+          : { full_name: "Unknown", track: null, avatar_url: null },
+        scores_count: scoresBySub.get(sub.id as string) ?? 0,
       };
     });
 
@@ -468,6 +494,150 @@ export async function finalizeEagleGrading(
     });
 
     return { ok: true, data: { total_score: total } };
+  } catch (e: unknown) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
+// ─── Auto-grade (local heuristic + optional external AI) ─────────────────────
+
+export interface EagleAiSuggestion {
+  section_id: string;
+  suggested_score: number;
+  max_score: number;
+  strengths: string[];
+  weaknesses: string[];
+  feedback: string;
+  source: "ai" | "heuristic";
+}
+
+/**
+ * Suggest a score + strengths/weaknesses/feedback for one Eagle section.
+ * Tries external AI first (if @/lib/ai-client has a key configured) and
+ * falls back to the local deterministic heuristic grader so the admin
+ * never sees a dead button.
+ */
+export async function aiSuggestEagleSectionScore(
+  submissionId: string,
+  sectionId: string,
+): Promise<R<EagleAiSuggestion>> {
+  try {
+    const me = await getCurrentDbUser();
+    if (!me) return { ok: false, error: "Unauthorized" };
+    if (!["admin", "super_admin", "moderator"].includes(me.role)) {
+      return { ok: false, error: "Admin access required." };
+    }
+    const sb = supabaseAdmin();
+
+    const col = `section_${sectionId.toLowerCase()}`;
+    const { data: sub, error } = await sb
+      .from("eagle_submissions")
+      .select(col)
+      .eq("id", submissionId)
+      .single();
+    if (error || !sub) return { ok: false, error: "Submission not found" };
+
+    const sectionData = (sub as Record<string, unknown>)[col];
+
+    // Try external AI first — then fall back to heuristic
+    try {
+      const { callLLM, logAiUsage } = await import("@/lib/ai-client");
+      const { formatEagleSection } = await import("@/lib/eagle-grading-helpers");
+      const MAX: Record<string, number> = { A: 20, B: 15, C: 15, D: 15, E: 10, F: 15, G: 5, H: 5 };
+      const LABELS: Record<string, string> = {
+        A: "Reflection Essay", B: "Three Pillars Audit", C: "Discipline Case Study",
+        D: "4-Day Planner", E: "Goal-Setting Grid", F: "Design Challenge",
+        G: "Career Ladder Map", H: "Eagle Covenant",
+      };
+      const max = MAX[sectionId] ?? 10;
+      const label = LABELS[sectionId] ?? `Section ${sectionId}`;
+      const formatted = formatEagleSection(sectionId, sectionData);
+
+      const prompt = `Grade this Eagle Project section. Section: "${label}" (max ${max} pts).
+
+Intern's response:
+${formatted}
+
+Return strict JSON: {"score": number 0-${max}, "strengths": string[], "weaknesses": string[], "feedback": "coaching paragraph"}.
+Be rigorous but encouraging. Cite specifics from the response.`;
+
+      const { text, provider } = await callLLM(prompt, {
+        system: "You are a rigorous but kind internship grading coach. Return only strict JSON.",
+        maxTokens: 700,
+        temperature: 0.2,
+      });
+      const match = text.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error("no json");
+      const parsed = JSON.parse(match[0]) as {
+        score: number; strengths: string[]; weaknesses: string[]; feedback: string;
+      };
+      logAiUsage(me.id, "eagle_grading", provider).catch(() => {});
+      return {
+        ok: true,
+        data: {
+          section_id: sectionId,
+          suggested_score: Math.max(0, Math.min(max, Math.round(parsed.score))),
+          max_score: max,
+          strengths: parsed.strengths ?? [],
+          weaknesses: parsed.weaknesses ?? [],
+          feedback: parsed.feedback ?? "",
+          source: "ai",
+        },
+      };
+    } catch {
+      // AI unavailable — fall back to local heuristic
+      const { heuristicGradeEagleSection } = await import("@/lib/eagle-grading-helpers");
+      return { ok: true, data: heuristicGradeEagleSection(sectionId, sectionData) };
+    }
+  } catch (e: unknown) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
+/**
+ * Run the auto-grader over all 8 Eagle sections and upsert the suggested
+ * scores + feedback as drafts. Admin still reviews + finalizes.
+ */
+export async function aiGradeAllEagleSections(
+  submissionId: string,
+): Promise<R<{ suggestions: EagleAiSuggestion[]; saved: number }>> {
+  try {
+    const me = await getCurrentDbUser();
+    if (!me) return { ok: false, error: "Unauthorized" };
+    if (!["admin", "super_admin", "moderator"].includes(me.role)) {
+      return { ok: false, error: "Admin access required." };
+    }
+
+    const suggestions: EagleAiSuggestion[] = [];
+    for (const id of ["A", "B", "C", "D", "E", "F", "G", "H"]) {
+      const res = await aiSuggestEagleSectionScore(submissionId, id);
+      if (!res.ok) return { ok: false, error: `Failed on section ${id}: ${res.error}` };
+      suggestions.push(res.data);
+    }
+
+    const sb = supabaseAdmin();
+    let saved = 0;
+    for (const s of suggestions) {
+      const feedback = [
+        s.strengths.length ? `Strengths:\n${s.strengths.map((x) => `• ${x}`).join("\n")}` : "",
+        s.weaknesses.length ? `Weaknesses:\n${s.weaknesses.map((x) => `• ${x}`).join("\n")}` : "",
+        s.feedback,
+      ].filter(Boolean).join("\n\n");
+      const { error } = await sb
+        .from("eagle_section_scores")
+        .upsert({
+          submission_id: submissionId,
+          section: s.section_id,
+          score: s.suggested_score,
+          max_score: s.max_score,
+          feedback,
+          graded_by: me.id,
+          graded_at: new Date().toISOString(),
+        }, { onConflict: "submission_id,section" });
+      if (!error) saved++;
+    }
+
+    return { ok: true, data: { suggestions, saved } };
   } catch (e: unknown) {
     return { ok: false, error: (e as Error).message };
   }

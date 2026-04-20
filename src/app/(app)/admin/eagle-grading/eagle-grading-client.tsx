@@ -5,8 +5,10 @@ import { useState, useTransition } from "react";
 import toast from "react-hot-toast";
 import {
   gradeEagleSection, finalizeEagleGrading, getEagleSubmissionById,
-  type EagleSubmission, type SectionScore,
+  aiSuggestEagleSectionScore, aiGradeAllEagleSections,
+  type EagleSubmission, type SectionScore, type EagleAiSuggestion,
 } from "@/app/actions/eagle";
+import { formatEagleSection } from "@/lib/eagle-grading-helpers";
 
 const STATUS_COLORS = {
   draft: "#9CA3AF", submitted: "#4CAF50",
@@ -47,6 +49,54 @@ export function EagleGradingClient({ submissions: initial }: Props) {
   const [saving, startSave] = useTransition();
   const [finalizing, startFinalize] = useTransition();
   const [loadingDetail, startDetail] = useTransition();
+  const [aiSuggestions, setAiSuggestions] = useState<Record<string, EagleAiSuggestion>>({});
+  const [aiRunning, setAiRunning] = useState<string | null>(null);
+  const [bulkRunning, setBulkRunning] = useState(false);
+
+  const runAutoGrade = async (sectionId: string) => {
+    if (!selected) return;
+    setAiRunning(sectionId);
+    const res = await aiSuggestEagleSectionScore(selected.id, sectionId);
+    setAiRunning(null);
+    if (!res.ok) { toast.error(res.error); return; }
+    setAiSuggestions((p) => ({ ...p, [sectionId]: res.data }));
+    toast.success(`${res.data.source === "ai" ? "AI" : "Local"} suggestion ready for Section ${sectionId}`);
+  };
+
+  const applyAiScore = (sectionId: string) => {
+    const s = aiSuggestions[sectionId];
+    if (!s) return;
+    setSectionScores((p) => ({ ...p, [sectionId]: s.suggested_score }));
+    const combined = [
+      s.strengths.length ? `Strengths:\n${s.strengths.map((x) => `• ${x}`).join("\n")}` : "",
+      s.weaknesses.length ? `Weaknesses:\n${s.weaknesses.map((x) => `• ${x}`).join("\n")}` : "",
+      s.feedback,
+    ].filter(Boolean).join("\n\n");
+    setSectionFeedback((p) => ({ ...p, [sectionId]: combined }));
+    toast.success("Applied to this section");
+  };
+
+  const runAutoGradeAll = async () => {
+    if (!selected) return;
+    setBulkRunning(true);
+    const res = await aiGradeAllEagleSections(selected.id);
+    setBulkRunning(false);
+    if (!res.ok) { toast.error(res.error); return; }
+    const map: Record<string, EagleAiSuggestion> = {};
+    for (const s of res.data.suggestions) map[s.section_id] = s;
+    setAiSuggestions(map);
+    // Pull fresh scores/feedback since the bulk action upserted drafts
+    const reload = await getEagleSubmissionById(selected.id);
+    if (reload.ok) {
+      setSelected(reload.data);
+      const sc: Record<string, number> = {};
+      const fb: Record<string, string> = {};
+      for (const s of reload.data.section_scores) { sc[s.section] = s.score; fb[s.section] = s.feedback ?? ""; }
+      setSectionScores(sc);
+      setSectionFeedback(fb);
+    }
+    toast.success(`Auto-graded ${res.data.saved}/8 sections — review & finalize`);
+  };
 
   const visible = submissions.filter((s) => {
     if (filter !== "all" && s.status !== filter) return false;
@@ -237,25 +287,75 @@ export function EagleGradingClient({ submissions: initial }: Props) {
             const hasContent = secData && Object.keys(secData).length > 0;
             return (
               <div key={sec.id} style={{ background: "#131929", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "18px 22px", marginBottom: 14 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 8, flexWrap: "wrap" }}>
                   <h3 style={{ margin: 0, color: "#E8EDF5", fontSize: 15, fontWeight: 700 }}>
                     Section {sec.id} — {sec.label} <span style={{ color: "#5A6478", fontWeight: 400 }}>({sec.max} pts)</span>
                   </h3>
-                  <button
-                    onClick={() => saveSection(sec.id)}
-                    disabled={saving}
-                    style={{ padding: "5px 14px", background: "rgba(30,136,229,0.15)", border: "1px solid rgba(30,136,229,0.3)", borderRadius: 7, color: "#1E88E5", cursor: saving ? "wait" : "pointer", fontSize: 13 }}
-                  >
-                    {saving ? "..." : "Save"}
-                  </button>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button
+                      onClick={() => runAutoGrade(sec.id)}
+                      disabled={aiRunning === sec.id || bulkRunning}
+                      style={{ padding: "5px 12px", background: "rgba(171,71,188,0.15)", border: "1px solid rgba(171,71,188,0.35)", borderRadius: 7, color: "#AB47BC", cursor: aiRunning === sec.id ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}
+                    >
+                      {aiRunning === sec.id ? "⚡ Analysing…" : "⚡ Auto-grade"}
+                    </button>
+                    <button
+                      onClick={() => saveSection(sec.id)}
+                      disabled={saving}
+                      style={{ padding: "5px 14px", background: "rgba(30,136,229,0.15)", border: "1px solid rgba(30,136,229,0.3)", borderRadius: 7, color: "#1E88E5", cursor: saving ? "wait" : "pointer", fontSize: 13 }}
+                    >
+                      {saving ? "..." : "Save"}
+                    </button>
+                  </div>
                 </div>
 
-                {/* Intern's answer preview */}
+                {/* Intern's answer — formatted as readable text */}
                 {hasContent && (
-                  <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: 8, padding: "12px 14px", marginBottom: 12, maxHeight: 200, overflowY: "auto" }}>
-                    <pre style={{ margin: 0, color: "#9CA3AF", fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap", fontFamily: "inherit" }}>
-                      {JSON.stringify(secData, null, 2)}
-                    </pre>
+                  <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: 8, padding: "14px 16px", marginBottom: 12, maxHeight: 340, overflowY: "auto" }}>
+                    <FormattedAnswer text={formatEagleSection(sec.id, secData)} />
+                  </div>
+                )}
+
+                {/* AI / Local heuristic suggestion panel */}
+                {aiSuggestions[sec.id] && (
+                  <div style={{
+                    background: "linear-gradient(135deg,rgba(171,71,188,0.08),rgba(30,136,229,0.05))",
+                    border: "1px solid rgba(171,71,188,0.25)",
+                    borderRadius: 8, padding: "14px 16px", marginBottom: 12,
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 13, color: "#E8EDF5", fontWeight: 700 }}>
+                        Suggested: {aiSuggestions[sec.id].suggested_score}/{aiSuggestions[sec.id].max_score}
+                      </span>
+                      <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: aiSuggestions[sec.id].source === "ai" ? "rgba(76,175,80,0.2)" : "rgba(255,193,7,0.2)", color: aiSuggestions[sec.id].source === "ai" ? "#4CAF50" : "#FFC107" }}>
+                        {aiSuggestions[sec.id].source === "ai" ? "External AI" : "Local heuristic"}
+                      </span>
+                      <button
+                        onClick={() => applyAiScore(sec.id)}
+                        style={{ marginLeft: "auto", padding: "4px 12px", background: "rgba(76,175,80,0.18)", border: "1px solid rgba(76,175,80,0.4)", borderRadius: 6, color: "#4CAF50", cursor: "pointer", fontSize: 12, fontWeight: 600 }}
+                      >
+                        ✓ Apply
+                      </button>
+                    </div>
+                    {aiSuggestions[sec.id].strengths.length > 0 && (
+                      <div style={{ marginBottom: 6 }}>
+                        <div style={{ color: "#4CAF50", fontSize: 11, fontWeight: 700, marginBottom: 2 }}>STRENGTHS</div>
+                        <ul style={{ margin: 0, paddingLeft: 18, color: "#E8EDF5", fontSize: 12, lineHeight: 1.6 }}>
+                          {aiSuggestions[sec.id].strengths.map((x, i) => <li key={i}>{x}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    {aiSuggestions[sec.id].weaknesses.length > 0 && (
+                      <div style={{ marginBottom: 6 }}>
+                        <div style={{ color: "#FF7043", fontSize: 11, fontWeight: 700, marginBottom: 2 }}>NEEDS IMPROVEMENT</div>
+                        <ul style={{ margin: 0, paddingLeft: 18, color: "#E8EDF5", fontSize: 12, lineHeight: 1.6 }}>
+                          {aiSuggestions[sec.id].weaknesses.map((x, i) => <li key={i}>{x}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    <div style={{ color: "#9CA3AF", fontSize: 12, lineHeight: 1.5, marginTop: 4 }}>
+                      {aiSuggestions[sec.id].feedback}
+                    </div>
                   </div>
                 )}
 
@@ -313,27 +413,69 @@ export function EagleGradingClient({ submissions: initial }: Props) {
               placeholder="Write your overall coaching feedback for this intern..."
               style={{ width: "100%", background: "#0D1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, color: "#E8EDF5", fontSize: 14, padding: "10px 14px", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box" }}
             />
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, gap: 10, flexWrap: "wrap" }}>
               <div style={{ color: "#5A6478", fontSize: 13 }}>
                 Running total: {Object.values(sectionScores).reduce((a, b) => a + b, 0)}/100
               </div>
-              <button
-                onClick={finalize}
-                disabled={finalizing}
-                style={{
-                  padding: "12px 28px",
-                  background: finalizing ? "#1E2640" : "linear-gradient(135deg,#1E88E5,#FFC107)",
-                  border: "none", borderRadius: 8,
-                  color: finalizing ? "#9CA3AF" : "#0A0E1A",
-                  cursor: finalizing ? "wait" : "pointer", fontWeight: 800, fontSize: 15,
-                }}
-              >
-                {finalizing ? "Finalizing..." : "✅ Finalize & Notify Intern"}
-              </button>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  onClick={runAutoGradeAll}
+                  disabled={bulkRunning || !!aiRunning}
+                  style={{
+                    padding: "11px 22px",
+                    background: bulkRunning ? "#1E2640" : "rgba(171,71,188,0.15)",
+                    border: "1px solid rgba(171,71,188,0.4)",
+                    borderRadius: 8,
+                    color: bulkRunning ? "#9CA3AF" : "#AB47BC",
+                    cursor: bulkRunning ? "wait" : "pointer", fontWeight: 700, fontSize: 14,
+                  }}
+                >
+                    {bulkRunning ? "⚡ Running…" : "⚡ Auto-grade All 8"}
+                </button>
+                <button
+                  onClick={finalize}
+                  disabled={finalizing}
+                  style={{
+                    padding: "12px 28px",
+                    background: finalizing ? "#1E2640" : "linear-gradient(135deg,#1E88E5,#FFC107)",
+                    border: "none", borderRadius: 8,
+                    color: finalizing ? "#9CA3AF" : "#0A0E1A",
+                    cursor: finalizing ? "wait" : "pointer", fontWeight: 800, fontSize: 15,
+                  }}
+                >
+                  {finalizing ? "Finalizing..." : "✅ Finalize & Notify Intern"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Small inline renderer that turns the formatter's markdown-ish string
+//    into lightly-styled blocks. Avoids pulling in a full md library.
+function FormattedAnswer({ text }: { text: string }) {
+  const lines = text.split("\n");
+  return (
+    <div style={{ color: "#E8EDF5", fontSize: 13, lineHeight: 1.65 }}>
+      {lines.map((raw, i) => {
+        if (!raw.trim()) return <div key={i} style={{ height: 6 }} />;
+        // Emphasis: **label** renders bold; *italic* renders muted
+        const parts = raw.split(/(\*\*[^*]+\*\*|_[^_]+_)/g).filter(Boolean);
+        const rendered = parts.map((p, j) => {
+          if (p.startsWith("**") && p.endsWith("**")) {
+            return <strong key={j} style={{ color: "#FFC107" }}>{p.slice(2, -2)}</strong>;
+          }
+          if (p.startsWith("_") && p.endsWith("_")) {
+            return <em key={j} style={{ color: "#5A6478" }}>{p.slice(1, -1)}</em>;
+          }
+          return <span key={j}>{p}</span>;
+        });
+        const indent = raw.startsWith("  ") ? 16 : 0;
+        return <div key={i} style={{ paddingLeft: indent, marginBottom: 2 }}>{rendered}</div>;
+      })}
     </div>
   );
 }

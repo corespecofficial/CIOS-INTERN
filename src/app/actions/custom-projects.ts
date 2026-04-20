@@ -842,7 +842,7 @@ export async function getProjectAnalytics(
       sb
         .from("project_submissions")
         .select(
-          `id, user_id, status, total_score, submitted_at,
+          `id, user_id, status, total_score, submitted_at, graded_at, updated_at, created_at,
            users!project_submissions_user_id_fkey(name, avatar_url),
            project_section_scores(section_id, score, max_score)`,
         )
@@ -862,6 +862,9 @@ export async function getProjectAnalytics(
       status: string;
       total_score: number | null;
       submitted_at: string | null;
+      graded_at: string | null;
+      updated_at: string | null;
+      created_at: string | null;
       users: { name: string | null; avatar_url: string | null } | null;
       project_section_scores: Array<{ section_id: string; score: number; max_score: number }> | null;
     };
@@ -924,13 +927,19 @@ export async function getProjectAnalytics(
       }));
 
     // Submission velocity (last 14 days)
+    // Use the effective submission date: submitted_at, else graded_at (graded-from-draft),
+    // else updated_at/created_at for non-draft records. Drafts are excluded.
+    const effectiveDate = (s: SubRow): string | null => {
+      if (s.status === "draft") return null;
+      return s.submitted_at ?? s.graded_at ?? s.updated_at ?? s.created_at ?? null;
+    };
     const today = new Date();
     const submissionsByDay: Array<{ date: string; count: number }> = [];
     for (let i = 13; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
       const key = d.toISOString().slice(0, 10);
-      const count = subs.filter((s) => s.submitted_at?.slice(0, 10) === key).length;
+      const count = subs.filter((s) => effectiveDate(s)?.slice(0, 10) === key).length;
       submissionsByDay.push({ date: key, count });
     }
 
