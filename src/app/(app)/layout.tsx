@@ -17,6 +17,7 @@ import { MobileInstallOnboarding } from "@/components/pwa-install-onboarding";
 import { WellnessReminderBanner } from "@/components/wellness-reminder-banner";
 import { PushNotificationManager } from "@/components/push-notification-manager";
 import { NotificationBanners, AudioUnlocker } from "@/lib/use-server-notifications";
+import { PortalEscapeBanner } from "@/components/portal/portal-escape-banner";
 import { useAppStore } from "@/store/use-app-store";
 import { claimDailyLogin } from "@/app/actions/daily-login";
 
@@ -113,6 +114,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           className={pathname && pathname.split("/").filter(Boolean).length >= 2 ? "cios-inner-page" : "cios-root-page"}
           style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 20 }}
         >
+          {/* Off-portal escape hatch: shows for recruiter/instructor/mentor/
+              alumni/investor/etc when they wander into the shared intern
+              shell (e.g. /messages, /community), so they're never stuck. */}
+          <PortalEscapeBanner />
           {children}
         </main>
       </div>

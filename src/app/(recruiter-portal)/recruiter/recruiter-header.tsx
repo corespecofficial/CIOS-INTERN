@@ -4,10 +4,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
+import { useAppStore } from "@/store/use-app-store";
 
 const ACCENT = "#FB923C";
 const INK = "#F8FAFC";
 const DIM = "#94A3B8";
+
+/** Height in px of the fixed header. Exported so RecruiterShell can pad the
+    main content so children don't disappear under the locked bar. */
+export const RECRUITER_HEADER_HEIGHT = 64;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]/i;
 
@@ -53,22 +58,25 @@ function prettify(s: string): string {
  */
 export function RecruiterHeader() {
   const pathname = usePathname();
+  const collapsed = useAppStore((s) => s.sidebarCollapsed);
+  const sidebarWidth = collapsed ? 64 : 240;
   const page = getPage(pathname);
   const onOpps = pathname?.startsWith("/recruiter/opportunities") ?? false;
 
   return (
     <header
+      className="recruiter-header-fixed"
       style={{
-        position: "sticky",
+        position: "fixed",
         top: 0,
+        left: sidebarWidth,
+        right: 0,
+        height: RECRUITER_HEADER_HEIGHT,
         zIndex: 40,
-        marginLeft: -24,
-        marginRight: -24,
-        marginTop: -24,
-        marginBottom: 22,
-        background: "rgba(10,14,26,0.88)",
+        background: "rgba(10,14,26,0.92)",
         backdropFilter: "saturate(140%) blur(14px)",
         borderBottom: "1px solid rgba(255,255,255,0.06)",
+        transition: "left 0.18s ease",
       }}
     >
       <div
@@ -77,6 +85,7 @@ export function RecruiterHeader() {
           display: "flex",
           alignItems: "center",
           gap: 16,
+          height: "100%",
         }}
       >
         <div style={{ minWidth: 0, flex: 1 }}>
@@ -186,7 +195,7 @@ export function RecruiterHeader() {
               height: 28,
             }}
           >
-            <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: { width: 32, height: 32 } } }} />
+            <UserButton appearance={{ elements: { avatarBox: { width: 32, height: 32 } } }} />
           </div>
         </div>
       </div>
@@ -197,6 +206,10 @@ export function RecruiterHeader() {
         }
         @media (max-width: 480px) {
           .rh-bell { display: none; }
+        }
+        @media (max-width: 768px) {
+          /* Mobile: sidebar is hidden so header takes full width */
+          .recruiter-header-fixed { left: 0 !important; }
         }
       `}</style>
     </header>
