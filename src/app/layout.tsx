@@ -14,6 +14,7 @@ import { RouteLoader } from "@/components/ui/route-loader";
 import { MobileKeyboardGuard } from "@/components/ui/mobile-keyboard-guard";
 import { OfflineBanner } from "@/components/ui/offline-banner";
 import { ShortcutsOverlay } from "@/components/ui/shortcuts-overlay";
+import { ThemeHydrator } from "@/components/theme-toggle";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -98,6 +99,7 @@ export default async function RootLayout({
       >
         <body className="min-h-full antialiased font-[family-name:var(--font-nunito)]" suppressHydrationWarning>
           <NextIntlClientProvider locale={locale} messages={messages}>
+            <ThemeHydrator />
             <SplashScreen />
             <RouteLoader />
             <MobileKeyboardGuard />

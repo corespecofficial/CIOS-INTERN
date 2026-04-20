@@ -99,8 +99,12 @@ export async function createOpportunity(input: OpportunityInput): Promise<R<{ id
       }
     }
 
+    // Build the insert payload. Columns added by newer migrations (p383:
+    // slug, cover_image_url, is_promoted) may not exist yet on older databases,
+    // so we try the full payload first and self-heal by retrying without any
+    // columns the Supabase schema cache reports as missing.
     const slug = slugify(input.title);
-    const { data, error } = await sb.from("opportunities").insert({
+    const basePayload: Record<string, unknown> = {
       recruiter_id: me.id,
       title: input.title.trim(), description: input.description || "", kind: input.kind || "job",
       category: input.category || null, skills: input.skills || [],
@@ -109,11 +113,31 @@ export async function createOpportunity(input: OpportunityInput): Promise<R<{ id
       location: input.location || null, remote: input.remote || false,
       requirements: input.requirements || null, apply_url: input.applyUrl || null,
       tags: input.tags || [], deadline: input.deadline || null, featured: input.featured || false,
+      status: "open",
+    };
+    const optionalPayload: Record<string, unknown> = {
       cover_image_url: input.coverImageUrl || null,
       slug,
-      status: "open",
-    }).select("id").single();
-    if (error) return { ok: false, error: error.message };
+    };
+
+    const tryInsert = async (payload: Record<string, unknown>) =>
+      sb.from("opportunities").insert(payload).select("id").single();
+
+    let { data, error } = await tryInsert({ ...basePayload, ...optionalPayload });
+
+    // Strip any columns the schema rejects, one by one, and retry up to 3×.
+    for (let attempt = 0; error && attempt < 3; attempt++) {
+      const missing = error.message.match(/Could not find the '([^']+)' column/)?.[1];
+      if (!missing || !(missing in optionalPayload)) break;
+      delete optionalPayload[missing];
+      ({ data, error } = await tryInsert({ ...basePayload, ...optionalPayload }));
+    }
+    if (error) {
+      const msg = /schema cache/i.test(error.message)
+        ? `${error.message} — run migration p383_recruiter_paywall.sql against your database.`
+        : error.message;
+      return { ok: false, error: msg };
+    }
 
     // Increment active listing counter for the recruiter. Cheap SELECT-then-
     // UPDATE — not atomic, but acceptable at listing-create cadence. A proper

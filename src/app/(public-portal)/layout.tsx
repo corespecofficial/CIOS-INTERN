@@ -23,8 +23,10 @@ export default function PublicPortalLayout({ children }: { children: ReactNode }
       data-portal="public"
       style={{
         minHeight: "100dvh",
-        background: "#0A0E1A",
-        color: "#E8EDF5",
+        // Use the theme token so this flips when the user picks light/dark/system.
+        // The var is defined under :root (dark) and [data-theme="light"] in globals.css.
+        background: "var(--bg-primary, #0A0E1A)",
+        color: "var(--text-primary, #E8EDF5)",
         fontFamily: "'Nunito', system-ui, sans-serif",
         display: "flex",
         flexDirection: "column",

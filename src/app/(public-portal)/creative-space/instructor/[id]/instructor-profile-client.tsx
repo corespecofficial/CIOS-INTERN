@@ -25,9 +25,9 @@ interface Props {
   provenance: string;
 }
 
-const INK = "#F8FAFC";
-const DIM = "#94A3B8";
-const MUTED = "#64748B";
+const INK = "var(--text-primary, #F8FAFC)";
+const DIM = "var(--text-tertiary, #94A3B8)";
+const MUTED = "var(--text-muted, #64748B)";
 const ACCENT = "#26C6DA";
 const ACCENT_2 = "#0EA5E9";
 
@@ -47,7 +47,7 @@ export function InstructorProfileClient({
       <div
         className="ip-cover"
         style={{
-          height: 220,
+          height: 180,
           position: "relative",
           background: coverUrl
             ? `linear-gradient(180deg, rgba(10,14,26,0.3), rgba(10,14,26,0.9)), url(${coverUrl}) center/cover no-repeat`
@@ -56,7 +56,7 @@ export function InstructorProfileClient({
         }}
       />
 
-      <div style={{ maxWidth: 1080, margin: "-90px auto 0", padding: "0 20px 60px", position: "relative", zIndex: 1 }}>
+      <div style={{ maxWidth: 1080, margin: "28px auto 0", padding: "0 20px 60px", position: "relative", zIndex: 1 }}>
         <Link
           href="/creative-space"
           style={{

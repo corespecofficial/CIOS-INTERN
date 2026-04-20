@@ -148,7 +148,8 @@ export function RouteLoader() {
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9998,
-      background: "#080C18",
+      background: "var(--bg-primary, #080C18)",
+      color: "var(--text-primary, #F8FAFC)",
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       gap: 28, padding: 32, textAlign: "center",
       opacity: leaving ? 0 : 1,

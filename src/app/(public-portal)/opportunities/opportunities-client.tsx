@@ -105,7 +105,7 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
               lineHeight: 1.05,
               letterSpacing: -1.4,
               fontWeight: 900,
-              color: "#F8FAFC",
+              color: "var(--text-primary, #F8FAFC)",
               fontFamily: "'Space Grotesk', 'Nunito', sans-serif",
             }}
           >
@@ -148,7 +148,7 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
                   padding: "12px 22px",
                   borderRadius: 12,
                   background: "rgba(255,255,255,0.04)",
-                  color: "#F8FAFC",
+                  color: "var(--text-primary, #F8FAFC)",
                   fontSize: 14,
                   fontWeight: 700,
                   textDecoration: "none",
@@ -164,7 +164,7 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
                   padding: "12px 22px",
                   borderRadius: 12,
                   background: "rgba(255,255,255,0.04)",
-                  color: "#F8FAFC",
+                  color: "var(--text-primary, #F8FAFC)",
                   fontSize: 14,
                   fontWeight: 700,
                   textDecoration: "none",
@@ -187,7 +187,7 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
       <div id="browse" style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 20px 0", fontFamily: "'Nunito', sans-serif" }}>
 
       {/* Tabs — anonymous visitors only see Browse + Gigs; Applications + Saved unlock after sign-up. */}
-      <div style={{ display: "flex", gap: 4, background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: 4, marginBottom: 14, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 4, background: "var(--bg-secondary, #111827)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: 4, marginBottom: 14, flexWrap: "wrap" }}>
         {(isAnon ? [
           { k: "browse", label: `🔍 Browse (${filtered.length})` },
           { k: "gigs", label: `⚡ Gig Board (${gigs.length})` },
@@ -216,7 +216,7 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
               {Object.entries(KIND_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
             </select>
           )}
-          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#E8EDF5", padding: "8px 10px", background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, cursor: "pointer" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--text-primary, #E8EDF5)", padding: "8px 10px", background: "var(--bg-secondary, #111827)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 8, cursor: "pointer" }}>
             <input type="checkbox" checked={remoteOnly} onChange={(e) => setRemoteOnly(e.target.checked)} /> Remote only
           </label>
         </div>
@@ -231,7 +231,7 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
             <span style={{ fontSize: 20 }}>⚡</span>
             <div>
               <div style={{ fontSize: 13, fontWeight: 800, color: "#26C6DA" }}>Gig Board</div>
-              <div style={{ fontSize: 11, color: "#8892A4" }}>Short-term freelance projects · Apply fast · Get paid</div>
+              <div style={{ fontSize: 11, color: "var(--text-tertiary, #8892A4)" }}>Short-term freelance projects · Apply fast · Get paid</div>
             </div>
           </div>
           {renderGigList(gigs)}
@@ -242,11 +242,11 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
         <div style={{ display: "grid", gap: 10 }}>
           {applications.length === 0 && <Empty text="No applications yet. Browse opportunities to apply." />}
           {applications.map((a) => (
-            <div key={a.id} style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: 14 }}>
+            <div key={a.id} style={{ background: "var(--bg-secondary, #111827)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "#E8EDF5" }}>{a.opportunity?.title || "(Deleted)"}</div>
-                  <div style={{ fontSize: 11, color: "#8892A4", marginTop: 2 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary, #E8EDF5)" }}>{a.opportunity?.title || "(Deleted)"}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-tertiary, #8892A4)", marginTop: 2 }}>
                     Applied {new Date(a.created_at).toLocaleDateString()} · {a.opportunity?.remote ? "Remote" : a.opportunity?.location || "—"}
                   </div>
                 </div>
@@ -277,24 +277,24 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
             ? `${o.salary_currency || "NGN"} ${[o.salary_min, o.salary_max].filter(Boolean).join("–")}`
             : null;
           return (
-            <div key={o.id} style={{ background: "#111827", border: "1px solid rgba(38,198,218,0.15)", borderRadius: 14, padding: 16, display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 14, alignItems: "start" }}>
+            <div key={o.id} style={{ background: "var(--bg-secondary, #111827)", border: "1px solid rgba(38,198,218,0.15)", borderRadius: 14, padding: 16, display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 14, alignItems: "start" }}>
               {/* Logo */}
-              <div style={{ width: 44, height: 44, borderRadius: 10, background: "#0A0E1A", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 10, background: "var(--bg-primary, #0A0E1A)", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 {logo ? <img src={logo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 18 }}>⚡</span>}
               </div>
               {/* Body */}
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 3 }}>
-                  <h3 style={{ fontSize: 14, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>{o.title}</h3>
+                  <h3 style={{ fontSize: 14, fontWeight: 800, color: "var(--text-primary, #E8EDF5)", margin: 0 }}>{o.title}</h3>
                   {o.featured && <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 4, background: "rgba(255,193,7,0.2)", color: "#FFC107", fontWeight: 700 }}>★ FEATURED</span>}
                   {o.remote && <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 4, background: "rgba(102,187,106,0.15)", color: "#66BB6A", fontWeight: 700 }}>REMOTE</span>}
                 </div>
-                <div style={{ fontSize: 11, color: "#8892A4", marginBottom: 5 }}>
+                <div style={{ fontSize: 11, color: "var(--text-tertiary, #8892A4)", marginBottom: 5 }}>
                   {company}
                   {salary && <span style={{ color: "#26C6DA", fontWeight: 700, marginLeft: 6 }}>{salary}</span>}
                   {o.deadline && <span> · Deadline {new Date(o.deadline).toLocaleDateString()}</span>}
                 </div>
-                <div style={{ fontSize: 12, color: "#E8EDF5", lineHeight: 1.5, marginBottom: 6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                <div style={{ fontSize: 12, color: "var(--text-primary, #E8EDF5)", lineHeight: 1.5, marginBottom: 6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                   {o.description}
                 </div>
                 {o.skills?.length > 0 && (
@@ -336,13 +336,13 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
           const isSaved = saved.has(o.id);
           const salary = o.salary_min || o.salary_max ? `${o.salary_currency || ""} ${[o.salary_min, o.salary_max].filter(Boolean).join("–")}${o.salary_period ? ` / ${o.salary_period}` : ""}` : "";
           return (
-            <div key={o.id} style={{ background: "#111827", border: `1px solid ${o.featured ? "rgba(255,193,7,0.3)" : "rgba(255,255,255,0.07)"}`, borderRadius: 14, padding: 18, display: "flex", gap: 14 }}>
-              <div style={{ width: 52, height: 52, borderRadius: 10, background: "#0A0E1A", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div key={o.id} style={{ background: "var(--bg-secondary, #111827)", border: `1px solid ${o.featured ? "rgba(255,193,7,0.3)" : "rgba(255,255,255,0.07)"}`, borderRadius: 14, padding: 18, display: "flex", gap: 14 }}>
+              <div style={{ width: 52, height: 52, borderRadius: 10, background: "var(--bg-primary, #0A0E1A)", overflow: "hidden", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 {logo ? <img src={logo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ fontSize: 22 }}>🏢</span>}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 4 }}>
-                  <h3 style={{ fontSize: 15, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>{o.title}</h3>
+                  <h3 style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary, #E8EDF5)", margin: 0 }}>{o.title}</h3>
                   {o.featured && <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 4, background: "rgba(255,193,7,0.2)", color: "#FFC107", fontWeight: 700 }}>★ FEATURED</span>}
                   <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 4, background: `${KIND_COLOR[o.kind] || "#8892A4"}22`, color: KIND_COLOR[o.kind] || "#8892A4", fontWeight: 700, textTransform: "uppercase" }}>{KIND_LABEL[o.kind] || o.kind}</span>
                   {o.remote && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 4, background: "rgba(102,187,106,0.15)", color: "#66BB6A", fontWeight: 700 }}>REMOTE</span>}
@@ -357,19 +357,19 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
                     return top.map((b) => <span key={b.id} title={b.description} style={{ fontSize: 9, padding: "2px 8px", borderRadius: 99, background: `${b.color}22`, color: b.color, fontWeight: 700 }}>{b.emoji} {b.label}</span>);
                   })()}
                 </div>
-                <div style={{ fontSize: 12, color: "#8892A4", marginBottom: 6 }}>
+                <div style={{ fontSize: 12, color: "var(--text-tertiary, #8892A4)", marginBottom: 6 }}>
                   {company} · {o.location || "Anywhere"}{salary && ` · ${salary}`}{o.deadline && ` · Deadline ${new Date(o.deadline).toLocaleDateString()}`}
                 </div>
-                <div style={{ fontSize: 13, color: "#E8EDF5", lineHeight: 1.5, marginBottom: 8, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                <div style={{ fontSize: 13, color: "var(--text-primary, #E8EDF5)", lineHeight: 1.5, marginBottom: 8, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                   {o.description}
                 </div>
                 {o.skills?.length > 0 && (
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 8 }}>
-                    {o.skills.slice(0, 6).map((s) => <span key={s} style={{ fontSize: 10, padding: "2px 7px", background: "rgba(255,255,255,0.05)", borderRadius: 4, color: "#8892A4" }}>{s}</span>)}
+                    {o.skills.slice(0, 6).map((s) => <span key={s} style={{ fontSize: 10, padding: "2px 7px", background: "rgba(255,255,255,0.05)", borderRadius: 4, color: "var(--text-tertiary, #8892A4)" }}>{s}</span>)}
                   </div>
                 )}
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <Link href={`/opportunities/${o.id}`} style={{ ...btnSmall, textDecoration: "none", color: "#E8EDF5" }}>Details →</Link>
+                  <Link href={`/opportunities/${o.id}`} style={{ ...btnSmall, textDecoration: "none", color: "var(--text-primary, #E8EDF5)" }}>Details →</Link>
                   {isApplied
                     ? <span style={{ ...btnSmall, background: "rgba(102,187,106,0.15)", color: "#66BB6A", borderColor: "rgba(102,187,106,0.3)", cursor: "default" }}>✓ Applied</span>
                     : isAnon
@@ -380,7 +380,7 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
                       {isSaved ? "★ Saved" : "☆ Save"}
                     </button>
                   )}
-                  <span style={{ fontSize: 11, color: "#5A6478", marginLeft: "auto" }}>{o.applications_count} applied · {o.views} views</span>
+                  <span style={{ fontSize: 11, color: "var(--text-muted, #5A6478)", marginLeft: "auto" }}>{o.applications_count} applied · {o.views} views</span>
                 </div>
               </div>
             </div>
@@ -413,8 +413,8 @@ function ApplyModal({ opp, onClose, onApplied }: { opp: Opp; onClose: () => void
       <div style={modalPanel}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
           <div>
-            <h2 style={{ fontSize: 16, color: "#E8EDF5", margin: 0, fontWeight: 800 }}>Apply to {opp.title}</h2>
-            <p style={{ fontSize: 11, color: "#8892A4", margin: "2px 0 0 0" }}>{opp.recruiter_profile?.company_name || "Recruiter"}</p>
+            <h2 style={{ fontSize: 16, color: "var(--text-primary, #E8EDF5)", margin: 0, fontWeight: 800 }}>Apply to {opp.title}</h2>
+            <p style={{ fontSize: 11, color: "var(--text-tertiary, #8892A4)", margin: "2px 0 0 0" }}>{opp.recruiter_profile?.company_name || "Recruiter"}</p>
           </div>
           <button onClick={onClose} style={btnClose}>✕</button>
         </div>
@@ -436,7 +436,7 @@ function ApplyModal({ opp, onClose, onApplied }: { opp: Opp; onClose: () => void
 }
 
 function Empty({ text }: { text: string }) {
-  return <div style={{ padding: 40, textAlign: "center", color: "#8892A4", background: "#111827", border: "1px dashed rgba(255,255,255,0.1)", borderRadius: 14 }}>{text}</div>;
+  return <div style={{ padding: 40, textAlign: "center", color: "var(--text-tertiary, #8892A4)", background: "var(--bg-secondary, #111827)", border: "1px dashed rgba(255,255,255,0.1)", borderRadius: 14 }}>{text}</div>;
 }
 
 const heroOuter: React.CSSProperties = {
@@ -445,12 +445,12 @@ const heroOuter: React.CSSProperties = {
   background: "radial-gradient(1000px 400px at 20% 0%, rgba(251,146,60,0.22), transparent 60%), radial-gradient(900px 400px at 90% 10%, rgba(239,68,68,0.14), transparent 60%)",
   borderBottom: "1px solid rgba(255,255,255,0.06)",
 };
-const input: React.CSSProperties = { padding: "8px 10px", background: "#0A0E1A", color: "#E8EDF5", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 };
-const lbl: React.CSSProperties = { fontSize: 10, color: "#8892A4", letterSpacing: 0.5, textTransform: "uppercase", display: "block", marginBottom: 4, marginTop: 6 };
+const input: React.CSSProperties = { padding: "8px 10px", background: "var(--bg-primary, #0A0E1A)", color: "var(--text-primary, #E8EDF5)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 };
+const lbl: React.CSSProperties = { fontSize: 10, color: "var(--text-tertiary, #8892A4)", letterSpacing: 0.5, textTransform: "uppercase", display: "block", marginBottom: 4, marginTop: 6 };
 const btnPrimary: React.CSSProperties = { padding: "9px 18px", background: "linear-gradient(135deg, #FF7043, #EF5350)", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", textDecoration: "none", display: "inline-block" };
-const btnGhost: React.CSSProperties = { padding: "9px 16px", background: "transparent", color: "#E8EDF5", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer" };
-const btnSmall: React.CSSProperties = { padding: "6px 14px", fontSize: 11, fontWeight: 700, background: "transparent", color: "#8892A4", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, cursor: "pointer" };
+const btnGhost: React.CSSProperties = { padding: "9px 16px", background: "transparent", color: "var(--text-primary, #E8EDF5)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 10, fontSize: 12, fontWeight: 600, cursor: "pointer" };
+const btnSmall: React.CSSProperties = { padding: "6px 14px", fontSize: 11, fontWeight: 700, background: "transparent", color: "var(--text-tertiary, #8892A4)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, cursor: "pointer" };
 const btnSmallPrimary: React.CSSProperties = { ...btnSmall, background: "#1E88E5", color: "#fff", borderColor: "transparent" };
-const btnClose: React.CSSProperties = { width: 32, height: 32, borderRadius: 8, background: "transparent", color: "#8892A4", border: "1px solid rgba(255,255,255,0.08)", fontSize: 14, cursor: "pointer" };
+const btnClose: React.CSSProperties = { width: 32, height: 32, borderRadius: 8, background: "transparent", color: "var(--text-tertiary, #8892A4)", border: "1px solid rgba(255,255,255,0.08)", fontSize: 14, cursor: "pointer" };
 const modalBackdrop: React.CSSProperties = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 20 };
-const modalPanel: React.CSSProperties = { background: "#111827", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: 20, width: 520, maxWidth: "96vw", maxHeight: "90vh", overflowY: "auto" };
+const modalPanel: React.CSSProperties = { background: "var(--bg-secondary, #111827)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, padding: 20, width: 520, maxWidth: "96vw", maxHeight: "90vh", overflowY: "auto" };

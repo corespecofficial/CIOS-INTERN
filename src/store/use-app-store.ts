@@ -1,15 +1,51 @@
 import { create } from "zustand";
 
-function applyTheme(theme: "dark" | "light") {
-  if (typeof window === "undefined") return;
-  document.documentElement.setAttribute("data-theme", theme);
-  try { localStorage.setItem("cios-theme", theme); } catch {}
-  // Also write a cookie so the server-side root layout can render with the
-  // correct data-theme attribute on first paint (no FOUC on reload).
+export type ThemeChoice = "dark" | "light" | "system";
+
+function systemPref(): "dark" | "light" {
+  if (typeof window === "undefined") return "dark";
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function resolveTheme(choice: ThemeChoice): "dark" | "light" {
+  return choice === "system" ? systemPref() : choice;
+}
+
+function applyThemeChoice(choice: ThemeChoice): "dark" | "light" {
+  const resolved = resolveTheme(choice);
+  if (typeof window === "undefined") return resolved;
+  document.documentElement.setAttribute("data-theme", resolved);
+  // Remember BOTH: the user's choice (for UI state) and the resolved value
+  // (so the server cookie keeps rendering the right theme on first paint).
+  try { localStorage.setItem("cios-theme-choice", choice); } catch { /* ignore */ }
+  try { localStorage.setItem("cios-theme", resolved); } catch { /* ignore */ }
   try {
     const year = 60 * 60 * 24 * 365;
-    document.cookie = `cios-theme=${theme}; path=/; max-age=${year}; samesite=lax`;
-  } catch {}
+    document.cookie = `cios-theme=${resolved}; path=/; max-age=${year}; samesite=lax`;
+  } catch { /* ignore */ }
+  return resolved;
+}
+
+// Keep the old helper name for any existing callers.
+function applyTheme(theme: "dark" | "light") {
+  applyThemeChoice(theme);
+}
+
+// Listen for OS theme changes — only relevant when the user picked "system".
+if (typeof window !== "undefined" && window.matchMedia) {
+  const mq = window.matchMedia("(prefers-color-scheme: dark)");
+  const onChange = () => {
+    try {
+      const choice = (localStorage.getItem("cios-theme-choice") as ThemeChoice) || "dark";
+      if (choice === "system") {
+        const resolved = applyThemeChoice("system");
+        // Sync zustand state so any UI bound to `theme` re-renders.
+        useAppStore.setState({ theme: resolved });
+      }
+    } catch { /* ignore */ }
+  };
+  if (mq.addEventListener) mq.addEventListener("change", onChange);
+  else mq.addListener(onChange);
 }
 
 export type Role =
@@ -80,9 +116,11 @@ interface AppState {
   mobileSidebarOpen: boolean;
   setMobileSidebarOpen: (v: boolean) => void;
 
-  theme: "dark" | "light";
+  theme: "dark" | "light";                    // resolved, applied to data-theme
+  themeChoice: ThemeChoice;                    // the user's preference (may be "system")
   toggleTheme: () => void;
   setTheme: (theme: "dark" | "light") => void;
+  setThemeChoice: (choice: ThemeChoice) => void;
 
   role: Role;
   setRole: (r: Role) => void;
@@ -106,16 +144,22 @@ export const useAppStore = create<AppState>((set) => ({
   setMobileSidebarOpen: (v) => set({ mobileSidebarOpen: v }),
 
   theme: "dark",
+  themeChoice: "dark",
   toggleTheme: () =>
     set((s) => {
       const newTheme = s.theme === "dark" ? "light" : "dark";
       applyTheme(newTheme);
-      return { theme: newTheme };
+      return { theme: newTheme, themeChoice: newTheme };
     }),
   setTheme: (theme: "dark" | "light") =>
     set(() => {
       applyTheme(theme);
-      return { theme };
+      return { theme, themeChoice: theme };
+    }),
+  setThemeChoice: (choice: ThemeChoice) =>
+    set(() => {
+      const resolved = applyThemeChoice(choice);
+      return { theme: resolved, themeChoice: choice };
     }),
 
   role: "intern",

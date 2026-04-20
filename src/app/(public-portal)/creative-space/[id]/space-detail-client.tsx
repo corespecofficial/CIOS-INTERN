@@ -19,9 +19,9 @@ interface Props {
 
 const ACCENT = "#26C6DA";
 const ACCENT_2 = "#0EA5E9";
-const INK = "#F8FAFC";
-const DIM = "#94A3B8";
-const MUTED = "#64748B";
+const INK = "var(--text-primary, #F8FAFC)";
+const DIM = "var(--text-tertiary, #94A3B8)";
+const MUTED = "var(--text-muted, #64748B)";
 
 export function SpaceDetailClient({ space: s, reviews, credBadge, credTier, provenance }: Props) {
   const [pending, start] = useTransition();
@@ -44,11 +44,11 @@ export function SpaceDetailClient({ space: s, reviews, credBadge, credTier, prov
 
   return (
     <div style={{ width: "100%" }}>
-      {/* Hero */}
+      {/* Hero — decorative band, content sits cleanly below it */}
       <div
         style={{
           position: "relative",
-          height: 300,
+          height: 200,
           background: s.cover_image_url
             ? `linear-gradient(180deg, rgba(10,14,26,0.25), rgba(10,14,26,0.85)), url(${s.cover_image_url}) center/cover no-repeat, #0F172A`
             : `radial-gradient(800px 300px at 30% 0%, rgba(38,198,218,0.3), transparent 60%), radial-gradient(700px 300px at 80% 20%, rgba(124,58,237,0.2), transparent 60%), #0F172A`,
@@ -57,7 +57,7 @@ export function SpaceDetailClient({ space: s, reviews, credBadge, credTier, prov
         className="sd-hero"
       />
 
-      <div style={{ maxWidth: 1080, margin: "-110px auto 0", padding: "0 20px 60px", position: "relative", zIndex: 1 }}>
+      <div style={{ maxWidth: 1080, margin: "28px auto 0", padding: "0 20px 60px", position: "relative", zIndex: 1 }}>
         <Link
           href="/creative-space"
           style={{
@@ -66,10 +66,10 @@ export function SpaceDetailClient({ space: s, reviews, credBadge, credTier, prov
             gap: 6,
             padding: "7px 14px",
             borderRadius: 999,
-            background: "rgba(10,14,26,0.7)",
+            background: "var(--bg-secondary, rgba(10,14,26,0.7))",
             backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            color: DIM,
+            border: "1px solid var(--border-default, rgba(255,255,255,0.1))",
+            color: "var(--text-secondary, #94A3B8)",
             fontSize: 12,
             fontWeight: 700,
             textDecoration: "none",
@@ -83,7 +83,7 @@ export function SpaceDetailClient({ space: s, reviews, credBadge, credTier, prov
           {/* LEFT — narrative */}
           <div style={{ minWidth: 0 }}>
             {/* Title block */}
-            <div style={{ padding: 28, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20, marginBottom: 20 }}>
+            <div style={{ padding: 28, background: "var(--bg-secondary, rgba(255,255,255,0.03))", border: "1px solid var(--border-default, rgba(255,255,255,0.06))", borderRadius: 20, marginBottom: 20 }}>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
                 <span style={badgeStyle(formatColor(s.format))}>{formatIcon(s.format)} {s.format}</span>
                 <span style={badgeStyle(ACCENT)}>{s.category}</span>
@@ -142,7 +142,7 @@ export function SpaceDetailClient({ space: s, reviews, credBadge, credTier, prov
 
             {/* Outcomes */}
             {s.outcomes.length > 0 && (
-              <div style={{ padding: 24, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20, marginBottom: 20 }}>
+              <div style={{ padding: 24, background: "var(--bg-secondary, rgba(255,255,255,0.03))", border: "1px solid var(--border-default, rgba(255,255,255,0.06))", borderRadius: 20, marginBottom: 20 }}>
                 <h2 style={sectionHead}>What you'll walk away with</h2>
                 <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10 }}>
                   {s.outcomes.map((o, i) => (
@@ -156,14 +156,14 @@ export function SpaceDetailClient({ space: s, reviews, credBadge, credTier, prov
             )}
 
             {/* Description */}
-            <div style={{ padding: 24, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20, marginBottom: 20 }}>
+            <div style={{ padding: 24, background: "var(--bg-secondary, rgba(255,255,255,0.03))", border: "1px solid var(--border-default, rgba(255,255,255,0.06))", borderRadius: 20, marginBottom: 20 }}>
               <h2 style={sectionHead}>About this space</h2>
               <p style={{ fontSize: 15, color: INK, lineHeight: 1.75, margin: 0, whiteSpace: "pre-wrap" }}>{s.description}</p>
             </div>
 
             {/* Syllabus */}
             {s.syllabus.length > 0 && (
-              <div style={{ padding: 24, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20, marginBottom: 20 }}>
+              <div style={{ padding: 24, background: "var(--bg-secondary, rgba(255,255,255,0.03))", border: "1px solid var(--border-default, rgba(255,255,255,0.06))", borderRadius: 20, marginBottom: 20 }}>
                 <h2 style={sectionHead}>Syllabus</h2>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {s.syllabus.map((section, i) => (
@@ -182,7 +182,7 @@ export function SpaceDetailClient({ space: s, reviews, credBadge, credTier, prov
             )}
 
             {/* Instructor card */}
-            <div style={{ padding: 22, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20, marginBottom: 20 }}>
+            <div style={{ padding: 22, background: "var(--bg-secondary, rgba(255,255,255,0.03))", border: "1px solid var(--border-default, rgba(255,255,255,0.06))", borderRadius: 20, marginBottom: 20 }}>
               <h2 style={sectionHead}>Your instructor</h2>
               <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 4 }}>
                 {s.owner_avatar ? (
@@ -205,7 +205,7 @@ export function SpaceDetailClient({ space: s, reviews, credBadge, credTier, prov
             </div>
 
             {/* Reviews */}
-            <div style={{ padding: 22, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20 }}>
+            <div style={{ padding: 22, background: "var(--bg-secondary, rgba(255,255,255,0.03))", border: "1px solid var(--border-default, rgba(255,255,255,0.06))", borderRadius: 20 }}>
               <h2 style={sectionHead}>Reviews ({s.review_count})</h2>
               {reviews.length === 0 ? (
                 <p style={{ margin: "8px 0 0", fontSize: 13, color: DIM, lineHeight: 1.6 }}>

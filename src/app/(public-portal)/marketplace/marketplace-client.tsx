@@ -20,9 +20,10 @@ import { creatorCredibility, TIER_STYLES } from "@/lib/creator-credibility";
 
 const ACCENT = "#A855F7";        // purple — marketplace primary
 const ACCENT_2 = "#8B5CF6";
-const INK = "#F8FAFC";
-const DIM = "#94A3B8";
-const MUTED = "#64748B";
+// Theme-aware text tokens — flip with [data-theme].
+const INK = "var(--text-primary, #F8FAFC)";
+const DIM = "var(--text-tertiary, #94A3B8)";
+const MUTED = "var(--text-muted, #64748B)";
 
 export function MarketplaceClient({ products }: { products: Product[] }) {
   const [category, setCategory] = useState<string>("All");

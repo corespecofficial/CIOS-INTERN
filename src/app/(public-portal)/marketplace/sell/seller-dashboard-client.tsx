@@ -14,9 +14,9 @@ import { uploadToCloudinary, compressImage } from "@/lib/cloudinary-upload";
 
 const ACCENT = "#A855F7";
 const ACCENT_2 = "#7C3AED";
-const INK = "#F8FAFC";
-const DIM = "#94A3B8";
-const MUTED = "#64748B";
+const INK = "var(--text-primary, #F8FAFC)";
+const DIM = "var(--text-tertiary, #94A3B8)";
+const MUTED = "var(--text-muted, #64748B)";
 
 interface Props {
   products: Product[];

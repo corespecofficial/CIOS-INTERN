@@ -1,0 +1,18 @@
+export const dynamic = "force-dynamic";
+
+export default function DesignPage() {
+  return <ComingSoon emoji="🎨" title="Design" subtitle="A visual canvas for UI drafts, moodboards and design critique with CIOS. Coming soon." />;
+}
+
+function ComingSoon({ emoji, title, subtitle }: { emoji: string; title: string; subtitle: string }) {
+  return (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 40, textAlign: "center" }}>
+      <div style={{ fontSize: 68, marginBottom: 14 }}>{emoji}</div>
+      <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: "#1F2430", letterSpacing: -0.3 }}>{title}</h1>
+      <p style={{ color: "#55524A", fontSize: 14, maxWidth: 520, marginTop: 10, lineHeight: 1.55 }}>{subtitle}</p>
+      <span style={{ marginTop: 16, padding: "6px 14px", borderRadius: 999, background: "#F2F1ED", color: "#55524A", fontSize: 12, fontWeight: 700 }}>
+        Coming soon
+      </span>
+    </div>
+  );
+}

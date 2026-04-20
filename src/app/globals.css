@@ -20,6 +20,11 @@
    ============================================ */
 
 :root {
+  /* Portal-specific surface tokens — dark defaults */
+  --portal-header-bg: rgba(10,14,26,0.88);
+  --portal-nav-active: #ffffff;
+  --portal-nav-idle: #94A3B8;
+  --portal-nav-active-bg: rgba(30,136,229,0.18);
   /* Background */
   --bg-primary: #0A0E1A;
   --bg-secondary: #111827;
@@ -78,6 +83,12 @@
 }
 
 [data-theme="light"] {
+  /* Portal-specific surface tokens — light overrides */
+  --portal-header-bg: rgba(255,255,255,0.88);
+  --portal-nav-active: #0F172A;
+  --portal-nav-idle: #475569;
+  --portal-nav-active-bg: rgba(30,136,229,0.14);
+
   --bg-primary: #F8FAFC;
   --bg-secondary: #FFFFFF;
   --bg-tertiary: #F1F5F9;
@@ -85,10 +96,13 @@
   --bg-hover: #E2E8F0;
   --bg-overlay: rgba(0, 0, 0, 0.3);
 
-  --text-primary: #0F172A;
-  --text-secondary: #334155;
-  --text-tertiary: #64748B;
-  --text-muted: #94A3B8;
+  /* Light-theme text ramp — tuned for proper contrast on white.
+     Previous values (tertiary #64748B, muted #94A3B8) read as faint grey
+     on #F8FAFC, so body copy looked washed out. Bumped each step darker. */
+  --text-primary: #0F172A;      /* slate-900 — headings */
+  --text-secondary: #1E293B;    /* slate-800 — body */
+  --text-tertiary: #334155;     /* slate-700 — secondary body */
+  --text-muted: #475569;        /* slate-600 — metadata */
   --text-inverse: #F9FAFB;
 
   --border-default: #E2E8F0;
@@ -1007,4 +1021,330 @@ html[data-theme="light"] [style*="border: 1px solid rgba(255,255,255,0.08)"] { b
 [data-theme="light"] [style*="outline: 2px solid #1E88E5"],
 [data-theme="light"] [style*="outline:2px solid #1E88E5"] {
   outline-color: #1565C0 !important;
+}
+
+/* ============================================================
+   Light-theme aggressive overrides for the public portals.
+   The public portal layout hosts inline-styled hero bands, dark
+   hex backgrounds and near-white text. These rules flip them
+   coherently when the user picks the light theme. Scoped to
+   [data-portal="public"] so they never leak into the authenticated
+   app shell or force-light workspaces.
+   ============================================================ */
+
+/* Sticky header — flip from translucent-dark to translucent-light */
+[data-theme="light"] [data-public-portal-header] {
+  background: rgba(248, 250, 252, 0.92) !important;
+  border-bottom-color: rgba(15,23,42,0.08) !important;
+}
+[data-theme="light"] [data-public-portal-header] a[style*="color: #fff"],
+[data-theme="light"] [data-public-portal-header] span[style*="color: #fff"] {
+  color: #0F172A !important;
+}
+[data-theme="light"] [data-public-portal-header] a[style*="color: #94A3B8"] {
+  color: #475569 !important;
+}
+
+/* Solid dark surfaces used across every public portal hero + card */
+[data-theme="light"] [data-portal="public"] [style*="#0F172A"],
+[data-theme="light"] [data-portal="public"] [style*="#020617"],
+[data-theme="light"] [data-portal="public"] [style*="#0A0E1A"],
+[data-theme="light"] [data-portal="public"] [style*="#111827"],
+[data-theme="light"] [data-portal="public"] [style*="#1A2332"],
+[data-theme="light"] [data-portal="public"] [style*="#1E293B"],
+[data-theme="light"] [data-portal="public"] [style*="#1F2937"] {
+  /* Inline styles beat CSS rules without !important — flip coerced to win. */
+  background-color: #FFFFFF !important;
+}
+
+/* Card containers using bright-on-dark text */
+[data-theme="light"] [data-portal="public"] [style*="color: #F8FAFC"],
+[data-theme="light"] [data-portal="public"] [style*="color:#F8FAFC"],
+[data-theme="light"] [data-portal="public"] [style*="color: #E8EDF5"],
+[data-theme="light"] [data-portal="public"] [style*="color:#E8EDF5"],
+[data-theme="light"] [data-portal="public"] [style*="color: #F1F5F9"],
+[data-theme="light"] [data-portal="public"] [style*="color:#F1F5F9"],
+[data-theme="light"] [data-portal="public"] [style*="color: #FFFFFF"],
+[data-theme="light"] [data-portal="public"] [style*="color: #fff"]:not([style*="background: linear-gradient"]):not([style*="background:linear-gradient"]) {
+  color: #0F172A !important;
+}
+
+/* Secondary greys that read as "muted" on dark become mid-slate on light */
+[data-theme="light"] [data-portal="public"] [style*="color: #94A3B8"],
+[data-theme="light"] [data-portal="public"] [style*="color:#94A3B8"],
+[data-theme="light"] [data-portal="public"] [style*="color: #A8B1C4"],
+[data-theme="light"] [data-portal="public"] [style*="color:#A8B1C4"],
+[data-theme="light"] [data-portal="public"] [style*="color: #8892A4"],
+[data-theme="light"] [data-portal="public"] [style*="color:#8892A4"],
+[data-theme="light"] [data-portal="public"] [style*="color: #64748B"],
+[data-theme="light"] [data-portal="public"] [style*="color:#64748B"] {
+  color: #475569 !important;
+}
+
+/* Translucent-white panel surfaces flip to a pale slate tint so the card
+   shapes remain visible against the #F8FAFC portal body. Keeps the surface
+   flat (no shadow) — pills, chips and cards all read crisp. */
+[data-theme="light"] [data-portal="public"] [style*="rgba(255,255,255,0.02)"],
+[data-theme="light"] [data-portal="public"] [style*="rgba(255,255,255,0.025)"],
+[data-theme="light"] [data-portal="public"] [style*="rgba(255,255,255,0.03)"],
+[data-theme="light"] [data-portal="public"] [style*="rgba(255,255,255,0.035)"],
+[data-theme="light"] [data-portal="public"] [style*="rgba(255,255,255,0.04)"],
+[data-theme="light"] [data-portal="public"] [style*="rgba(255,255,255,0.05)"] {
+  background-color: #FFFFFF !important;
+}
+
+/* Hairline borders */
+[data-theme="light"] [data-portal="public"] [style*="rgba(255,255,255,0.06)"],
+[data-theme="light"] [data-portal="public"] [style*="rgba(255,255,255,0.07)"],
+[data-theme="light"] [data-portal="public"] [style*="rgba(255,255,255,0.08)"],
+[data-theme="light"] [data-portal="public"] [style*="rgba(255,255,255,0.1)"],
+[data-theme="light"] [data-portal="public"] [style*="rgba(255,255,255,0.12)"] {
+  border-color: rgba(15,23,42,0.12) !important;
+}
+
+/* Sticky/blurred dark strips (e.g. cover overlays on cards) become light */
+[data-theme="light"] [data-portal="public"] [style*="rgba(10,14,26,0.78)"],
+[data-theme="light"] [data-portal="public"] [style*="rgba(10,14,26,0.85)"],
+[data-theme="light"] [data-portal="public"] [style*="rgba(10,14,26,0.88)"],
+[data-theme="light"] [data-portal="public"] [style*="rgba(10,14,26,0.9)"],
+[data-theme="light"] [data-portal="public"] [style*="rgba(10,14,26,0.92)"] {
+  background: rgba(255,255,255,0.92) !important;
+}
+
+/* Form controls */
+[data-theme="light"] [data-portal="public"] input:not([type="checkbox"]):not([type="radio"]),
+[data-theme="light"] [data-portal="public"] textarea,
+[data-theme="light"] [data-portal="public"] select {
+  color: #0F172A !important;
+}
+[data-theme="light"] [data-portal="public"] input::placeholder,
+[data-theme="light"] [data-portal="public"] textarea::placeholder {
+  color: #64748B !important;
+}
+
+/* ============================================================
+   Dark-theme flip for the force-light workspaces.
+   Scoped to [data-workspace] containers so the overrides can't leak
+   into other surfaces. Covers: AI Hub workspace, Study Buddy learn,
+   CV wizard, Interview Prep.
+   ============================================================ */
+
+/* Root canvas + sidebar canvas */
+[data-theme="dark"] [data-workspace] {
+  background: #0A0E1A !important;
+  color: #F8FAFC !important;
+}
+[data-theme="dark"] [data-workspace] [style*="background: #fff"],
+[data-theme="dark"] [data-workspace] [style*="background:#fff"],
+[data-theme="dark"] [data-workspace] [style*="background: #FFFFFF"],
+[data-theme="dark"] [data-workspace] [style*="background:#FFFFFF"] {
+  background: #111827 !important;
+}
+
+/* Subtle panels / input fills */
+[data-theme="dark"] [data-workspace] [style*="background: #F8FAFC"],
+[data-theme="dark"] [data-workspace] [style*="background:#F8FAFC"],
+[data-theme="dark"] [data-workspace] [style*="background: #FBFAF6"],
+[data-theme="dark"] [data-workspace] [style*="background:#FBFAF6"],
+[data-theme="dark"] [data-workspace] [style*="background: #F7F6F3"],
+[data-theme="dark"] [data-workspace] [style*="background:#F7F6F3"],
+[data-theme="dark"] [data-workspace] [style*="background: #F1F5F9"],
+[data-theme="dark"] [data-workspace] [style*="background:#F1F5F9"] {
+  background: #1A2332 !important;
+}
+
+/* Chip / hover surfaces */
+[data-theme="dark"] [data-workspace] [style*="background: #F2F1ED"],
+[data-theme="dark"] [data-workspace] [style*="background:#F2F1ED"],
+[data-theme="dark"] [data-workspace] [style*="background: #EDEAE0"],
+[data-theme="dark"] [data-workspace] [style*="background:#EDEAE0"],
+[data-theme="dark"] [data-workspace] [style*="background: #EEF2FF"],
+[data-theme="dark"] [data-workspace] [style*="background:#EEF2FF"],
+[data-theme="dark"] [data-workspace] [style*="background: #E2E8F0"],
+[data-theme="dark"] [data-workspace] [style*="background:#E2E8F0"] {
+  background: #1F2937 !important;
+}
+
+/* Text — deep inks become near-white */
+[data-theme="dark"] [data-workspace] [style*="color: #0F172A"],
+[data-theme="dark"] [data-workspace] [style*="color:#0F172A"],
+[data-theme="dark"] [data-workspace] [style*="color: #1F2430"],
+[data-theme="dark"] [data-workspace] [style*="color:#1F2430"] {
+  color: #F8FAFC !important;
+}
+
+/* Text — mid greys become light mid-grey */
+[data-theme="dark"] [data-workspace] [style*="color: #334155"],
+[data-theme="dark"] [data-workspace] [style*="color:#334155"],
+[data-theme="dark"] [data-workspace] [style*="color: #475569"],
+[data-theme="dark"] [data-workspace] [style*="color:#475569"],
+[data-theme="dark"] [data-workspace] [style*="color: #55524A"],
+[data-theme="dark"] [data-workspace] [style*="color:#55524A"],
+[data-theme="dark"] [data-workspace] [style*="color: #64748B"],
+[data-theme="dark"] [data-workspace] [style*="color:#64748B"] {
+  color: #CBD5E1 !important;
+}
+
+/* Text — muted greys */
+[data-theme="dark"] [data-workspace] [style*="color: #8F8B80"],
+[data-theme="dark"] [data-workspace] [style*="color:#8F8B80"],
+[data-theme="dark"] [data-workspace] [style*="color: #94A3B8"],
+[data-theme="dark"] [data-workspace] [style*="color:#94A3B8"],
+[data-theme="dark"] [data-workspace] [style*="color: #9E9A8E"],
+[data-theme="dark"] [data-workspace] [style*="color:#9E9A8E"] {
+  color: #94A3B8 !important;
+}
+
+/* Borders */
+[data-theme="dark"] [data-workspace] [style*="border: 1px solid #E2E8F0"],
+[data-theme="dark"] [data-workspace] [style*="border:1px solid #E2E8F0"],
+[data-theme="dark"] [data-workspace] [style*="border: 1px solid #EAE7DF"],
+[data-theme="dark"] [data-workspace] [style*="border:1px solid #EAE7DF"],
+[data-theme="dark"] [data-workspace] [style*="border: 1px solid #EEF2FF"],
+[data-theme="dark"] [data-workspace] [style*="border:1px solid #EEF2FF"],
+[data-theme="dark"] [data-workspace] [style*="border: 1px solid #E6E3DA"],
+[data-theme="dark"] [data-workspace] [style*="border:1px solid #E6E3DA"],
+[data-theme="dark"] [data-workspace] [style*="border: 1px solid #F0EDE5"],
+[data-theme="dark"] [data-workspace] [style*="border:1px solid #F0EDE5"],
+[data-theme="dark"] [data-workspace] [style*="border: 1px solid #F1F5F9"],
+[data-theme="dark"] [data-workspace] [style*="border:1px solid #F1F5F9"],
+[data-theme="dark"] [data-workspace] [style*="border-bottom: 1px solid #F0EDE5"],
+[data-theme="dark"] [data-workspace] [style*="border-bottom: 1px solid #EAE7DF"],
+[data-theme="dark"] [data-workspace] [style*="border-bottom: 1px solid #EEF2FF"],
+[data-theme="dark"] [data-workspace] [style*="border-right: 1px solid #EAE7DF"] {
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* ============================================================
+   MOBILE OPTIMISATION — public portals & workspaces
+   Covers every public landing + detail page + workspace. Lives
+   in one block so we never have to go hunt inline breakpoints.
+   ============================================================ */
+
+@media (max-width: 900px) {
+  /* Two-column detail grids (space, opportunity, startup, product) → 1 col */
+  .sd-grid,
+  .op-grid,
+  .pd-grid,
+  .ip-live-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+}
+
+@media (max-width: 720px) {
+  /* Hero padding — shrink the 56/48 band to fit phone screens */
+  [data-portal="public"] section[style*="padding: 56px 20px 48px"],
+  [data-portal="public"] section[style*="padding: 48px 20px 40px"],
+  [data-portal="public"] section[style*="padding: 80px 24px"] {
+    padding: 32px 16px 28px !important;
+  }
+
+  /* Hero H1s — every portal's 40–44px headline scales to 28 on phone.
+     These classes exist on Marketplace, Opportunities, AI Hub, Study Buddy,
+     Documents, Creative Spaces, Hackathons, Investors, and the detail pages. */
+  .mkt-hero-h1,
+  .opps-hero-h1,
+  .aihub-hero-h1,
+  .sb-hero-h1,
+  .docs-hero-h1,
+  .docs-hub-h1,
+  .sd-title,
+  [data-portal="public"] h1 {
+    font-size: 28px !important;
+    line-height: 1.12 !important;
+    letter-spacing: -0.6px !important;
+  }
+
+  /* Subtitle beneath the hero — tighten */
+  [data-portal="public"] section > div > p {
+    font-size: 14px !important;
+  }
+
+  /* Hero CTAs — stack full-width on the smallest phones */
+  [data-portal="public"] section > div > div[style*="justifyContent: center"][style*="flexWrap"] a,
+  [data-portal="public"] section > div > div[style*="justify-content: center"][style*="flex-wrap"] a {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: center;
+  }
+
+  /* Public portal header — tighten padding on phones. Wordmark stays visible,
+     the full inline nav is replaced by a hamburger drawer (handled in the
+     header component itself). */
+  [data-public-portal-header] .cios-portal-header-row {
+    padding: 10px 14px !important;
+    gap: 10px !important;
+  }
+
+  /* Tag/chip rows that flex-wrap: make them compact */
+  [data-portal="public"] [style*="flexWrap: \"wrap\""],
+  [data-portal="public"] [style*="flexWrap:\"wrap\""] {
+    gap: 6px !important;
+  }
+
+  /* Docs hub search + tool grid */
+  [data-portal="public"] input[placeholder*="Search"] {
+    font-size: 13px !important;
+  }
+
+  /* CV wizard / Interview prep / Study Buddy learn / AI Hub workspace
+     — everything that goes fixed-position full-bleed */
+  [data-workspace] {
+    font-size: 14px;
+  }
+
+  /* Workspace sidebars on mobile — swap to a drawer-height band */
+  [data-workspace="ai-hub"] {
+    grid-template-columns: 1fr !important;
+  }
+  [data-workspace="ai-hub"] > aside {
+    display: none !important;           /* Hide desktop sidebar on phones */
+  }
+
+  /* Interview prep live — the PiP CIOS card gets smaller */
+  .ip-live-grid .pip-card { width: 84px !important; }
+
+  /* Documents app hub — tool cards tighten */
+  [data-portal="public"] [style*="minmax(230px, 1fr)"] {
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)) !important;
+  }
+
+  /* CTA strips at the bottom of landings — reduce inner padding */
+  [data-portal="public"] section > div[style*="padding: 32px"][style*="borderRadius: 20px"],
+  [data-portal="public"] section > div[style*="padding:32px"][style*="border-radius:20px"] {
+    padding: 22px 18px !important;
+  }
+
+  /* Big numeric counters (stat tiles, plan cards, score rings) shrink slightly */
+  [data-portal="public"] [style*="fontSize: 44px"],
+  [data-portal="public"] [style*="fontSize:44px"],
+  [data-portal="public"] [style*="fontSize: 56px"],
+  [data-portal="public"] [style*="fontSize:56px"] {
+    font-size: 36px !important;
+  }
+}
+
+/* Smaller phones — tighten again below 480px */
+@media (max-width: 480px) {
+  [data-portal="public"] h1,
+  .mkt-hero-h1, .opps-hero-h1, .aihub-hero-h1, .sb-hero-h1, .docs-hero-h1,
+  .docs-hub-h1, .sd-title {
+    font-size: 24px !important;
+    letter-spacing: -0.4px !important;
+  }
+
+  /* Hero paddings even tighter */
+  [data-portal="public"] section[style*="padding: 56px 20px 48px"],
+  [data-portal="public"] section[style*="padding: 80px 24px"] {
+    padding: 24px 14px !important;
+  }
+
+  /* Docs tools grid — 1 column under 380px */
+  [data-portal="public"] [style*="minmax(170px, 1fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Ensure no horizontal scroll anywhere under the portal body */
+  [data-portal="public"] { overflow-x: hidden; }
 }

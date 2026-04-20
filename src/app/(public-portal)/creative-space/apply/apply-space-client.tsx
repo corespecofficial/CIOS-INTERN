@@ -13,8 +13,8 @@ const ACCENT_BORDER = "rgba(38,198,218,0.25)";
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "10px 14px",
-  background: "#0A0E1A",
-  color: "#E8EDF5",
+  background: "var(--bg-primary, #0A0E1A)",
+  color: "var(--text-primary, #E8EDF5)",
   border: "1px solid rgba(255,255,255,0.1)",
   borderRadius: 10,
   fontSize: 13,
@@ -25,7 +25,7 @@ const inputStyle: React.CSSProperties = {
 const labelStyle: React.CSSProperties = {
   fontSize: 12,
   fontWeight: 700,
-  color: "#8892A4",
+  color: "var(--text-tertiary, #8892A4)",
   marginBottom: 6,
   display: "block",
   textTransform: "uppercase",
@@ -83,7 +83,7 @@ export function ApplySpaceClient() {
       <div style={{ maxWidth: 600, margin: "0 auto", fontFamily: "'Nunito', sans-serif" }}>
         <div
           style={{
-            background: "#111827",
+            background: "var(--bg-secondary, #111827)",
             border: `1px solid ${ACCENT_BORDER}`,
             borderRadius: 16,
             padding: 40,
@@ -95,14 +95,14 @@ export function ApplySpaceClient() {
             style={{
               fontSize: 22,
               fontWeight: 800,
-              color: "#E8EDF5",
+              color: "var(--text-primary, #E8EDF5)",
               margin: "0 0 10px",
               fontFamily: "'Space Grotesk', sans-serif",
             }}
           >
             Application Submitted!
           </h2>
-          <p style={{ fontSize: 14, color: "#8892A4", marginBottom: 24, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 14, color: "var(--text-tertiary, #8892A4)", marginBottom: 24, lineHeight: 1.6 }}>
             Your application has been submitted! We&apos;ll review it within 48 hours. You&apos;ll be notified once your space is approved and live.
           </p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
@@ -126,7 +126,7 @@ export function ApplySpaceClient() {
               style={{
                 padding: "10px 24px",
                 background: "rgba(255,255,255,0.04)",
-                color: "#8892A4",
+                color: "var(--text-tertiary, #8892A4)",
                 border: "1px solid rgba(255,255,255,0.08)",
                 borderRadius: 10,
                 fontSize: 13,
@@ -155,7 +155,7 @@ export function ApplySpaceClient() {
           alignItems: "center",
           gap: 6,
           fontSize: 13,
-          color: "#8892A4",
+          color: "var(--text-tertiary, #8892A4)",
           textDecoration: "none",
           marginBottom: 20,
         }}
@@ -180,14 +180,14 @@ export function ApplySpaceClient() {
           style={{
             fontSize: 24,
             fontWeight: 800,
-            color: "#E8EDF5",
+            color: "var(--text-primary, #E8EDF5)",
             margin: "4px 0 6px",
             fontFamily: "'Space Grotesk', sans-serif",
           }}
         >
           🏫 Host a Creative Space
         </h1>
-        <p style={{ fontSize: 13, color: "#8892A4", margin: 0 }}>
+        <p style={{ fontSize: 13, color: "var(--text-tertiary, #8892A4)", margin: 0 }}>
           Share your expertise with the community by hosting a learning space.
         </p>
       </div>
@@ -217,7 +217,7 @@ export function ApplySpaceClient() {
       <form
         onSubmit={handleSubmit}
         style={{
-          background: "#111827",
+          background: "var(--bg-secondary, #111827)",
           border: "1px solid rgba(255,255,255,0.07)",
           borderRadius: 16,
           padding: 28,
@@ -263,7 +263,7 @@ export function ApplySpaceClient() {
               onChange={(e) => setCategory(e.target.value as typeof category)}
             >
               {SPACE_CATEGORIES.map((c) => (
-                <option key={c} value={c} style={{ background: "#111827" }}>{c}</option>
+                <option key={c} value={c} style={{ background: "var(--bg-secondary, #111827)" }}>{c}</option>
               ))}
             </select>
           </div>
@@ -274,9 +274,9 @@ export function ApplySpaceClient() {
               value={format}
               onChange={(e) => setFormat(e.target.value as "live" | "recorded" | "hybrid")}
             >
-              <option value="live" style={{ background: "#111827" }}>Live</option>
-              <option value="recorded" style={{ background: "#111827" }}>Recorded</option>
-              <option value="hybrid" style={{ background: "#111827" }}>Hybrid</option>
+              <option value="live" style={{ background: "var(--bg-secondary, #111827)" }}>Live</option>
+              <option value="recorded" style={{ background: "var(--bg-secondary, #111827)" }}>Recorded</option>
+              <option value="hybrid" style={{ background: "var(--bg-secondary, #111827)" }}>Hybrid</option>
             </select>
           </div>
         </div>

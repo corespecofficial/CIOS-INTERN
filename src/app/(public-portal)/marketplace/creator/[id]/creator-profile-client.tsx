@@ -25,9 +25,9 @@ interface Props {
   provenance: string;
 }
 
-const INK = "#F8FAFC";
-const DIM = "#94A3B8";
-const MUTED = "#64748B";
+const INK = "var(--text-primary, #F8FAFC)";
+const DIM = "var(--text-tertiary, #94A3B8)";
+const MUTED = "var(--text-muted, #64748B)";
 const ACCENT = "#A855F7";
 
 export function CreatorProfileClient({

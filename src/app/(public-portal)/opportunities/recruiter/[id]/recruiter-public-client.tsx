@@ -37,9 +37,9 @@ interface Listing {
 }
 
 const ACCENT = "#FB923C";
-const INK = "#F8FAFC";
-const DIM = "#94A3B8";
-const MUTED = "#64748B";
+const INK = "var(--text-primary, #F8FAFC)";
+const DIM = "var(--text-tertiary, #94A3B8)";
+const MUTED = "var(--text-muted, #64748B)";
 
 export function RecruiterPublicClient({ profile, listings }: { profile: Profile; listings: Listing[] }) {
   const company = profile.company_name || "CIOS Recruiter";

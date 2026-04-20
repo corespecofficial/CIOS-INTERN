@@ -82,7 +82,14 @@ export async function getCurrentDbUser(): Promise<DbUser | null> {
     .eq("clerk_id", userId)
     .maybeSingle();
   if (error) {
-    console.error("[db] getCurrentDbUser:", error);
+    // Supabase errors sometimes come back as thin objects with only nested
+    // fields, which print as "{}" in consoles. Stringify so the real cause
+    // (code / message / details / hint) is visible.
+    try {
+      console.error("[db] getCurrentDbUser:", JSON.stringify(error, null, 2));
+    } catch {
+      console.error("[db] getCurrentDbUser:", error);
+    }
     return null;
   }
   return data as DbUser | null;

@@ -58,7 +58,8 @@ export function SplashScreen() {
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 99999,
-      background: "#0A0E1A",
+      background: "var(--bg-primary, #0A0E1A)",
+      color: "var(--text-primary, #F8FAFC)",
       display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       gap: 20, padding: 24, textAlign: "center",
       opacity: leaving ? 0 : 1, transition: "opacity 0.35s ease",

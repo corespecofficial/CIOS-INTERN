@@ -7,9 +7,9 @@ import type { Hackathon } from "@/app/actions/hackathon-types";
 
 const ACCENT = "#F59E0B";
 const ACCENT_2 = "#D97706";
-const INK = "#F8FAFC";
-const DIM = "#94A3B8";
-const MUTED = "#64748B";
+const INK = "var(--text-primary, #F8FAFC)";
+const DIM = "var(--text-tertiary, #94A3B8)";
+const MUTED = "var(--text-muted, #64748B)";
 
 const STATUS_LABEL: Record<string, string> = {
   upcoming: "Upcoming",

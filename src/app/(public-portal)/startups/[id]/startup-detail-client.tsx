@@ -13,9 +13,9 @@ import { ConversionGate } from "@/components/portal/conversion-gate";
 
 const ACCENT = "#10B981";
 const ACCENT_2 = "#059669";
-const INK = "#F8FAFC";
-const DIM = "#94A3B8";
-const MUTED = "#64748B";
+const INK = "var(--text-primary, #F8FAFC)";
+const DIM = "var(--text-tertiary, #94A3B8)";
+const MUTED = "var(--text-muted, #64748B)";
 
 interface Props {
   pitch: StartupPitch;
