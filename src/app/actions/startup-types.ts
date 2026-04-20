@@ -3,6 +3,10 @@ export interface StartupPitch {
   founder_id: string;
   founder_name: string | null;
   founder_avatar: string | null;
+  /** Founder credibility from CIOS profile */
+  founder_xp?: number;
+  founder_level?: number;
+  founder_role?: string;
   startup_name: string;
   tagline: string;
   description: string;
@@ -16,6 +20,15 @@ export interface StartupPitch {
   status: string;
   interest_count?: number;
   created_at: string;
+  // Phase 5 additions
+  cover_image_url: string | null;
+  slug: string | null;
+  country: string | null;
+  team_size: number | null;
+  founded_year: number | null;
+  monthly_revenue_usd: number | null;
+  raising_amount_usd: number | null;
+  is_featured: boolean;
 }
 
 export const STARTUP_CATEGORIES = [

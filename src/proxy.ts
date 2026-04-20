@@ -106,7 +106,10 @@ const isProtectedRoute = createRouteMatcher([
   '/guardian',
   // Hackathons: public-first (Phase 4). Browse + detail are anonymous;
   // team/submit/judge actions require auth via the server actions themselves.
+  // Startups: public-first (Phase 5). /startup founder dashboard requires
+  // auth; /startups/[id] is public.
   '/startup', '/startup/(.*)',
+  '/investor', '/investor/(.*)',
   '/compliance', '/compliance/(.*)',
   '/appeals', '/appeals/(.*)',
   '/suspended',

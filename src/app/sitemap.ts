@@ -28,6 +28,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/opportunities", priority: 0.95, changeFrequency: "daily" },
     // Public Hackathons (Phase 4)
     { path: "/hackathons", priority: 0.9, changeFrequency: "daily" },
+    // Public Investors + Startups (Phase 5)
+    { path: "/investors", priority: 0.9, changeFrequency: "daily" },
+    { path: "/investor/onboarding", priority: 0.7, changeFrequency: "monthly" },
   ];
 
   const base = staticRoutes.map((r) => ({
@@ -111,7 +114,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
-    return [...base, ...productEntries, ...creatorEntries, ...spaceEntries, ...instructorEntries, ...oppEntries, ...recruiterEntries, ...hkEntries];
+    // Startups — public pitches only.
+    const { data: stRes } = await sb.from("startup_pitches").select("id, updated_at").eq("is_public", true).eq("status", "active").limit(2000);
+    const starts = (stRes || []) as Array<{ id: string; updated_at: string }>;
+    const startupEntries = starts.map((s) => ({
+      url: `${SITE}/startups/${s.id}`,
+      lastModified: new Date(s.updated_at),
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    }));
+
+    return [...base, ...productEntries, ...creatorEntries, ...spaceEntries, ...instructorEntries, ...oppEntries, ...recruiterEntries, ...hkEntries, ...startupEntries];
   } catch {
     return base;
   }

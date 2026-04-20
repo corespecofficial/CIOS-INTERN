@@ -92,7 +92,7 @@ export async function getPublicPortalsOverview(): Promise<R<PublicPortalsOvervie
     await buildCreativeSpacesTile(sb, monthStart, weekAgo),
     await buildOpportunitiesTile(sb, monthStart, weekAgo),
     await buildHackathonsTile(sb, weekAgo),
-    { id: "investors", label: "Investors + Startups", href: "/investors", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 5" },
+    await buildInvestorsTile(sb, weekAgo),
     { id: "study-buddy", label: "Study Buddy", href: "/study-buddy", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 6" },
     { id: "ai-hub", label: "AI Hub", href: "/ai-hub", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 6" },
     { id: "documents", label: "Documents", href: "/documents", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 6" },
@@ -154,6 +154,30 @@ async function buildCreativeSpacesTile(
 // Active+upcoming hackathons + teams formed this week + total submissions
 // (revenue stays null — hackathons aren't a paid surface; sponsorship lives
 // outside the platform).
+
+// ── Investors + Startups tile (Phase 5) ──────────────────────────────────
+// Counts investors registered, public pitches, watchlist activity. No
+// platform-side revenue here yet (CIOS isn't taking carry).
+
+async function buildInvestorsTile(sb: Sb, weekAgo: string): Promise<PortalTileMetric> {
+  const [investorCount, pitchCount, interestsWeek, watchedWeek] = await Promise.all([
+    sb.from("investor_profiles").select("user_id", { count: "exact", head: true }).eq("approval_status", "approved"),
+    sb.from("startup_pitches").select("id", { count: "exact", head: true }).eq("is_public", true).eq("status", "active"),
+    sb.from("startup_interests").select("id", { count: "exact", head: true }).gt("created_at", weekAgo),
+    sb.from("investor_watchlist").select("pitch_id", { count: "exact", head: true }).gt("added_at", weekAgo),
+  ]);
+  return {
+    id: "investors",
+    label: "Investors + Startups",
+    href: "/investors",
+    publicUsers: investorCount.count ?? 0,
+    signedUpThisWeek: pitchCount.count ?? 0,
+    activeThisWeek: (interestsWeek.count ?? 0) + (watchedWeek.count ?? 0),
+    revenueThisMonth: null,
+    metricLabels: { primary: "Investors", signup: "Live pitches", active: "Signals/wk", revenue: "—" },
+    notes: "LIVE",
+  };
+}
 
 async function buildHackathonsTile(sb: Sb, weekAgo: string): Promise<PortalTileMetric> {
   const [activeCount, teamsWeek, submissions] = await Promise.all([
