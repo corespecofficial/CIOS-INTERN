@@ -198,7 +198,7 @@ export function ProfileClient({ profile, editable, heatmap }: { profile: PublicP
         </div>
       </div>
 
-      {editing && <EditModal profile={p} isMobile={isMobile} onClose={() => setEditing(false)} onSaved={(np) => { setP(np); setEditing(false); }} />}
+      {editing && <EditModal profile={p} isMobile={isMobile} heatmap={heatmap} onClose={() => setEditing(false)} onSaved={(np) => { setP(np); setEditing(false); }} />}
     </div>
   );
 }
@@ -240,7 +240,7 @@ function iconFor(k: string): string {
   return "🔗";
 }
 
-function EditModal({ profile, isMobile, onClose, onSaved }: { profile: PublicProfile; isMobile: boolean; onClose: () => void; onSaved: (p: PublicProfile) => void }) {
+function EditModal({ profile, isMobile, heatmap, onClose, onSaved }: { profile: PublicProfile; isMobile: boolean; heatmap?: HeatmapData | null; onClose: () => void; onSaved: (p: PublicProfile) => void }) {
   const [name, setName] = useState(profile.name);
   const [headline, setHeadline] = useState(profile.headline);
   const [bio, setBio] = useState(profile.bio);
