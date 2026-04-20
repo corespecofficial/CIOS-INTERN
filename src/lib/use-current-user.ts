@@ -12,6 +12,13 @@ const VALID_ROLES: Role[] = [
   "moderator",
   "finance",
   "support",
+  "recruiter",
+  "mentor",
+  "alumni",
+  "public_user",
+  "investor",
+  "startup_founder",
+  "partner_org",
 ];
 
 export function useCurrentUser() {
@@ -69,11 +76,21 @@ export function getRoleHomePath(role: Role): string {
     moderator: "/moderator",
     finance: "/finance",
     support: "/support",
+    recruiter: "/recruiter",
+    mentor: "/mentor",
+    alumni: "/alumni",
+    // Public-portal roles — land users in their branded portal
+    public_user: "/marketplace",
+    investor: "/investor/dashboard",
+    startup_founder: "/startup",
+    partner_org: "/partner-portal",
   };
   return map[role] || "/dashboard";
 }
 
-/* Helper: check if a role has access to a path */
+/* Helper: check if a role has access to a path.
+   NOTE: This is the CLIENT-side helper for UI gating. The authoritative gate
+   is middleware (src/proxy.ts); keep both in sync when adding routes. */
 export function roleCanAccess(role: Role, pathname: string): boolean {
   // Super admin can access everything
   if (role === "super_admin") return true;
@@ -92,6 +109,13 @@ export function roleCanAccess(role: Role, pathname: string): boolean {
     moderator: ["/moderator", "/community", "/messages"],
     finance: ["/finance", "/wallet"],
     support: ["/support", "/messages"],
+    recruiter: ["/recruiter", "/opportunities", "/talent", "/messages"],
+    mentor: ["/mentor", "/mentorship", "/messages", "/community"],
+    alumni: ["/alumni", "/community", "/opportunities", "/messages"],
+    public_user: ["/marketplace", "/creative-space", "/opportunities", "/hackathons", "/study-buddy", "/ai-hub", "/documents", "/startups"],
+    investor: ["/investor", "/startup", "/startups"],
+    startup_founder: ["/startup", "/investor", "/startups"],
+    partner_org: ["/partner-portal", "/institution", "/company-portal", "/gov-portal", "/partners"],
   };
 
   const allowed = roleRoutes[role] || [];

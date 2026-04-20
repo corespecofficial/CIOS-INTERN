@@ -4,12 +4,15 @@ import { NextResponse } from 'next/server';
 type Role =
   | "intern" | "team_lead" | "admin" | "super_admin"
   | "instructor" | "moderator" | "finance" | "support" | "recruiter"
-  | "mentor" | "alumni";
+  | "mentor" | "alumni"
+  // Public-portal roles (Phase 0)
+  | "public_user" | "investor" | "startup_founder" | "partner_org";
 
 const VALID_ROLES: Role[] = [
   "intern", "team_lead", "admin", "super_admin",
   "instructor", "moderator", "finance", "support", "recruiter",
   "mentor", "alumni",
+  "public_user", "investor", "startup_founder", "partner_org",
 ];
 
 // Role → home path
@@ -25,6 +28,11 @@ const ROLE_HOME: Record<Role, string> = {
   recruiter: "/recruiter",
   mentor: "/mentor",
   alumni: "/alumni",
+  // Public-portal roles land users directly in their branded portal
+  public_user: "/marketplace",
+  investor: "/investor/dashboard",
+  startup_founder: "/startup",
+  partner_org: "/partner-portal",
 };
 
 // Shared routes everyone can access
@@ -62,6 +70,13 @@ const ROLE_ACCESS: Record<Role, string[]> = {
   recruiter: ["/recruiter", "/opportunities", "/talent", "/messages", "/notifications", "/marketplace", "/creative-space", "/hackathons", "/investors", "/mentorship", "/alumni"],
   mentor: ["/mentor", "/mentorship", "/messages", "/community", "/notes", "/calendar", "/productivity", "/certificates", "/announcements", "/alumni", "/marketplace", "/creative-space", "/hackathons", "/compliance", "/appeals", "/suspended"],
   alumni: ["/alumni", "/community", "/opportunities", "/messages", "/notes", "/calendar", "/mentorship", "/announcements", "/marketplace", "/creative-space", "/hackathons", "/startup", "/compliance", "/appeals", "/suspended"],
+  // Public-portal roles — see masterplan §2.2.
+  // public_user is the baseline registered public: can browse/buy/book/apply across
+  // public portals. Investor/startup_founder/partner_org get their dedicated portals.
+  public_user: ["/marketplace", "/creative-space", "/opportunities", "/hackathons", "/study-buddy", "/ai-hub", "/documents", "/startups", "/profile", "/settings", "/notifications"],
+  investor: ["/investor", "/startup", "/startups", "/profile", "/settings", "/notifications"],
+  startup_founder: ["/startup", "/startups", "/investor", "/profile", "/settings", "/notifications"],
+  partner_org: ["/partner-portal", "/institution", "/company-portal", "/gov-portal", "/partners", "/profile", "/settings", "/notifications"],
 };
 
 const isProtectedRoute = createRouteMatcher([
@@ -87,6 +102,11 @@ const isProtectedRoute = createRouteMatcher([
   '/compliance', '/compliance/(.*)',
   '/appeals', '/appeals/(.*)',
   '/suspended',
+  // Public-portal infrastructure (Phase 0) — portals still resolve to their
+  // existing routes, but investor/partner-portal get dedicated new paths.
+  '/investor', '/investor/(.*)',
+  '/partner-portal', '/partner-portal/(.*)',
+  '/startups', '/startups/(.*)',
 ]);
 
 function extractRole(source: unknown): Role | null {

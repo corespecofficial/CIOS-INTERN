@@ -109,3 +109,37 @@ export function humanFileSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
+
+// ── Ephemeral uploads ─────────────────────────────────────────────────────
+// Public-portal uploads are tagged `public-ephemeral` + placed under a
+// portal-specific folder so the hourly sweep (/api/cron/cloudinary-sweep) can
+// find them. The server action `trackEphemeralUpload` mirrors each one into
+// Postgres with a 24h `expires_at`, which the sweep uses to batch-delete from
+// Cloudinary + mark the row `deleted_at`. See masterplan §2.4.
+
+export interface EphemeralUploadOptions {
+  /** Which portal owns this upload — informs the folder + oversight metrics. */
+  portal: "marketplace" | "creative-space" | "opportunities" | "hackathons" | "study-buddy" | "ai-hub" | "documents" | "startups" | "investor" | "partner";
+  /** Short label ("cv", "pitch-deck", "product-photo"). Stored in the DB row. */
+  kind?: string;
+  /** Override Cloudinary resource type. Default: auto. */
+  resourceType?: "image" | "video" | "raw" | "auto";
+}
+
+/**
+ * Upload a file with the 24h auto-delete contract.
+ *
+ * Returns the same UploadedMedia as `uploadToCloudinary` so call sites only
+ * differ in which helper they pick (ephemeral vs permanent). Callers SHOULD
+ * then call `trackEphemeralUpload({ publicId, portal, kind, ... })` server-side
+ * so the sweep cron has a row to act on.
+ */
+export async function uploadToCloudinaryEphemeral(
+  file: File | Blob,
+  opts: EphemeralUploadOptions
+): Promise<UploadedMedia> {
+  return uploadToCloudinary(file, {
+    folder: `public-ephemeral/${opts.portal}`,
+    resourceType: opts.resourceType ?? "auto",
+  });
+}

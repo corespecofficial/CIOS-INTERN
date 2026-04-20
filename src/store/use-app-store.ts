@@ -23,7 +23,12 @@ export type Role =
   | "support"
   | "recruiter"
   | "mentor"
-  | "alumni";
+  | "alumni"
+  // Public-portal roles (Phase 0 — masterplan §2.2)
+  | "public_user"
+  | "investor"
+  | "startup_founder"
+  | "partner_org";
 
 export function getRoleColor(role: Role): string {
   const colors: Record<Role, string> = {
@@ -38,6 +43,10 @@ export function getRoleColor(role: Role): string {
     recruiter: "#AB47BC",
     mentor: "#26C6DA",
     alumni: "#FFC107",
+    public_user: "#64748B",
+    investor: "#10B981",
+    startup_founder: "#F97316",
+    partner_org: "#0EA5E9",
   };
   return colors[role] ?? "#1E88E5";
 }
@@ -55,6 +64,10 @@ export function getRoleLabel(role: Role): string {
     recruiter: "Recruiter",
     mentor: "Mentor",
     alumni: "Alumni",
+    public_user: "Public User",
+    investor: "Investor",
+    startup_founder: "Startup Founder",
+    partner_org: "Partner Organisation",
   };
   return labels[role] ?? "Intern";
 }

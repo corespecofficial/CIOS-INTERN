@@ -50,6 +50,9 @@ export default function PostAuthPage() {
 
       const role = result.role || user.role;
       setStatus("Routing to your portal...");
+      // Intern onboarding gate (legacy) still applies. Public-portal roles
+      // do their onboarding inside their own portal, so they skip this gate
+      // and land in their branded home via getRoleHomePath.
       if (!onboardingDone && role === "intern") {
         router.replace("/onboarding");
       } else {
