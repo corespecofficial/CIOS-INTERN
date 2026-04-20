@@ -97,16 +97,28 @@ export default async function InvestorDashboardPage() {
 }
 
 function Stat({ label, value, color, href }: { label: string; value: string; color: string; href?: string }) {
-  const Card = href ? Link : "div";
-  return (
-    <Card href={href ?? ("" as never)} style={{
-      display: "block", padding: 16, borderRadius: 14,
-      background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.07)`, borderLeft: `3px solid ${color}`,
-      textDecoration: "none", color: "inherit",
-    }}>
+  // Render an interactive Link only when an href is provided; otherwise a
+  // plain div so we never pass `""` (or `null`) into Next's <Link href>.
+  const inner = (
+    <>
       <div style={{ fontSize: 10, letterSpacing: 1.5, color: MUTED, fontWeight: 800, textTransform: "uppercase" }}>{label}</div>
       <div style={{ fontSize: 26, fontWeight: 900, color, marginTop: 4, fontFamily: "'Space Grotesk', sans-serif" }}>{value}</div>
-    </Card>
+    </>
+  );
+  const cardStyle: React.CSSProperties = {
+    display: "block",
+    padding: 16,
+    borderRadius: 14,
+    background: "rgba(255,255,255,0.03)",
+    border: `1px solid rgba(255,255,255,0.07)`,
+    borderLeft: `3px solid ${color}`,
+    textDecoration: "none",
+    color: "inherit",
+  };
+  return href ? (
+    <Link href={href} style={cardStyle}>{inner}</Link>
+  ) : (
+    <div style={cardStyle}>{inner}</div>
   );
 }
 
