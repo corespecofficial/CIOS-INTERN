@@ -13,15 +13,25 @@ const CIOS_LOGO_URL =
  * minimal — each portal provides its own hero/sub-nav below. The goal is
  * recognisable CIOS chrome without stealing focus from the portal content.
  */
-const PORTALS: { href: string; label: string }[] = [
-  { href: "/marketplace", label: "Marketplace" },
+/**
+ * `match` lists EXTRA path prefixes that should also highlight this nav
+ * item as active — used when a section has multiple canonical URLs (e.g.
+ * "Startups" tab points at /investors but should also light up when the
+ * user is on a /startups/[id] detail page).
+ */
+const PORTALS: { href: string; label: string; match?: string[] }[] = [
+  { href: "/marketplace",    label: "Marketplace" },
   { href: "/creative-space", label: "Creative Spaces" },
-  { href: "/opportunities", label: "Opportunities" },
-  { href: "/hackathons", label: "Hackathons" },
-  { href: "/startups", label: "Startups" },
-  { href: "/ai-hub", label: "AI Hub" },
-  { href: "/study-buddy", label: "Study Buddy" },
-  { href: "/documents", label: "Documents" },
+  { href: "/opportunities",  label: "Opportunities" },
+  { href: "/hackathons",     label: "Hackathons" },
+  // "Startups" navigates straight to /investors (the canonical browse
+  // surface) so we avoid the blank-flash redirect from /startups → /investors.
+  // The match array keeps the tab highlighted when viewing /startups/[id]
+  // detail pages too.
+  { href: "/investors",      label: "Startups", match: ["/startups"] },
+  { href: "/ai-hub",         label: "AI Hub" },
+  { href: "/study-buddy",    label: "Study Buddy" },
+  { href: "/documents",      label: "Documents" },
 ];
 
 export function PublicPortalHeader() {
@@ -81,7 +91,10 @@ export function PublicPortalHeader() {
           aria-label="Public portals"
         >
           {PORTALS.map((p) => {
-            const active = pathname === p.href || pathname.startsWith(p.href + "/");
+            // Active when the URL matches the primary href OR any of the
+            // declared aliases (e.g. /startups/[id] keeps the Startups tab lit).
+            const candidates = [p.href, ...(p.match ?? [])];
+            const active = candidates.some((c) => pathname === c || pathname.startsWith(c + "/"));
             return (
               <Link
                 key={p.href}
