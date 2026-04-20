@@ -89,7 +89,7 @@ export async function getPublicPortalsOverview(): Promise<R<PublicPortalsOvervie
       metricLabels: { primary: "Products", active: "Sales/wk", signup: "—", revenue: "Rev /mo \u20a6" },
       notes: "LIVE",
     },
-    { id: "creative-space", label: "Creative Spaces", href: "/creative-space", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 2" },
+    await buildCreativeSpacesTile(sb, monthStart, weekAgo),
     { id: "opportunities", label: "Opportunities", href: "/opportunities", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 3" },
     { id: "hackathons", label: "Hackathons", href: "/hackathons", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 4" },
     { id: "investors", label: "Investors + Startups", href: "/investors", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 5" },
@@ -111,5 +111,37 @@ export async function getPublicPortalsOverview(): Promise<R<PublicPortalsOvervie
       },
       tiles,
     },
+  };
+}
+
+// ── Creative Spaces tile (Phase 2) ───────────────────────────────────────
+// Pulled out because the revenue math needs a second query (enrollments
+// joined by time) and the inline block was getting unreadable.
+
+type Sb = ReturnType<typeof supabaseAdmin>;
+
+async function buildCreativeSpacesTile(
+  sb: Sb,
+  monthStart: string,
+  weekAgo: string
+): Promise<PortalTileMetric> {
+  const [activeCount, enrolsWeek, revenueMonth] = await Promise.all([
+    sb.from("creative_spaces").select("id", { count: "exact", head: true }).eq("status", "approved"),
+    sb.from("creative_enrollments").select("id", { count: "exact", head: true }).gt("enrolled_at", weekAgo),
+    sb.from("creative_enrollments").select("amount_paid_ngn").eq("payment_status", "paid").gt("enrolled_at", monthStart),
+  ]);
+  const revenue = ((revenueMonth.data || []) as Array<{ amount_paid_ngn: number }>)
+    .reduce((a, r) => a + Number(r.amount_paid_ngn || 0), 0);
+
+  return {
+    id: "creative-space",
+    label: "Creative Spaces",
+    href: "/creative-space",
+    publicUsers: activeCount.count ?? 0,
+    signedUpThisWeek: null,
+    activeThisWeek: enrolsWeek.count ?? 0,
+    revenueThisMonth: Math.round(revenue),
+    metricLabels: { primary: "Spaces", active: "Enrols/wk", signup: "—", revenue: "Rev /mo \u20a6" },
+    notes: "LIVE",
   };
 }

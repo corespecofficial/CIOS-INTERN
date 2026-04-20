@@ -1,8 +1,17 @@
+// Shared types + constants for Creative Spaces. Pure — safe to import from
+// either server or client code.
+
 export interface CreativeSpace {
   id: string;
   owner_id: string;
   owner_name: string | null;
   owner_avatar: string | null;
+  /** Credibility join (Phase 2). */
+  owner_xp: number;
+  owner_level: number;
+  owner_role: string;
+  owner_percentile: number | null;
+
   title: string;
   description: string;
   category: string;
@@ -18,6 +27,32 @@ export interface CreativeSpace {
   is_live: boolean;
   created_at: string;
   updated_at: string;
+
+  // Phase 2 additions
+  cover_image_url: string | null;
+  intro_video_url: string | null;
+  outcomes: string[];
+  syllabus: SyllabusSection[];
+  rating: number;
+  review_count: number;
+  is_featured: boolean;
+  slug: string | null;
+}
+
+export interface SyllabusSection {
+  title: string;
+  lessons: string[];
+}
+
+export interface SpaceReview {
+  id: string;
+  space_id: string;
+  reviewer_id: string;
+  reviewer_name: string | null;
+  reviewer_avatar: string | null;
+  rating: number;
+  body: string | null;
+  created_at: string;
 }
 
 export const SPACE_CATEGORIES = [
@@ -33,3 +68,5 @@ export const SPACE_CATEGORIES = [
   "Photography",
   "Other",
 ] as const;
+
+export type SpaceCategory = (typeof SPACE_CATEGORIES)[number];

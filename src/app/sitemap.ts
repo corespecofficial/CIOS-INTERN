@@ -22,6 +22,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/sign-up", priority: 0.7, changeFrequency: "yearly" },
     // Public Marketplace (Phase 1)
     { path: "/marketplace", priority: 0.95, changeFrequency: "daily" },
+    // Public Creative Spaces (Phase 2)
+    { path: "/creative-space", priority: 0.95, changeFrequency: "daily" },
   ];
 
   const base = staticRoutes.map((r) => ({
@@ -54,7 +56,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.6,
     }));
-    return [...base, ...productEntries, ...creatorEntries];
+
+    // Creative Spaces — mirror the marketplace pattern.
+    const [csRes, csOwnersRes] = await Promise.all([
+      sb.from("creative_spaces").select("id, updated_at").eq("status", "approved").limit(2000),
+      sb.from("creative_spaces").select("owner_id").eq("status", "approved"),
+    ]);
+    const cs = (csRes.data || []) as Array<{ id: string; updated_at: string }>;
+    const csOwners = Array.from(new Set(((csOwnersRes.data || []) as Array<{ owner_id: string }>).map((r) => r.owner_id)));
+    const spaceEntries = cs.map((s) => ({
+      url: `${SITE}/creative-space/${s.id}`,
+      lastModified: new Date(s.updated_at),
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    }));
+    const instructorEntries = csOwners.map((id) => ({
+      url: `${SITE}/creative-space/instructor/${id}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.6,
+    }));
+
+    return [...base, ...productEntries, ...creatorEntries, ...spaceEntries, ...instructorEntries];
   } catch {
     return base;
   }
