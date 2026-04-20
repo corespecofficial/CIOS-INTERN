@@ -22,7 +22,9 @@ export default function PostAuthPage() {
       setStatus("Syncing your profile...");
       const result = await ensureCurrentDbUser();
       if (!result.ok) {
-        console.error("[post-auth] ensureCurrentDbUser failed:", result.error);
+        // Non-fatal — the action already degraded gracefully (cached role on
+        // Clerk fetch failures). We fall through to the client-side role below.
+        console.warn("[post-auth] ensureCurrentDbUser degraded:", result.error);
       } else if (result.created) {
         console.log("[post-auth] Supabase user row created");
       }
