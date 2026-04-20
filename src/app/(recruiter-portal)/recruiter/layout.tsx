@@ -2,7 +2,7 @@ import { getCurrentDbUser, supabaseAdmin } from "@/lib/db";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { RecruiterNav } from "./recruiter-nav";
+import { RecruiterShell } from "./recruiter-shell";
 
 export const dynamic = "force-dynamic";
 
@@ -45,25 +45,5 @@ export default async function RecruiterLayout({ children }: { children: React.Re
     );
   }
 
-  return (
-    <>
-      <style>{`
-        @media (max-width: 768px) {
-          .recruiter-layout { grid-template-columns: 1fr !important; gap: 0 !important; }
-          .recruiter-sidebar { display: none !important; }
-          .recruiter-mobile-tabs { display: flex !important; }
-        }
-        @media (min-width: 769px) {
-          .recruiter-mobile-tabs { display: none !important; }
-        }
-      `}</style>
-      <div className="recruiter-layout" style={{ maxWidth: 1300, margin: "0 auto", display: "grid", gridTemplateColumns: "220px 1fr", gap: 18, fontFamily: "'Nunito', sans-serif" }}>
-        <div className="recruiter-sidebar"><RecruiterNav /></div>
-        <div style={{ minWidth: 0 }}>
-          <RecruiterNav mobile />
-          {children}
-        </div>
-      </div>
-    </>
-  );
+  return <RecruiterShell>{children}</RecruiterShell>;
 }
