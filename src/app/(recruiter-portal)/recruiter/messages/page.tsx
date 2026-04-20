@@ -1,20 +1,30 @@
-import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCurrentDbUser } from "@/lib/db";
+import { listRecruiterCandidates } from "@/app/actions/recruiter-messaging";
+import { RecruiterMessagesClient } from "./messages-client";
 
-export default function RecruiterMessagesPage() {
-  return (
-    <div>
-      <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>💬 Candidate messages</h1>
-        <p style={{ fontSize: 12, color: "#8892A4", margin: "2px 0 0 0" }}>Real-time chat — powered by the platform messaging system</p>
-      </div>
-      <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: 30, textAlign: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 10 }}>💬</div>
-        <h2 style={{ fontSize: 16, fontWeight: 700, color: "#E8EDF5", margin: "0 0 4px 0" }}>Open your inbox</h2>
-        <p style={{ fontSize: 12, color: "#8892A4", margin: "0 0 16px 0" }}>Candidate conversations use the same Ably-backed messaging as the rest of the platform.</p>
-        <Link href="/messages" style={btnPrimary}>Open messages →</Link>
-      </div>
-    </div>
-  );
+export const dynamic = "force-dynamic";
+
+/**
+ * Recruiter messaging — runs INSIDE the recruiter portal shell. No redirect
+ * to the intern /messages page.
+ *
+ * Contact restriction: the candidate list contains only users who have
+ * applied to one of this recruiter's listings (admins/super_admins see
+ * applicants across all listings). The same Ably realtime + sendMessage
+ * server action backs the chat, so messages appear in the candidate's
+ * regular inbox + push notifications without the recruiter ever leaving
+ * their portal.
+ */
+export default async function RecruiterMessagesPage() {
+  const me = await getCurrentDbUser();
+  if (!me) redirect("/sign-in?redirect_url=/recruiter/messages");
+  if (me.role !== "recruiter" && me.role !== "admin" && me.role !== "super_admin") {
+    redirect("/opportunities");
+  }
+
+  const res = await listRecruiterCandidates();
+  const candidates = res.ok ? res.data : [];
+
+  return <RecruiterMessagesClient candidates={candidates} meId={me.id} />;
 }
-
-const btnPrimary: React.CSSProperties = { padding: "10px 22px", background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff", borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none", display: "inline-block" };
