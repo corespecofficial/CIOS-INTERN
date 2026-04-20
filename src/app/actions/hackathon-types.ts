@@ -15,6 +15,19 @@ export interface Hackathon {
   created_by: string | null;
   created_at: string;
   team_count?: number;
+  // Phase 4 additions
+  cover_image_url: string | null;
+  slug: string | null;
+  hero_blurb: string | null;
+  is_featured: boolean;
+  view_count: number;
+  sponsor_logos: SponsorLogo[];
+}
+
+export interface SponsorLogo {
+  name: string;
+  logo_url: string;
+  url?: string;
 }
 
 export interface HackathonTeam {

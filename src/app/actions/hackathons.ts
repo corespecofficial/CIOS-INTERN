@@ -8,14 +8,17 @@ export type { Hackathon, HackathonTeam, HackathonSubmission, HackathonMember } f
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
-export async function listHackathons(): Promise<R<Hackathon[]>> {
+export async function listHackathons(opts?: { status?: string; limit?: number }): Promise<R<Hackathon[]>> {
   try {
     const sb = supabaseAdmin();
-    const { data } = await sb.from("hackathons")
+    let q = sb.from("hackathons")
       .select("*")
+      // Featured + active hackathons surface first; then upcoming; then by date.
+      .order("is_featured", { ascending: false })
       .order("starts_at", { ascending: false })
-      .limit(50);
-    // Get team counts
+      .limit(opts?.limit ?? 50);
+    if (opts?.status) q = q.eq("status", opts.status);
+    const { data } = await q;
     const ids = ((data || []) as Hackathon[]).map((h) => h.id);
     const { data: counts } = ids.length > 0
       ? await sb.from("hackathon_teams").select("hackathon_id").in("hackathon_id", ids)
@@ -28,12 +31,54 @@ export async function listHackathons(): Promise<R<Hackathon[]>> {
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 
+/** Featured hackathon for the marketing landing hero. Returns the next active
+ *  or upcoming featured event, or the next upcoming any-status event. */
+export async function getFeaturedHackathon(): Promise<R<Hackathon | null>> {
+  try {
+    const sb = supabaseAdmin();
+    const { data } = await sb.from("hackathons")
+      .select("*")
+      .in("status", ["upcoming", "active"])
+      .order("is_featured", { ascending: false })
+      .order("starts_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    return { ok: true, data: (data as Hackathon) ?? null };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
 export async function getHackathon(id: string): Promise<R<Hackathon>> {
   try {
     const sb = supabaseAdmin();
     const { data } = await sb.from("hackathons").select("*").eq("id", id).maybeSingle();
     if (!data) return { ok: false, error: "Hackathon not found" };
+    // Fire-and-forget view counter — never blocks render.
+    sb.from("hackathons")
+      .update({ view_count: ((data as { view_count?: number }).view_count ?? 0) + 1 })
+      .eq("id", id)
+      .then(() => {});
     return { ok: true, data: data as Hackathon };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+/** Public submission gallery — only opt-in submissions render. */
+export async function getPublicSubmissions(hackathonId: string): Promise<R<HackathonSubmission[]>> {
+  try {
+    const sb = supabaseAdmin();
+    const { data } = await sb.from("hackathon_submissions")
+      .select("*, team:hackathon_teams!hackathon_submissions_team_id_fkey(name)")
+      .eq("hackathon_id", hackathonId)
+      .eq("is_public", true)
+      .order("score", { ascending: false, nullsFirst: false })
+      .order("submitted_at", { ascending: false });
+    type SRow = Record<string, unknown> & { team?: { name?: string } | Array<{ name?: string }> | null };
+    return {
+      ok: true,
+      data: ((data || []) as SRow[]).map((r, i) => {
+        const t = Array.isArray(r.team) ? r.team[0] : r.team;
+        return { ...r, team_name: t?.name || null, rank: r.score != null ? i + 1 : null } as HackathonSubmission;
+      }),
+    };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 

@@ -104,7 +104,8 @@ const isProtectedRoute = createRouteMatcher([
   '/mentor', '/mentor/(.*)',
   // Guardian management page (intern only); /guardian/[token] is intentionally public
   '/guardian',
-  '/hackathons', '/hackathons/(.*)',
+  // Hackathons: public-first (Phase 4). Browse + detail are anonymous;
+  // team/submit/judge actions require auth via the server actions themselves.
   '/startup', '/startup/(.*)',
   '/compliance', '/compliance/(.*)',
   '/appeals', '/appeals/(.*)',

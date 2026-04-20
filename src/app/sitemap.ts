@@ -26,6 +26,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/creative-space", priority: 0.95, changeFrequency: "daily" },
     // Public Opportunities (Phase 3)
     { path: "/opportunities", priority: 0.95, changeFrequency: "daily" },
+    // Public Hackathons (Phase 4)
+    { path: "/hackathons", priority: 0.9, changeFrequency: "daily" },
   ];
 
   const base = staticRoutes.map((r) => ({
@@ -99,7 +101,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     }));
 
-    return [...base, ...productEntries, ...creatorEntries, ...spaceEntries, ...instructorEntries, ...oppEntries, ...recruiterEntries];
+    // Hackathons — only non-cancelled events.
+    const { data: hkRes } = await sb.from("hackathons").select("id, updated_at").neq("status", "cancelled").limit(2000);
+    const hks = (hkRes || []) as Array<{ id: string; updated_at: string }>;
+    const hkEntries = hks.map((h) => ({
+      url: `${SITE}/hackathons/${h.id}`,
+      lastModified: new Date(h.updated_at),
+      changeFrequency: "daily" as const,
+      priority: 0.7,
+    }));
+
+    return [...base, ...productEntries, ...creatorEntries, ...spaceEntries, ...instructorEntries, ...oppEntries, ...recruiterEntries, ...hkEntries];
   } catch {
     return base;
   }

@@ -91,7 +91,7 @@ export async function getPublicPortalsOverview(): Promise<R<PublicPortalsOvervie
     },
     await buildCreativeSpacesTile(sb, monthStart, weekAgo),
     await buildOpportunitiesTile(sb, monthStart, weekAgo),
-    { id: "hackathons", label: "Hackathons", href: "/hackathons", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 4" },
+    await buildHackathonsTile(sb, weekAgo),
     { id: "investors", label: "Investors + Startups", href: "/investors", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 5" },
     { id: "study-buddy", label: "Study Buddy", href: "/study-buddy", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 6" },
     { id: "ai-hub", label: "AI Hub", href: "/ai-hub", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 6" },
@@ -149,6 +149,30 @@ async function buildCreativeSpacesTile(
 // ── Opportunities + Recruiter tile (Phase 3) ─────────────────────────────
 // Listings + paid-recruiter count + applications this week + placement fee
 // revenue this month (5% of hires' monthly salaries).
+
+// ── Hackathons tile (Phase 4) ────────────────────────────────────────────
+// Active+upcoming hackathons + teams formed this week + total submissions
+// (revenue stays null — hackathons aren't a paid surface; sponsorship lives
+// outside the platform).
+
+async function buildHackathonsTile(sb: Sb, weekAgo: string): Promise<PortalTileMetric> {
+  const [activeCount, teamsWeek, submissions] = await Promise.all([
+    sb.from("hackathons").select("id", { count: "exact", head: true }).in("status", ["upcoming", "active", "judging"]),
+    sb.from("hackathon_teams").select("id", { count: "exact", head: true }).gt("created_at", weekAgo),
+    sb.from("hackathon_submissions").select("id", { count: "exact", head: true }),
+  ]);
+  return {
+    id: "hackathons",
+    label: "Hackathons",
+    href: "/hackathons",
+    publicUsers: activeCount.count ?? 0,
+    signedUpThisWeek: teamsWeek.count ?? 0,
+    activeThisWeek: submissions.count ?? 0,
+    revenueThisMonth: null,
+    metricLabels: { primary: "Active events", signup: "Teams /wk", active: "Submissions", revenue: "—" },
+    notes: "LIVE",
+  };
+}
 
 async function buildOpportunitiesTile(
   sb: Sb,
