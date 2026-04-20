@@ -65,7 +65,12 @@ export async function getMyInvestorProfile(): Promise<R<InvestorProfile | null>>
     const me = await getCurrentDbUser();
     if (!me) return { ok: false, error: "Unauthorized" };
     const sb = supabaseAdmin();
-    const { data } = await sb.from("investor_profiles").select("*").eq("user_id", me.id).maybeSingle();
+    const { data, error } = await sb
+      .from("investor_profiles")
+      .select("*")
+      .eq("user_id", me.id)
+      .maybeSingle();
+    if (error) return { ok: false, error: error.message };
     return { ok: true, data: (data as InvestorProfile | null) ?? null };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -78,7 +83,9 @@ export async function upsertInvestorProfile(input: Omit<InvestorProfile, "user_i
     if (!input.agreed_to_terms) return { ok: false, error: "You must agree to the terms" };
 
     const sb = supabaseAdmin();
-    await sb.from("investor_profiles").upsert({
+    // CAPTURE the upsert error — silently failing here was the cause of the
+    // onboarding loop (form claimed success, layout saw no row, bounced back).
+    const { error: upsertError } = await sb.from("investor_profiles").upsert({
       user_id: me.id,
       full_name: input.full_name.trim(),
       headline: input.headline || null,
@@ -100,12 +107,24 @@ export async function upsertInvestorProfile(input: Omit<InvestorProfile, "user_i
       updated_at: new Date().toISOString(),
     }, { onConflict: "user_id" });
 
-    // Promote the user to investor role on Clerk metadata mirror — server
-    // role checks elsewhere read from Supabase, so the DB write is enough
-    // for routing. Clerk role sync runs on next /post-auth.
+    if (upsertError) {
+      const msg = upsertError.message || String(upsertError);
+      // Most common cause in dev: the p385 migration hasn't been run yet, so
+      // investor_profiles doesn't exist. Surface a clear, actionable error.
+      if (msg.toLowerCase().includes("does not exist") || msg.toLowerCase().includes("relation")) {
+        return { ok: false, error: "Database not ready: please run migration p385_investors_v2.sql on Supabase, then try again." };
+      }
+      return { ok: false, error: msg };
+    }
+
+    // Promote the user to investor role. Best-effort — never blocks success.
     try {
-      await sb.from("users").update({ role: "investor" }).eq("id", me.id).neq("role", "admin").neq("role", "super_admin");
-    } catch { /* don't fail the onboarding if the role bump fails */ }
+      const { data: row } = await sb.from("users").select("role").eq("id", me.id).maybeSingle();
+      const currentRole = (row as { role?: string } | null)?.role;
+      if (currentRole && currentRole !== "admin" && currentRole !== "super_admin" && currentRole !== "investor") {
+        await sb.from("users").update({ role: "investor" }).eq("id", me.id);
+      }
+    } catch { /* keep onboarding successful even if the role bump fails */ }
 
     revalidatePath("/investor");
     revalidatePath("/investor/dashboard");

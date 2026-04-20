@@ -35,7 +35,7 @@ export default async function InvestorSettingsPage() {
 
       <div style={{ display: "flex", gap: 8 }}>
         <Link
-          href="/investor/onboarding"
+          href="/investor/onboarding?edit=1"
           style={{
             padding: "11px 22px",
             borderRadius: 12,
@@ -47,7 +47,7 @@ export default async function InvestorSettingsPage() {
             boxShadow: "0 12px 26px -10px rgba(16,185,129,0.6)",
           }}
         >
-          Re-run onboarding to edit
+          Edit my profile
         </Link>
       </div>
     </div>

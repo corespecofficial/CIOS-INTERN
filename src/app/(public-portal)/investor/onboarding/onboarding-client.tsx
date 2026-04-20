@@ -35,7 +35,7 @@ const GEO_OPTIONS = ["Nigeria", "Ghana", "Kenya", "South Africa", "Egypt", "Came
 
 const ACCENT = "#10B981";
 
-export function InvestorOnboardingClient({ existing, userName }: { existing: InvestorProfile | null; userName: string }) {
+export function InvestorOnboardingClient({ existing, userName, isEditing }: { existing: InvestorProfile | null; userName: string; isEditing?: boolean }) {
   const router = useRouter();
 
   const initial: State = {
@@ -217,11 +217,11 @@ export function InvestorOnboardingClient({ existing, userName }: { existing: Inv
 
   return (
     <PortalOnboarding<State>
-      title="Become a CIOS investor"
-      subtitle="Six steps. Takes about 3 minutes. You can edit any of this later from your investor settings."
+      title={isEditing ? "Update your investor profile" : "Become a CIOS investor"}
+      subtitle={isEditing ? "Edit anything below. Your changes save when you submit the last step." : "Six steps. Takes about 3 minutes. You can edit any of this later from your investor settings."}
       initialState={initial}
       steps={steps}
-      submitLabel="Open my investor portal →"
+      submitLabel={isEditing ? "Save changes →" : "Open my investor portal →"}
       onSubmit={async (s) => {
         const r = await upsertInvestorProfile({
           full_name: s.full_name,
