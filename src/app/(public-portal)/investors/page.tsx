@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { listPublicPitches, getPlatformStats } from "@/app/actions/startup";
+import { listPublicPitches } from "@/app/actions/startup";
 import { InvestorsLandingClient } from "./investors-client";
 
 export const dynamic = "force-dynamic";
@@ -17,14 +17,9 @@ export const metadata: Metadata = {
 };
 
 export default async function InvestorsPage() {
-  const [pitchesRes, statsRes] = await Promise.all([
-    listPublicPitches({ limit: 30 }),
-    getPlatformStats(),
-  ]);
-  return (
-    <InvestorsLandingClient
-      pitches={pitchesRes.ok ? pitchesRes.data! : []}
-      stats={statsRes.ok ? statsRes.data! : { interns: 0, alumni: 0, placements: 0, countries: 5, hackathons: 0 }}
-    />
-  );
+  // Public pitch list only — platform stats (intern/alumni/placement counts)
+  // are intentionally NOT shown to investors. Those are admin-internal numbers
+  // that distract from the value prop (find founders, not read HR metrics).
+  const pitchesRes = await listPublicPitches({ limit: 30 });
+  return <InvestorsLandingClient pitches={pitchesRes.ok ? pitchesRes.data! : []} />;
 }

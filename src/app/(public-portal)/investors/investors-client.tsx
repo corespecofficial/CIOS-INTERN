@@ -13,9 +13,7 @@ const INK = "#F8FAFC";
 const DIM = "#94A3B8";
 const MUTED = "#64748B";
 
-interface Stats { interns: number; alumni: number; placements: number; countries: number; hackathons: number }
-
-export function InvestorsLandingClient({ pitches, stats }: { pitches: StartupPitch[]; stats: Stats }) {
+export function InvestorsLandingClient({ pitches }: { pitches: StartupPitch[] }) {
   const [category, setCategory] = useState<string>("All");
   const [stage, setStage] = useState<string>("All");
   const [search, setSearch] = useState("");
@@ -110,14 +108,6 @@ export function InvestorsLandingClient({ pitches, stats }: { pitches: StartupPit
             >
               Browse {pitches.length} pitch{pitches.length === 1 ? "" : "es"}
             </a>
-          </div>
-
-          <div className="inv-stats" style={{ marginTop: 36, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, maxWidth: 720, marginLeft: "auto", marginRight: "auto" }}>
-            <Stat label="Active interns" value={stats.interns.toLocaleString()} />
-            <Stat label="Alumni" value={stats.alumni.toLocaleString()} />
-            <Stat label="Placements" value={stats.placements.toLocaleString()} />
-            <Stat label="Countries" value={stats.countries.toString()} />
-            <Stat label="Hackathons" value={stats.hackathons.toString()} />
           </div>
         </div>
       </div>
@@ -249,15 +239,6 @@ function PitchCard({ p }: { p: StartupPitch }) {
         .inv-card:hover { transform: translateY(-2px); border-color: rgba(16,185,129,0.35); background: rgba(255,255,255,0.04); }
       `}</style>
     </Link>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ padding: "12px 14px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12 }}>
-      <div style={{ fontSize: 9, letterSpacing: 1.2, color: MUTED, fontWeight: 800, textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 900, color: ACCENT, marginTop: 2, fontFamily: "'Space Grotesk', sans-serif" }}>{value}</div>
-    </div>
   );
 }
 
