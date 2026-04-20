@@ -34,7 +34,8 @@ const STATUS_COLOR: Record<string, string> = {
   accepted: "#66BB6A", rejected: "#EF5350", hired: "#66BB6A",
 };
 
-export function OpportunitiesClient({ opps, applications, savedIds, userRole }: { opps: Opp[]; applications: App[]; savedIds: string[]; userRole: string }) {
+export function OpportunitiesClient({ opps, applications, savedIds, userRole }: { opps: Opp[]; applications: App[]; savedIds: string[]; userRole: string | null }) {
+  const isAnon = userRole === null;
   const [tab, setTab] = useState<"browse" | "gigs" | "applications" | "saved">("browse");
   const [kind, setKind] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -86,14 +87,17 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
         {canPost && <Link href="/recruiter" style={btnPrimary}>📣 Recruiter portal</Link>}
       </div>
 
-      {/* Tabs */}
+      {/* Tabs — anonymous visitors only see Browse + Gigs; Applications + Saved unlock after sign-up. */}
       <div style={{ display: "flex", gap: 4, background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: 4, marginBottom: 14, flexWrap: "wrap" }}>
-        {[
+        {(isAnon ? [
+          { k: "browse", label: `🔍 Browse (${filtered.length})` },
+          { k: "gigs", label: `⚡ Gig Board (${gigs.length})` },
+        ] : [
           { k: "browse", label: `🔍 Browse (${filtered.length})` },
           { k: "gigs", label: `⚡ Gig Board (${gigs.length})` },
           { k: "applications", label: `📨 Applications (${applications.length})` },
           { k: "saved", label: `🔖 Saved (${saved.size})` },
-        ].map((t) => (
+        ]).map((t) => (
           <button key={t.k} onClick={() => setTab(t.k as "browse" | "gigs" | "applications" | "saved")} style={{
             flex: 1, padding: "9px 12px", borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: "pointer",
             background: tab === t.k ? (t.k === "gigs" ? "rgba(38,198,218,0.15)" : "rgba(255,112,67,0.15)") : "transparent",
@@ -205,10 +209,14 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
               <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end" }}>
                 {isApplied
                   ? <span style={{ ...btnSmall, background: "rgba(102,187,106,0.15)", color: "#66BB6A", borderColor: "rgba(102,187,106,0.3)", cursor: "default", whiteSpace: "nowrap" }}>✓ Applied</span>
-                  : <button onClick={() => setApplying(o)} style={{ ...btnSmallPrimary, background: "#26C6DA", borderColor: "transparent", whiteSpace: "nowrap" }}>⚡ Apply</button>}
-                <button onClick={() => onToggleSave(o.id)} style={{ ...btnSmall, background: isSaved ? "rgba(255,193,7,0.15)" : "transparent", color: isSaved ? "#FFC107" : "#8892A4", borderColor: isSaved ? "rgba(255,193,7,0.3)" : "rgba(255,255,255,0.1)" }}>
-                  {isSaved ? "★" : "☆"}
-                </button>
+                  : isAnon
+                    ? <Link href={`/opportunities/${o.id}`} style={{ ...btnSmallPrimary, background: "#26C6DA", borderColor: "transparent", whiteSpace: "nowrap", textDecoration: "none" }}>Sign up to apply</Link>
+                    : <button onClick={() => setApplying(o)} style={{ ...btnSmallPrimary, background: "#26C6DA", borderColor: "transparent", whiteSpace: "nowrap" }}>⚡ Apply</button>}
+                {!isAnon && (
+                  <button onClick={() => onToggleSave(o.id)} style={{ ...btnSmall, background: isSaved ? "rgba(255,193,7,0.15)" : "transparent", color: isSaved ? "#FFC107" : "#8892A4", borderColor: isSaved ? "rgba(255,193,7,0.3)" : "rgba(255,255,255,0.1)" }}>
+                    {isSaved ? "★" : "☆"}
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -261,12 +269,17 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
                   </div>
                 )}
                 <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <Link href={`/opportunities/${o.id}`} style={{ ...btnSmall, textDecoration: "none", color: "#E8EDF5" }}>Details →</Link>
                   {isApplied
                     ? <span style={{ ...btnSmall, background: "rgba(102,187,106,0.15)", color: "#66BB6A", borderColor: "rgba(102,187,106,0.3)", cursor: "default" }}>✓ Applied</span>
-                    : <button onClick={() => setApplying(o)} style={btnSmallPrimary}>Apply</button>}
-                  <button onClick={() => onToggleSave(o.id)} style={{ ...btnSmall, background: isSaved ? "rgba(255,193,7,0.15)" : "transparent", color: isSaved ? "#FFC107" : "#8892A4", borderColor: isSaved ? "rgba(255,193,7,0.3)" : "rgba(255,255,255,0.1)" }}>
-                    {isSaved ? "★ Saved" : "☆ Save"}
-                  </button>
+                    : isAnon
+                      ? <Link href={`/opportunities/${o.id}`} style={{ ...btnSmallPrimary, textDecoration: "none" }}>Sign up to apply</Link>
+                      : <button onClick={() => setApplying(o)} style={btnSmallPrimary}>Apply</button>}
+                  {!isAnon && (
+                    <button onClick={() => onToggleSave(o.id)} style={{ ...btnSmall, background: isSaved ? "rgba(255,193,7,0.15)" : "transparent", color: isSaved ? "#FFC107" : "#8892A4", borderColor: isSaved ? "rgba(255,193,7,0.3)" : "rgba(255,255,255,0.1)" }}>
+                      {isSaved ? "★ Saved" : "☆ Save"}
+                    </button>
+                  )}
                   <span style={{ fontSize: 11, color: "#5A6478", marginLeft: "auto" }}>{o.applications_count} applied · {o.views} views</span>
                 </div>
               </div>

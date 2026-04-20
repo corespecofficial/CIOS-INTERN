@@ -12,6 +12,7 @@ const NAV = [
   { href: "/recruiter/messages",      label: "Messages",      emoji: "💬" },
   { href: "/recruiter/notifications", label: "Notifications", emoji: "🔔" },
   { href: "/recruiter/reports",       label: "Reports",       emoji: "📈" },
+  { href: "/recruiter/billing",       label: "Billing",       emoji: "💳" },
   { href: "/recruiter/profile",       label: "Profile",       emoji: "🏢" },
   { href: "/recruiter/settings",      label: "Settings",      emoji: "⚙️" },
 ];

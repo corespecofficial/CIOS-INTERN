@@ -24,6 +24,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: "/marketplace", priority: 0.95, changeFrequency: "daily" },
     // Public Creative Spaces (Phase 2)
     { path: "/creative-space", priority: 0.95, changeFrequency: "daily" },
+    // Public Opportunities (Phase 3)
+    { path: "/opportunities", priority: 0.95, changeFrequency: "daily" },
   ];
 
   const base = staticRoutes.map((r) => ({
@@ -77,7 +79,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     }));
 
-    return [...base, ...productEntries, ...creatorEntries, ...spaceEntries, ...instructorEntries];
+    // Opportunities — detail + public recruiter profiles.
+    const [oppRes, recRes] = await Promise.all([
+      sb.from("opportunities").select("id, updated_at").eq("status", "open").limit(2000),
+      sb.from("opportunities").select("recruiter_id").eq("status", "open"),
+    ]);
+    const opps = (oppRes.data || []) as Array<{ id: string; updated_at: string }>;
+    const recIds = Array.from(new Set(((recRes.data || []) as Array<{ recruiter_id: string }>).map((r) => r.recruiter_id)));
+    const oppEntries = opps.map((o) => ({
+      url: `${SITE}/opportunities/${o.id}`,
+      lastModified: new Date(o.updated_at),
+      changeFrequency: "daily" as const,
+      priority: 0.75,
+    }));
+    const recruiterEntries = recIds.map((id) => ({
+      url: `${SITE}/opportunities/recruiter/${id}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.6,
+    }));
+
+    return [...base, ...productEntries, ...creatorEntries, ...spaceEntries, ...instructorEntries, ...oppEntries, ...recruiterEntries];
   } catch {
     return base;
   }

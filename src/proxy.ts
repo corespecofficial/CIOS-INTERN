@@ -88,7 +88,9 @@ const isProtectedRoute = createRouteMatcher([
   '/team-lead(.*)', '/instructor(.*)', '/moderator(.*)', '/finance(.*)', '/support(.*)',
   '/analytics(.*)', '/documents(.*)', '/ai-hub(.*)', '/recruitment(.*)', '/status(.*)',
   '/onboarding(.*)', '/productivity(.*)', '/certificates(.*)', '/my-analytics(.*)',
-  '/recruiter', '/recruiter/(.*)', '/opportunities', '/opportunities/(.*)', '/talent', '/talent/(.*)',
+  '/recruiter', '/recruiter/(.*)', '/talent', '/talent/(.*)',
+  // Opportunities: browse + detail + public recruiter profile are public (Phase 3).
+  // Apply/saved/applications still require auth — handled in the server actions.
   '/announcements', '/announcements/(.*)',
   // Marketplace: public-first (Phase 1). Browse + detail + creator profile are
   // anonymous; /marketplace/sell still requires auth.

@@ -90,7 +90,7 @@ export async function getPublicPortalsOverview(): Promise<R<PublicPortalsOvervie
       notes: "LIVE",
     },
     await buildCreativeSpacesTile(sb, monthStart, weekAgo),
-    { id: "opportunities", label: "Opportunities", href: "/opportunities", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 3" },
+    await buildOpportunitiesTile(sb, monthStart, weekAgo),
     { id: "hackathons", label: "Hackathons", href: "/hackathons", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 4" },
     { id: "investors", label: "Investors + Startups", href: "/investors", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 5" },
     { id: "study-buddy", label: "Study Buddy", href: "/study-buddy", publicUsers: null, signedUpThisWeek: null, activeThisWeek: null, revenueThisMonth: null, notes: "Phase 6" },
@@ -142,6 +142,37 @@ async function buildCreativeSpacesTile(
     activeThisWeek: enrolsWeek.count ?? 0,
     revenueThisMonth: Math.round(revenue),
     metricLabels: { primary: "Spaces", active: "Enrols/wk", signup: "—", revenue: "Rev /mo \u20a6" },
+    notes: "LIVE",
+  };
+}
+
+// ── Opportunities + Recruiter tile (Phase 3) ─────────────────────────────
+// Listings + paid-recruiter count + applications this week + placement fee
+// revenue this month (5% of hires' monthly salaries).
+
+async function buildOpportunitiesTile(
+  sb: Sb,
+  monthStart: string,
+  weekAgo: string
+): Promise<PortalTileMetric> {
+  const [openCount, paidRecruiters, appsWeek, placementsMonth] = await Promise.all([
+    sb.from("opportunities").select("id", { count: "exact", head: true }).eq("status", "open"),
+    sb.from("recruiter_profiles").select("user_id", { count: "exact", head: true }).in("plan_tier", ["growth", "pro", "enterprise"]),
+    sb.from("opportunity_applications").select("id", { count: "exact", head: true }).gt("created_at", weekAgo),
+    sb.from("placements").select("placement_fee").gt("hire_confirmed_at", monthStart),
+  ]);
+  const revenue = ((placementsMonth.data || []) as Array<{ placement_fee: number }>)
+    .reduce((a, r) => a + Number(r.placement_fee || 0), 0);
+
+  return {
+    id: "opportunities",
+    label: "Opportunities + Recruiters",
+    href: "/opportunities",
+    publicUsers: openCount.count ?? 0,
+    signedUpThisWeek: paidRecruiters.count ?? 0,
+    activeThisWeek: appsWeek.count ?? 0,
+    revenueThisMonth: Math.round(revenue),
+    metricLabels: { primary: "Open roles", signup: "Paid recruiters", active: "Applications/wk", revenue: "Placement fees /mo \u20a6" },
     notes: "LIVE",
   };
 }

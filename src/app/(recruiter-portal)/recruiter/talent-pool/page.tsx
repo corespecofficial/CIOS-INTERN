@@ -1,5 +1,5 @@
 import { listTalent } from "@/app/actions/talent";
-import { TalentClient } from "@/app/(app)/talent/talent-client";
+import { TalentClient } from "@/app/(recruiter-portal)/talent/talent-client";
 import { TalentAlertsPanel } from "@/components/recruiter/talent-alerts-panel";
 
 export const dynamic = "force-dynamic";

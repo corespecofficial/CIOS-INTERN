@@ -19,6 +19,16 @@ async function requireRecruiter() {
   return me;
 }
 
+// ── Plan-tier quotas (Phase 3 paywall) ────────────────────────────────────
+// Free = 1 active listing, Growth = 5, Pro = unlimited, Enterprise = unlimited.
+// Admin / super_admin bypass for internal use.
+const PLAN_LIMITS: Record<string, number | null> = {
+  free: 1,
+  growth: 5,
+  pro: null,        // unlimited
+  enterprise: null, // unlimited
+};
+
 /* ─── LISTINGS ─── */
 
 export interface OpportunityInput {
@@ -26,14 +36,24 @@ export interface OpportunityInput {
   skills?: string[]; salaryMin?: number; salaryMax?: number; salaryCurrency?: string; salaryPeriod?: string;
   location?: string; remote?: boolean; requirements?: string; applyUrl?: string;
   tags?: string[]; deadline?: string; featured?: boolean;
+  coverImageUrl?: string;
 }
+
+const SELECT_LIST =
+  "*, recruiter:recruiter_id(name, avatar_url), recruiter_profile:recruiter_id(company_name, company_logo_url, verified, plan_tier, hires_count, rating)";
+
+const SELECT_DETAIL =
+  "*, recruiter:recruiter_id(id, name, avatar_url, xp, level, role), recruiter_profile:recruiter_id(company_name, company_logo_url, company_website, verified, about, plan_tier, hires_count, rating)";
 
 export async function listOpportunities(filter?: { q?: string; kind?: string; remote?: boolean }): Promise<R<Array<Record<string, unknown>>>> {
   try {
-    await requireMe();
+    // Public read — no auth required (Phase 3 public portal).
     let q = supabaseAdmin().from("opportunities")
-      .select("*, recruiter:recruiter_id(name, avatar_url), recruiter_profile:recruiter_id(company_name, company_logo_url, verified)")
-      .eq("status", "open").order("featured", { ascending: false }).order("created_at", { ascending: false });
+      .select(SELECT_LIST)
+      .eq("status", "open")
+      .order("is_promoted", { ascending: false })
+      .order("featured", { ascending: false })
+      .order("created_at", { ascending: false });
     if (filter?.kind) q = q.eq("kind", filter.kind);
     if (filter?.remote !== undefined) q = q.eq("remote", filter.remote);
     if (filter?.q) q = q.ilike("title", `%${filter.q}%`);
@@ -42,11 +62,45 @@ export async function listOpportunities(filter?: { q?: string; kind?: string; re
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 
+export async function listOpportunitiesByRecruiter(recruiterId: string): Promise<R<Array<Record<string, unknown>>>> {
+  try {
+    const { data } = await supabaseAdmin().from("opportunities")
+      .select(SELECT_LIST)
+      .eq("recruiter_id", recruiterId)
+      .eq("status", "open")
+      .order("is_promoted", { ascending: false })
+      .order("created_at", { ascending: false });
+    return { ok: true, data: data || [] };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
 export async function createOpportunity(input: OpportunityInput): Promise<R<{ id: string }>> {
   try {
     const me = await requireRecruiter();
     if (!input.title.trim()) return { ok: false, error: "Title required" };
-    const { data, error } = await supabaseAdmin().from("opportunities").insert({
+
+    const sb = supabaseAdmin();
+
+    // Plan-tier quota check. Admin / super_admin bypass.
+    if (me.role === "recruiter") {
+      const { data: profile } = await sb
+        .from("recruiter_profiles")
+        .select("plan_tier, active_listing_count")
+        .eq("user_id", me.id)
+        .maybeSingle();
+      const tier = ((profile as { plan_tier?: string } | null)?.plan_tier) || "free";
+      const active = Number((profile as { active_listing_count?: number } | null)?.active_listing_count ?? 0);
+      const limit = PLAN_LIMITS[tier];
+      if (limit != null && active >= limit) {
+        return {
+          ok: false,
+          error: `Your ${tier} plan allows ${limit} active listing${limit === 1 ? "" : "s"}. Upgrade to post more.`,
+        };
+      }
+    }
+
+    const slug = slugify(input.title);
+    const { data, error } = await sb.from("opportunities").insert({
       recruiter_id: me.id,
       title: input.title.trim(), description: input.description || "", kind: input.kind || "job",
       category: input.category || null, skills: input.skills || [],
@@ -55,9 +109,19 @@ export async function createOpportunity(input: OpportunityInput): Promise<R<{ id
       location: input.location || null, remote: input.remote || false,
       requirements: input.requirements || null, apply_url: input.applyUrl || null,
       tags: input.tags || [], deadline: input.deadline || null, featured: input.featured || false,
+      cover_image_url: input.coverImageUrl || null,
+      slug,
       status: "open",
     }).select("id").single();
     if (error) return { ok: false, error: error.message };
+
+    // Increment active listing counter for the recruiter. Cheap SELECT-then-
+    // UPDATE — not atomic, but acceptable at listing-create cadence. A proper
+    // SQL RPC can replace this later if concurrent recruiter posts become a thing.
+    if (me.role === "recruiter") {
+      await bumpActive(me.id, +1);
+    }
+
     await logAudit({
       actionCode: "admin.announcement_broadcast", category: "admin",
       summary: `New opportunity posted: ${input.title}`,
@@ -77,7 +141,18 @@ export async function updateOpportunity(id: string, patch: Partial<OpportunityIn
       const snake = k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
       row[snake] = v;
     }
-    const { error } = await supabaseAdmin().from("opportunities").update(row).eq("id", id).eq("recruiter_id", me.id);
+    const sb = supabaseAdmin();
+    // If status transitions open↔closed, adjust active_listing_count.
+    if (patch.status) {
+      const { data: existing } = await sb.from("opportunities").select("status, recruiter_id").eq("id", id).maybeSingle();
+      if (existing && (existing as { recruiter_id: string }).recruiter_id === me.id) {
+        const prev = String((existing as { status: string }).status);
+        const next = String(patch.status);
+        if (prev === "open" && next !== "open") await bumpActive(me.id, -1);
+        else if (prev !== "open" && next === "open") await bumpActive(me.id, +1);
+      }
+    }
+    const { error } = await sb.from("opportunities").update(row).eq("id", id).eq("recruiter_id", me.id);
     if (error) return { ok: false, error: error.message };
     revalidatePath("/opportunities"); revalidatePath("/recruiter");
     return { ok: true };
@@ -87,20 +162,33 @@ export async function updateOpportunity(id: string, patch: Partial<OpportunityIn
 export async function deleteOpportunity(id: string): Promise<R> {
   try {
     const me = await requireRecruiter();
-    await supabaseAdmin().from("opportunities").delete().eq("id", id).eq("recruiter_id", me.id);
+    const sb = supabaseAdmin();
+    const { data: existing } = await sb.from("opportunities").select("status").eq("id", id).eq("recruiter_id", me.id).maybeSingle();
+    await sb.from("opportunities").delete().eq("id", id).eq("recruiter_id", me.id);
+    if (existing && (existing as { status: string }).status === "open") await bumpActive(me.id, -1);
     revalidatePath("/opportunities"); revalidatePath("/recruiter");
     return { ok: true };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 
+async function bumpActive(userId: string, delta: number): Promise<void> {
+  const sb = supabaseAdmin();
+  const { data: row } = await sb.from("recruiter_profiles").select("active_listing_count").eq("user_id", userId).maybeSingle();
+  const cur = Number((row as { active_listing_count?: number } | null)?.active_listing_count ?? 0);
+  const next = Math.max(0, cur + delta);
+  await sb.from("recruiter_profiles").update({ active_listing_count: next }).eq("user_id", userId);
+}
+
 export async function getOpportunity(id: string): Promise<R<Record<string, unknown>>> {
   try {
-    await requireMe();
-    const { data } = await supabaseAdmin().from("opportunities")
-      .select("*, recruiter:recruiter_id(id, name, avatar_url), recruiter_profile:recruiter_id(company_name, company_logo_url, verified, about)")
+    // Public read — used by anonymous SEO-indexable detail page.
+    const sb = supabaseAdmin();
+    const { data } = await sb.from("opportunities")
+      .select(SELECT_DETAIL)
       .eq("id", id).maybeSingle();
     if (!data) return { ok: false, error: "Not found" };
-    await supabaseAdmin().from("opportunities").update({ views: ((data.views as number) || 0) + 1 }).eq("id", id);
+    // Fire-and-forget view counter; never blocks the render.
+    sb.from("opportunities").update({ views: ((data.views as number) || 0) + 1 }).eq("id", id).then(() => {});
     return { ok: true, data };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
@@ -131,15 +219,15 @@ export async function applyToOpportunity(input: ApplyInput): Promise<R<{ id: str
       expected_salary: input.expectedSalary || null, status: "submitted", timeline,
     }).select("id").single();
     if (error) return { ok: false, error: error.message };
-    // Increment count + notify recruiter
     const { data: opp } = await sb.from("opportunities").select("recruiter_id, title, applications_count").eq("id", input.opportunityId).single();
     if (opp) {
       await sb.from("opportunities").update({ applications_count: ((opp.applications_count as number) || 0) + 1 }).eq("id", input.opportunityId);
       await pushNotification({
-        userId: opp.recruiter_id, kind: "system",
+        userId: opp.recruiter_id,
+        type: "info",
         title: "📨 New applicant",
-        body: `${me.name} applied to "${opp.title}"`,
-        url: `/recruiter/opportunities/${input.opportunityId}`,
+        message: `${me.name} applied to "${opp.title}"`,
+        actionUrl: `/recruiter/opportunities/${input.opportunityId}`,
       }).catch(() => {});
     }
     revalidatePath("/opportunities"); revalidatePath("/recruiter");
@@ -160,11 +248,14 @@ export async function listMyApplications(): Promise<R<Array<Record<string, unkno
 export async function listApplicationsForOpportunity(opportunityId: string): Promise<R<Array<Record<string, unknown>>>> {
   try {
     const me = await requireRecruiter();
-    // Verify ownership
-    const { data: opp } = await supabaseAdmin().from("opportunities").select("recruiter_id").eq("id", opportunityId).maybeSingle();
+    const sb = supabaseAdmin();
+    const { data: opp } = await sb.from("opportunities").select("recruiter_id").eq("id", opportunityId).maybeSingle();
     if (!opp || opp.recruiter_id !== me.id) return { ok: false, error: "Not your opportunity" };
-    const { data } = await supabaseAdmin().from("opportunity_applications")
-      .select("*, applicant:applicant_id(id, name, email, avatar_url, bio, headline, skills)")
+    // Pull credibility fields (xp/level/performance/reputation) alongside core
+    // applicant profile so the recruiter UI can render the "CIOS-verified" badge
+    // without a second round-trip.
+    const { data } = await sb.from("opportunity_applications")
+      .select("*, applicant:applicant_id(id, name, email, avatar_url, bio, headline, skills, xp, level, role, performance, reputation)")
       .eq("opportunity_id", opportunityId).order("created_at", { ascending: false });
     return { ok: true, data: data || [] };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
@@ -177,19 +268,20 @@ export async function updateApplicationStatus(applicationId: string, status: str
     const { data: app } = await sb.from("opportunity_applications")
       .select("id, opportunity_id, applicant_id, timeline, opportunity:opportunity_id(recruiter_id, title)").eq("id", applicationId).maybeSingle();
     if (!app) return { ok: false, error: "Not found" };
-    const opp = (app.opportunity as { recruiter_id: string; title: string } | null);
+    const oppRaw = app.opportunity;
+    const opp = (Array.isArray(oppRaw) ? oppRaw[0] : oppRaw) as { recruiter_id: string; title: string } | null;
     if (!opp || opp.recruiter_id !== me.id) return { ok: false, error: "Not your opportunity" };
     const timeline = Array.isArray(app.timeline) ? app.timeline : [];
     timeline.push({ status, at: new Date().toISOString(), by: me.id, note: note || undefined });
     await sb.from("opportunity_applications").update({
       status, recruiter_note: note || null, timeline, updated_at: new Date().toISOString(),
     }).eq("id", applicationId);
-    // Notify applicant
     await pushNotification({
-      userId: app.applicant_id as string, kind: "system",
+      userId: app.applicant_id as string,
+      type: "info",
       title: "📬 Application update",
-      body: `Your application for "${opp.title}" is now ${status}`,
-      url: `/opportunities/applications`,
+      message: `Your application for "${opp.title}" is now ${status}`,
+      actionUrl: `/opportunities/applications`,
     }).catch(() => {});
     revalidatePath("/recruiter"); revalidatePath("/opportunities");
     return { ok: true };
@@ -234,6 +326,18 @@ export async function upsertRecruiterProfile(input: { companyName: string; compa
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
 
+export async function getPublicRecruiterProfile(recruiterId: string): Promise<R<{ profile: Record<string, unknown>; listings: Array<Record<string, unknown>> }>> {
+  try {
+    const sb = supabaseAdmin();
+    const [pRes, lRes] = await Promise.all([
+      sb.from("recruiter_profiles").select("*, user:user_id(id, name, avatar_url, xp, level, role)").eq("user_id", recruiterId).maybeSingle(),
+      sb.from("opportunities").select(SELECT_LIST).eq("recruiter_id", recruiterId).eq("status", "open").order("is_promoted", { ascending: false }).order("created_at", { ascending: false }),
+    ]);
+    if (!pRes.data) return { ok: false, error: "Recruiter not found" };
+    return { ok: true, data: { profile: pRes.data as Record<string, unknown>, listings: (lRes.data || []) as Array<Record<string, unknown>> } };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
 export async function getRecruiterDashboard(): Promise<R<{ profile: Record<string, unknown> | null; listings: Array<Record<string, unknown>>; stats: { open: number; applications: number; shortlisted: number; hires: number } }>> {
   try {
     const me = await requireRecruiter();
@@ -261,4 +365,28 @@ export async function getRecruiterDashboard(): Promise<R<{ profile: Record<strin
       },
     };
   } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+/* ─── Billing / plan tier ─── */
+
+export async function updateMyPlan(tier: "free" | "growth" | "pro" | "enterprise"): Promise<R> {
+  try {
+    const me = await requireRecruiter();
+    // Phase 3 ships the UI + enforcement. Actual Paystack subscription wiring
+    // lands in a follow-up (for now admins can flip tiers; recruiters see the
+    // plan card + limits and Paystack integration is stubbed with a TODO).
+    if (me.role === "recruiter" && (tier === "pro" || tier === "enterprise" || tier === "growth")) {
+      // TODO: Paystack subscription; for now treat as "upgrade requested".
+      return { ok: false, error: "Paid plans — Paystack integration coming next. Contact support to upgrade for free during beta." };
+    }
+    await supabaseAdmin().from("recruiter_profiles").update({
+      plan_tier: tier, plan_started_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    }).eq("user_id", me.id);
+    revalidatePath("/recruiter");
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
+}
+
+function slugify(s: string): string {
+  return s.toLowerCase().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").slice(0, 60) + "-" + Math.random().toString(36).slice(2, 7);
 }

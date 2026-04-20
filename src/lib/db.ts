@@ -29,7 +29,10 @@ export function supabaseAdmin() {
 
 export type Role =
   | "intern" | "team_lead" | "admin" | "super_admin"
-  | "instructor" | "moderator" | "finance" | "support" | "premium";
+  | "instructor" | "moderator" | "finance" | "support"
+  | "recruiter" | "mentor" | "alumni" | "premium"
+  // Public-portal roles (Phase 0 masterplan §2.2)
+  | "public_user" | "investor" | "startup_founder" | "partner_org";
 
 export interface DbUser {
   id: string;
