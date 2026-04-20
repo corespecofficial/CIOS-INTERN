@@ -39,19 +39,27 @@ export function PublicPortalHeader() {
         borderBottom: "1px solid rgba(255,255,255,0.06)",
       }}
     >
+      {/*
+        Header layout uses a three-column grid so the nav is TRULY centred:
+          [logo (1fr)]   [centered nav (auto)]   [actions (1fr, end-aligned)]
+        Flex with `flex: 1` on the nav (old approach) left-aligned the nav
+        because the actions only took as much space as their content.
+      */}
       <div
+        className="cios-portal-header-row"
         style={{
           maxWidth: 1280,
           margin: "0 auto",
           padding: "12px 20px",
-          display: "flex",
+          display: "grid",
+          gridTemplateColumns: "1fr auto 1fr",
           alignItems: "center",
           gap: 20,
         }}
       >
         <Link
           href="/"
-          style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "#fff" }}
+          style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "#fff", justifySelf: "start" }}
           aria-label="CIOS home"
         >
           <img src={CIOS_LOGO_URL} alt="CIOS" width={32} height={32} style={{ display: "block" }} />
@@ -62,7 +70,14 @@ export function PublicPortalHeader() {
 
         <nav
           className="cios-portal-nav"
-          style={{ display: "flex", gap: 4, marginLeft: 12, overflowX: "auto", flex: 1, scrollbarWidth: "none" }}
+          style={{
+            display: "flex",
+            gap: 4,
+            overflowX: "auto",
+            scrollbarWidth: "none",
+            justifyContent: "center",
+            maxWidth: "100%",
+          }}
           aria-label="Public portals"
         >
           {PORTALS.map((p) => {
@@ -90,7 +105,7 @@ export function PublicPortalHeader() {
           })}
         </nav>
 
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", justifySelf: "end", flexShrink: 0 }}>
           {isLoaded && isSignedIn ? (
             <Link
               href="/post-auth"
@@ -144,9 +159,19 @@ export function PublicPortalHeader() {
       </div>
 
       <style>{`
-        @media (max-width: 720px) {
+        /* Mobile: drop the wordmark and the 3-col grid would let the nav
+           squeeze, so collapse to a stacked layout where the scrollable
+           nav lives on its own row under the logo/action strip. */
+        @media (max-width: 760px) {
           .cios-wordmark { display: none; }
-          .cios-portal-nav { margin-left: 6px; }
+          .cios-portal-header-row {
+            grid-template-columns: auto 1fr !important;
+            grid-template-areas: "logo actions" "nav nav" !important;
+            row-gap: 8px;
+          }
+          .cios-portal-header-row > a:first-child { grid-area: logo; }
+          .cios-portal-header-row > nav { grid-area: nav; justify-content: flex-start !important; }
+          .cios-portal-header-row > div:last-child { grid-area: actions; }
         }
         .cios-portal-nav::-webkit-scrollbar { display: none; }
       `}</style>

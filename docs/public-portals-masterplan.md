@@ -262,6 +262,47 @@ Standard portal structure:
 Public Browse → Conversion Gate → Onboarding → Portal Home → Core Tabs → Super-Admin Overview
 ```
 
+### 4.1 Shared UI patterns (MUST follow in every public-portal page)
+
+To keep the public-portal surface visually coherent, every browse page adopts
+the same hero pattern (established in Phase 1 Marketplace, Phase 2 Creative
+Spaces, aligned in Phase 3 Opportunities):
+
+- **Hero layout:** full-width `<div>` with a *radial-gradient* backdrop (two
+  gradients, 1000×400 at 20%/0% and 900×400 at 90%/10%, colour-tinted per
+  portal), centred content, `maxWidth: 1100` inner container, `textAlign: center`.
+- **Title:** 44px (32px mobile), `fontWeight: 900`, `letterSpacing: -1.4`,
+  `lineHeight: 1.05`, `fontFamily: 'Space Grotesk'`. One or two words
+  highlighted via gradient span (`WebkitBackgroundClip: text`).
+- **Subtitle:** `maxWidth: 620`, `fontSize: 16`, `color: #94A3B8`,
+  `lineHeight: 1.55`.
+- **CTAs:** exactly two, centred via `justifyContent: center`, with the
+  primary CTA on a portal-specific gradient and the secondary on a ghost
+  `rgba(255,255,255,0.04)` pill.
+- **Eyebrow badge:** short UPPERCASE label (e.g. "COHORT-BASED LEARNING"),
+  portal-tinted, above the H1.
+
+**Header centring:** the PublicPortalHeader uses CSS Grid
+`grid-template-columns: 1fr auto 1fr` so the nav sits dead-centre between
+logo (left) and actions (right). On narrow widths the grid collapses to
+`[logo actions] / [nav nav]` so the nav becomes a horizontally-scrollable
+row under the top strip.
+
+**Portal accent colours** (used for hero highlight gradient + CTA):
+| Portal | Primary | Secondary |
+|---|---|---|
+| Marketplace | `#A855F7` purple | `#7C3AED` |
+| Creative Spaces | `#26C6DA` teal | `#0EA5E9` |
+| Opportunities | `#FB923C` orange | `#F97316` |
+| Hackathons (Phase 4) | `#F59E0B` amber | `#D97706` (planned) |
+| Investors (Phase 5) | `#10B981` emerald | `#059669` (planned) |
+| Study Buddy (Phase 6) | `#60A5FA` blue | `#3B82F6` (planned) |
+| AI Hub (Phase 6) | `#8B5CF6` violet | `#7C3AED` (planned) |
+| Documents (Phase 6) | `#EC4899` pink | `#DB2777` (planned) |
+
+All future phases MUST adopt this hero pattern and the grid-centred nav,
+or provide a documented reason to deviate.
+
 ---
 
 ## 5. Phased Execution Plan

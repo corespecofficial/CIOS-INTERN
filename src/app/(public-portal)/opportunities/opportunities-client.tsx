@@ -76,16 +76,115 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
   };
 
   return (
-    <div style={{ maxWidth: 1100, margin: "0 auto", fontFamily: "'Nunito', sans-serif" }}>
-      {/* Hero */}
-      <div style={{ background: "linear-gradient(135deg, rgba(255,112,67,0.15), rgba(239,83,80,0.05))", border: "1px solid rgba(255,112,67,0.25)", borderRadius: 16, padding: 22, marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <span style={{ display: "inline-block", padding: "3px 10px", background: "rgba(255,112,67,0.15)", color: "#FF7043", fontSize: 11, fontWeight: 700, borderRadius: 20, letterSpacing: 0.5, marginBottom: 4 }}>OPPORTUNITIES</span>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#E8EDF5", margin: 0 }}>💼 Find your next move</h1>
-          <p style={{ fontSize: 13, color: "#8892A4", margin: "2px 0 0 0" }}>Jobs · gigs · internships · scholarships · collaborations</p>
+    <div style={{ width: "100%" }}>
+      {/* Hero matches Marketplace + Creative Spaces pattern. */}
+      <div style={heroOuter}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", textAlign: "center" }}>
+          <div
+            style={{
+              display: "inline-block",
+              padding: "5px 14px",
+              borderRadius: 999,
+              background: "rgba(251,146,60,0.14)",
+              border: "1px solid rgba(251,146,60,0.34)",
+              color: "#FB923C",
+              fontSize: 11,
+              letterSpacing: 2,
+              fontWeight: 800,
+              textTransform: "uppercase",
+              marginBottom: 18,
+            }}
+          >
+            Africa's talent marketplace
+          </div>
+          <h1
+            className="opps-hero-h1"
+            style={{
+              margin: 0,
+              fontSize: 44,
+              lineHeight: 1.05,
+              letterSpacing: -1.4,
+              fontWeight: 900,
+              color: "#F8FAFC",
+              fontFamily: "'Space Grotesk', 'Nunito', sans-serif",
+            }}
+          >
+            Find your next{" "}
+            <span
+              style={{
+                background: "linear-gradient(135deg, #FB923C, #EF4444)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              move
+            </span>
+            .
+          </h1>
+          <p style={{ margin: "14px auto 0", maxWidth: 620, fontSize: 16, color: "#94A3B8", lineHeight: 1.55 }}>
+            Jobs, gigs, internships, scholarships and collaborations from vetted recruiters —
+            every candidate here has a verified CIOS performance profile.
+          </p>
+          <div style={{ marginTop: 22, display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <a
+              href="#browse"
+              style={{
+                padding: "12px 22px",
+                borderRadius: 12,
+                background: "linear-gradient(135deg, #FB923C, #F97316)",
+                color: "#fff",
+                fontSize: 14,
+                fontWeight: 800,
+                textDecoration: "none",
+                boxShadow: "0 12px 28px -10px rgba(251,146,60,0.7)",
+              }}
+            >
+              Browse {filtered.length} role{filtered.length === 1 ? "" : "s"}
+            </a>
+            {canPost ? (
+              <Link
+                href="/recruiter"
+                style={{
+                  padding: "12px 22px",
+                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.04)",
+                  color: "#F8FAFC",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  textDecoration: "none",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                }}
+              >
+                Recruiter portal →
+              </Link>
+            ) : (
+              <Link
+                href={isAnon ? "/sign-up" : "/opportunities"}
+                style={{
+                  padding: "12px 22px",
+                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.04)",
+                  color: "#F8FAFC",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  textDecoration: "none",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                }}
+              >
+                {isAnon ? "Join free →" : "Post a role →"}
+              </Link>
+            )}
+          </div>
         </div>
-        {canPost && <Link href="/recruiter" style={btnPrimary}>📣 Recruiter portal</Link>}
       </div>
+
+      <style>{`
+        @media (max-width: 640px) {
+          .opps-hero-h1 { font-size: 32px !important; letter-spacing: -0.8px !important; }
+        }
+      `}</style>
+
+      <div id="browse" style={{ maxWidth: 1100, margin: "0 auto", padding: "28px 20px 0", fontFamily: "'Nunito', sans-serif" }}>
 
       {/* Tabs — anonymous visitors only see Browse + Gigs; Applications + Saved unlock after sign-up. */}
       <div style={{ display: "flex", gap: 4, background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: 4, marginBottom: 14, flexWrap: "wrap" }}>
@@ -161,6 +260,7 @@ export function OpportunitiesClient({ opps, applications, savedIds, userRole }: 
       {tab === "saved" && renderList(savedList)}
 
       {applying && <ApplyModal opp={applying} onClose={() => setApplying(null)} onApplied={(id) => { setAppliedIds((prev) => new Set(prev).add(id)); setApplying(null); }} />}
+      </div>
     </div>
   );
 
@@ -339,6 +439,12 @@ function Empty({ text }: { text: string }) {
   return <div style={{ padding: 40, textAlign: "center", color: "#8892A4", background: "#111827", border: "1px dashed rgba(255,255,255,0.1)", borderRadius: 14 }}>{text}</div>;
 }
 
+const heroOuter: React.CSSProperties = {
+  position: "relative",
+  padding: "56px 20px 48px",
+  background: "radial-gradient(1000px 400px at 20% 0%, rgba(251,146,60,0.22), transparent 60%), radial-gradient(900px 400px at 90% 10%, rgba(239,68,68,0.14), transparent 60%)",
+  borderBottom: "1px solid rgba(255,255,255,0.06)",
+};
 const input: React.CSSProperties = { padding: "8px 10px", background: "#0A0E1A", color: "#E8EDF5", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 };
 const lbl: React.CSSProperties = { fontSize: 10, color: "#8892A4", letterSpacing: 0.5, textTransform: "uppercase", display: "block", marginBottom: 4, marginTop: 6 };
 const btnPrimary: React.CSSProperties = { padding: "9px 18px", background: "linear-gradient(135deg, #FF7043, #EF5350)", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", textDecoration: "none", display: "inline-block" };
