@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const LOGO = "https://res.cloudinary.com/detsk6uql/image/upload/v1775646964/Adobe_Express_-_file_lydnbc.png";
 
@@ -40,11 +41,15 @@ const NAV: NavItem[] = [
   {
     label: "Portals",
     dropdown: [
-      { href: "/portals/creator-admin",    label: "Creator Admin",    icon: "👑", desc: "Super admin & owner dashboard" },
-      { href: "/portals/mentor-portal",    label: "Mentor Portal",    icon: "🎓", desc: "Mentor sessions & mentees" },
-      { href: "/portals/company-portal",   label: "Company Portal",   icon: "🏢", desc: "Post jobs, find talent" },
-      { href: "/portals/recruiter-portal", label: "Recruiter Portal", icon: "🔍", desc: "Search intern profiles" },
-      { href: "/portals/marketplace",      label: "Marketplace",      icon: "🛒", desc: "Buy & sell digital products" },
+      // Live public portals — what visitors actually use every day.
+      { href: "/marketplace",    label: "Marketplace",     icon: "🛍️", desc: "Digital products by vetted CIOS talent" },
+      { href: "/creative-space", label: "Creative Spaces", icon: "🎨", desc: "Cohorts taught by ranked instructors" },
+      { href: "/opportunities",  label: "Opportunities",   icon: "💼", desc: "Jobs, gigs, internships, scholarships" },
+      { href: "/hackathons",     label: "Hackathons",      icon: "⚡", desc: "Build, compete, win on CIOS" },
+      { href: "/investors",      label: "Startups",        icon: "🚀", desc: "Pitches from CIOS founders" },
+      { href: "/ai-hub",         label: "AI Hub",          icon: "✨", desc: "One workspace, every model" },
+      { href: "/study-buddy",    label: "Study Buddy",     icon: "🎓", desc: "Your AI study coach" },
+      { href: "/documents",      label: "Documents",       icon: "📄", desc: "CVs, decks and PDF tools" },
     ],
   },
 ];
@@ -153,10 +158,63 @@ export function MarketingHeader() {
   return (
     <>
       <style>{`
+        /* Header palette — dark defaults, flipped via [data-theme="light"]
+           at the bottom of this block so the theme resolves at the CSS-var
+           level and no specificity override is ever needed. */
+        :root {
+          --mkt-hdr-bg: rgba(10,14,26,0.96);
+          --mkt-hdr-border: rgba(255,255,255,0.07);
+          --mkt-text-idle: #8892A4;
+          --mkt-text-active: #E8EDF5;
+          --mkt-hover-bg: rgba(255,255,255,0.05);
+          --mkt-wordmark: linear-gradient(135deg, #fff 40%, #1E88E5);
+          --mkt-btn-in-color: #8892A4;
+          --mkt-btn-in-border: rgba(255,255,255,0.1);
+          --mkt-drop-bg: #0F1424;
+          --mkt-drop-border: rgba(255,255,255,0.1);
+          --mkt-drop-shadow: 0 20px 60px rgba(0,0,0,0.6);
+          --mkt-drop-row-color: #B0BEC5;
+          --mkt-drop-sub-color: #5A6478;
+          --mkt-drop-row-hover-bg: rgba(30,136,229,0.1);
+          --mkt-ham-bg: rgba(255,255,255,0.04);
+          --mkt-ham-border: rgba(255,255,255,0.08);
+          --mkt-drw-bg: #0A0E1A;
+          --mkt-drw-border: rgba(255,255,255,0.07);
+          --mkt-drw-sect-border: rgba(255,255,255,0.05);
+          --mkt-drw-hd-color: #E8EDF5;
+          --mkt-drw-sub-color: #8892A4;
+          --mkt-drw-in-color: #B0BEC5;
+          --mkt-drw-in-border: rgba(255,255,255,0.1);
+        }
+        html[data-theme="light"] {
+          --mkt-hdr-bg: rgba(255,255,255,0.92);
+          --mkt-hdr-border: rgba(15,23,42,0.08);
+          --mkt-text-idle: #475569;
+          --mkt-text-active: #0F172A;
+          --mkt-hover-bg: rgba(15,23,42,0.05);
+          --mkt-wordmark: linear-gradient(135deg, #0F172A 40%, #1E88E5);
+          --mkt-btn-in-color: #475569;
+          --mkt-btn-in-border: rgba(15,23,42,0.12);
+          --mkt-drop-bg: #FFFFFF;
+          --mkt-drop-border: rgba(15,23,42,0.08);
+          --mkt-drop-shadow: 0 20px 60px rgba(15,23,42,0.12);
+          --mkt-drop-row-color: #334155;
+          --mkt-drop-sub-color: #64748B;
+          --mkt-drop-row-hover-bg: rgba(30,136,229,0.08);
+          --mkt-ham-bg: rgba(15,23,42,0.04);
+          --mkt-ham-border: rgba(15,23,42,0.12);
+          --mkt-drw-bg: #FFFFFF;
+          --mkt-drw-border: rgba(15,23,42,0.08);
+          --mkt-drw-sect-border: rgba(15,23,42,0.06);
+          --mkt-drw-hd-color: #0F172A;
+          --mkt-drw-sub-color: #475569;
+          --mkt-drw-in-color: #475569;
+          --mkt-drw-in-border: rgba(15,23,42,0.12);
+        }
         .cios-hdr {
           position: sticky; top: 0; z-index: 60;
-          background: rgba(10,14,26,0.96);
-          border-bottom: 1px solid rgba(255,255,255,0.07);
+          background: var(--mkt-hdr-bg);
+          border-bottom: 1px solid var(--mkt-hdr-border);
           backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
         }
         .cios-hdr-row {
@@ -173,7 +231,7 @@ export function MarketingHeader() {
         .cios-brand img { border-radius: 9px; display: block; }
         .cios-brand-lbl {
           font-family: 'Space Grotesk', sans-serif; font-weight: 800; font-size: 16px;
-          background: linear-gradient(135deg, #fff 40%, #1E88E5);
+          background: var(--mkt-wordmark);
           -webkit-background-clip: text; -webkit-text-fill-color: transparent;
           background-clip: text; white-space: nowrap;
         }
@@ -188,13 +246,13 @@ export function MarketingHeader() {
         .cios-nl, .cios-nb {
           display: inline-flex; align-items: center; gap: 4px;
           padding: 7px 11px; border-radius: 8px;
-          font-size: 13px; font-weight: 600; color: #8892A4;
+          font-size: 13px; font-weight: 600; color: var(--mkt-text-idle);
           text-decoration: none; background: none; border: none;
           cursor: pointer; white-space: nowrap; font-family: inherit;
           transition: color .15s, background .15s;
         }
         .cios-nl:hover, .cios-nb:hover, .cios-nb.on {
-          color: #E8EDF5; background: rgba(255,255,255,0.05);
+          color: var(--mkt-text-active); background: var(--mkt-hover-bg);
         }
         .cios-nl[href="/demo"] {
           color: #FFC107; border: 1px solid rgba(255,193,7,0.3);
@@ -206,7 +264,7 @@ export function MarketingHeader() {
         }
         /* active page indicator */
         .cios-active {
-          color: #E8EDF5 !important;
+          color: var(--mkt-text-active) !important;
           position: relative;
         }
         .cios-active::after {
@@ -220,10 +278,10 @@ export function MarketingHeader() {
         .cios-drop {
           position: absolute; top: calc(100% + 8px); left: 50%;
           transform: translateX(-50%);
-          min-width: 240px; background: #0F1424;
-          border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+          min-width: 240px; background: var(--mkt-drop-bg);
+          border: 1px solid var(--mkt-drop-border); border-radius: 14px;
           padding: 8px; z-index: 300;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+          box-shadow: var(--mkt-drop-shadow);
           animation: dropIn .13s ease;
         }
         @keyframes dropIn {
@@ -233,23 +291,23 @@ export function MarketingHeader() {
         .cios-drop-row {
           display: flex; align-items: flex-start; gap: 10px;
           padding: 8px 10px; border-radius: 9px;
-          text-decoration: none; color: #B0BEC5;
+          text-decoration: none; color: var(--mkt-drop-row-color);
           transition: background .15s, color .15s;
         }
-        .cios-drop-row:hover { background: rgba(30,136,229,0.1); color: #E8EDF5; }
+        .cios-drop-row:hover { background: var(--mkt-drop-row-hover-bg); color: var(--mkt-text-active); }
         .cios-drop-ico  { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
         .cios-drop-lbl  { display: block; font-size: 13px; font-weight: 700; line-height: 1.3; }
-        .cios-drop-sub  { display: block; font-size: 11px; color: #5A6478; margin-top: 1px; }
-        .cios-drop-row:hover .cios-drop-sub { color: #8892A4; }
+        .cios-drop-sub  { display: block; font-size: 11px; color: var(--mkt-drop-sub-color); margin-top: 1px; }
+        .cios-drop-row:hover .cios-drop-sub { color: var(--mkt-text-idle); }
         /* cta */
         .cios-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
         .cios-btn-in {
           font-size: 13px; font-weight: 700; padding: 8px 16px; border-radius: 10px;
-          color: #8892A4; border: 1px solid rgba(255,255,255,0.1);
+          color: var(--mkt-btn-in-color); border: 1px solid var(--mkt-btn-in-border);
           text-decoration: none; background: none; white-space: nowrap;
           transition: background .15s, color .15s;
         }
-        .cios-btn-in:hover { background: rgba(255,255,255,0.05); color: #E8EDF5; }
+        .cios-btn-in:hover { background: var(--mkt-hover-bg); color: var(--mkt-text-active); }
         .cios-btn-join {
           font-size: 13px; font-weight: 700; padding: 8px 18px; border-radius: 10px;
           background: linear-gradient(135deg, #1E88E5, #1565C0); color: #fff;
@@ -262,8 +320,8 @@ export function MarketingHeader() {
         .cios-ham {
           display: none; align-items: center; justify-content: center;
           width: 40px; height: 40px; border-radius: 10px; margin-left: 8px;
-          background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-          color: #E8EDF5; cursor: pointer; padding: 0; flex-shrink: 0;
+          background: var(--mkt-ham-bg); border: 1px solid var(--mkt-ham-border);
+          color: var(--mkt-text-active); cursor: pointer; padding: 0; flex-shrink: 0;
         }
         .cios-ham:hover { background: rgba(30,136,229,0.12); }
         /* responsive */
@@ -278,33 +336,39 @@ export function MarketingHeader() {
           /* ensure absolute-positioned nav doesn't bleed through */
           .cios-hdr-row { overflow: visible; }
         }
-        @media (max-width: 440px) { .cios-actions { display: none !important; } .cios-ham { margin-left: auto !important; } }
+        /* On the smallest phones hide the CTAs but keep the theme toggle visible,
+           since it's tiny and useful for every page. */
+        @media (max-width: 440px) {
+          .cios-actions .cios-btn-in,
+          .cios-actions .cios-btn-join { display: none !important; }
+          .cios-ham { margin-left: 4px !important; }
+        }
         /* drawer */
         .cios-bkdp { position: fixed; inset: 62px 0 0 0; background: rgba(0,0,0,0.55); z-index: 55; }
         .cios-drw {
           position: fixed; top: 62px; right: 0; bottom: 0;
           width: min(340px, 88vw); z-index: 56;
-          background: #0A0E1A; border-left: 1px solid rgba(255,255,255,0.07);
+          background: var(--mkt-drw-bg); border-left: 1px solid var(--mkt-drw-border);
           overflow-y: auto; animation: slideIn .22s ease;
         }
         @keyframes slideIn { from { transform: translateX(100%) } to { transform: translateX(0) } }
-        .cios-drw-sect { border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .cios-drw-sect { border-bottom: 1px solid var(--mkt-drw-sect-border); }
         .cios-drw-hd {
           width: 100%; display: flex; align-items: center; justify-content: space-between;
           padding: 14px 20px; background: none; border: none; cursor: pointer;
-          font-size: 14px; font-weight: 700; color: #E8EDF5;
+          font-size: 14px; font-weight: 700; color: var(--mkt-drw-hd-color);
           text-align: left; font-family: inherit; text-decoration: none;
           transition: background .15s;
         }
-        .cios-drw-hd:hover { background: rgba(255,255,255,0.03); }
+        .cios-drw-hd:hover { background: var(--mkt-hover-bg); }
         .cios-drw-subs { padding: 0 12px 10px; }
         .cios-drw-sub {
           display: flex; align-items: center; gap: 10px;
           padding: 9px 12px; border-radius: 8px;
-          text-decoration: none; font-size: 13px; color: #8892A4;
+          text-decoration: none; font-size: 13px; color: var(--mkt-drw-sub-color);
           transition: background .15s, color .15s;
         }
-        .cios-drw-sub:hover { background: rgba(255,255,255,0.04); color: #E8EDF5; }
+        .cios-drw-sub:hover { background: var(--mkt-hover-bg); color: var(--mkt-text-active); }
         .cios-drw-cta {
           display: block; margin: 16px 20px; text-align: center;
           padding: 13px; border-radius: 12px;
@@ -314,8 +378,8 @@ export function MarketingHeader() {
         .cios-drw-in {
           display: block; margin: 0 20px 24px; text-align: center;
           padding: 11px; border-radius: 12px;
-          border: 1px solid rgba(255,255,255,0.1);
-          color: #B0BEC5; font-size: 14px; font-weight: 600; text-decoration: none;
+          border: 1px solid var(--mkt-drw-in-border);
+          color: var(--mkt-drw-in-color); font-size: 14px; font-weight: 600; text-decoration: none;
         }
       `}</style>
 
@@ -334,6 +398,7 @@ export function MarketingHeader() {
 
           {/* CTAs */}
           <div className="cios-actions">
+            <ThemeToggle compact />
             <Link href="/sign-in" className="cios-btn-in">Sign In</Link>
             <Link href="/sign-up" className="cios-btn-join">Join Free →</Link>
           </div>
@@ -384,6 +449,9 @@ export function MarketingHeader() {
             ))}
             <Link href="/sign-up" className="cios-drw-cta" onClick={close}>Join Free →</Link>
             <Link href="/sign-in" className="cios-drw-in"  onClick={close}>Sign In</Link>
+            <div style={{ display: "flex", justifyContent: "center", padding: "0 20px 20px" }}>
+              <ThemeToggle />
+            </div>
           </div>
         </>
       )}

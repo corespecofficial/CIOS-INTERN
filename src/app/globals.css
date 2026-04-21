@@ -1348,3 +1348,108 @@ html[data-theme="light"] [style*="border: 1px solid rgba(255,255,255,0.08)"] { b
   /* Ensure no horizontal scroll anywhere under the portal body */
   [data-portal="public"] { overflow-x: hidden; }
 }
+
+/* ============================================================
+   MARKETING pages — theme-aware light-mode overrides.
+   The marketing subtree defaults to hardcoded dark hex values inline (bg
+   #0A0E1A, text #E8EDF5, cards #111827, etc). The earlier generic flip
+   rules (lines ~500–870) already convert most of those substrings to
+   light values when [data-theme="light"] is set. These rules below handle
+   the patterns those generic selectors miss — inherited-color h1/h2/h3,
+   the sticky header blur, the starry-dot overlay, and gradient chrome.
+   ============================================================ */
+
+/* Inherited text on section headings — without these, h1/h2/h3 elements
+   that rely on parent-inherited color would paint at the flipped parent
+   color (#0F1524 in light) but that's fine on flipped light bg. Here we
+   just make it explicit so browsers don't surprise us. */
+html[data-theme="light"] [data-portal="marketing"] h1,
+html[data-theme="light"] [data-portal="marketing"] h2,
+html[data-theme="light"] [data-portal="marketing"] h3,
+html[data-theme="light"] [data-portal="marketing"] h4 {
+  color: #0F1524 !important;
+}
+
+/* Sticky header — translucent dark navy → translucent white */
+html[data-theme="light"] [data-portal="marketing"] .cios-hdr {
+  background: rgba(255,255,255,0.92) !important;
+  border-bottom-color: rgba(15,23,42,0.08) !important;
+}
+html[data-theme="light"] [data-portal="marketing"] .cios-nl,
+html[data-theme="light"] [data-portal="marketing"] .cios-nb {
+  color: #475569 !important;
+}
+html[data-theme="light"] [data-portal="marketing"] .cios-nl:hover,
+html[data-theme="light"] [data-portal="marketing"] .cios-nb:hover,
+html[data-theme="light"] [data-portal="marketing"] .cios-nb.on,
+html[data-theme="light"] [data-portal="marketing"] .cios-active {
+  color: #0F172A !important;
+  background: rgba(15,23,42,0.05) !important;
+}
+html[data-theme="light"] [data-portal="marketing"] .cios-drop {
+  background: #FFFFFF !important;
+  border-color: rgba(15,23,42,0.08) !important;
+  box-shadow: 0 20px 60px rgba(15,23,42,0.12) !important;
+}
+html[data-theme="light"] [data-portal="marketing"] .cios-drop-row {
+  color: #334155 !important;
+}
+html[data-theme="light"] [data-portal="marketing"] .cios-drop-row:hover {
+  background: rgba(30,136,229,0.08) !important;
+  color: #0F172A !important;
+}
+html[data-theme="light"] [data-portal="marketing"] .cios-drop-sub { color: #64748B !important; }
+html[data-theme="light"] [data-portal="marketing"] .cios-brand-lbl {
+  background: linear-gradient(135deg, #0F172A 40%, #1E88E5) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+html[data-theme="light"] [data-portal="marketing"] .cios-btn-in {
+  color: #475569 !important;
+  border-color: rgba(15,23,42,0.12) !important;
+}
+html[data-theme="light"] [data-portal="marketing"] .cios-btn-in:hover {
+  background: rgba(15,23,42,0.05) !important;
+  color: #0F172A !important;
+}
+html[data-theme="light"] [data-portal="marketing"] .cios-ham {
+  background: rgba(15,23,42,0.04) !important;
+  border-color: rgba(15,23,42,0.12) !important;
+  color: #0F172A !important;
+}
+
+/* Mobile drawer — flip dark panel to light */
+html[data-theme="light"] [data-portal="marketing"] .cios-drw {
+  background: #FFFFFF !important;
+  border-left-color: rgba(15,23,42,0.08) !important;
+}
+html[data-theme="light"] [data-portal="marketing"] .cios-drw-sect {
+  border-bottom-color: rgba(15,23,42,0.06) !important;
+}
+html[data-theme="light"] [data-portal="marketing"] .cios-drw-hd {
+  color: #0F172A !important;
+}
+html[data-theme="light"] [data-portal="marketing"] .cios-drw-hd:hover {
+  background: rgba(15,23,42,0.04) !important;
+}
+html[data-theme="light"] [data-portal="marketing"] .cios-drw-sub {
+  color: #475569 !important;
+}
+html[data-theme="light"] [data-portal="marketing"] .cios-drw-sub:hover {
+  background: rgba(15,23,42,0.04) !important;
+  color: #0F172A !important;
+}
+html[data-theme="light"] [data-portal="marketing"] .cios-drw-in {
+  color: #475569 !important;
+  border-color: rgba(15,23,42,0.12) !important;
+}
+
+/* Starry dots overlay — on light bg the white dots would blend in;
+   swap to dark slate dots so the atmosphere still reads. */
+html[data-theme="light"] [data-portal="marketing"] [style*="background: #fff"][style*="width: 2px"],
+html[data-theme="light"] [data-portal="marketing"] [style*="background:#fff"][style*="width:2px"],
+html[data-theme="light"] [data-portal="marketing"] [style*="background: \"#fff\""][style*="width: 2"] {
+  background: #334155 !important;
+  opacity: 0.12 !important;
+}

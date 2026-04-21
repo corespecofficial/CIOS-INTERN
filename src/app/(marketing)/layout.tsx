@@ -35,7 +35,18 @@ const jsonLd = {
 
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ minHeight: "100vh", background: "#0A0E1A", color: "#E8EDF5", fontFamily: "'Nunito', system-ui, sans-serif" }}>
+    <div
+      data-portal="marketing"
+      style={{
+        minHeight: "100vh",
+        // Theme tokens: dark defaults live under :root, flipped by
+        // html[data-theme="light"] in globals.css. This lets the ThemeToggle
+        // in the MarketingHeader actually flip the whole marketing surface.
+        background: "var(--mkt-body-bg, #0A0E1A)",
+        color: "var(--mkt-body-fg, #E8EDF5)",
+        fontFamily: "'Nunito', system-ui, sans-serif",
+      }}
+    >
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
         {Array.from({ length: 40 }).map((_, i) => (
