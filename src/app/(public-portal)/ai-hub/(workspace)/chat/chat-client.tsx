@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { sendChat, type ChatMessage } from "@/app/actions/ai-chat";
 import {
   ACCENT,
@@ -36,6 +37,15 @@ export function ChatClient({ firstName }: { firstName: string }) {
   const [chatTitle, setChatTitle] = useState("New chat");
   const [chatId, setChatId] = useState<string>(() => `c_${Date.now()}`);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [titleMenuOpen, setTitleMenuOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [titleMenuPos, setTitleMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const titleMenuRef = useRef<HTMLDivElement | null>(null);
+  const titleBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => { setMounted(true); }, []);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -54,6 +64,39 @@ export function ChatClient({ firstName }: { firstName: string }) {
         setMessages(r.messages as ChatMessage[]);
       }
     } catch { /* ignore */ }
+  }, []);
+
+  // Listen for sidebar commands — `New chat` and `Open recent` dispatch
+  // custom events from workspace-shell so this component (which stays mounted
+  // when the router pushes the same URL) can reset / swap state.
+  useEffect(() => {
+    const onNewChat = () => {
+      setMessages([]);
+      setInput("");
+      setChatTitle("New chat");
+      setChatId(`c_${Date.now()}`);
+      setCopiedIdx(null);
+      setSending(false);
+      setTimeout(() => inputRef.current?.focus(), 30);
+    };
+    const onLoadChat = (e: Event) => {
+      const id = (e as CustomEvent<{ id: string }>).detail?.id;
+      if (!id) return;
+      const r = readRecents().find((x) => x.id === id);
+      if (!r) return;
+      setChatId(r.id);
+      setChatTitle(r.title);
+      setMessages(r.messages as ChatMessage[]);
+      setInput("");
+      setCopiedIdx(null);
+      setSending(false);
+    };
+    window.addEventListener("cios-ai-hub-new-chat", onNewChat);
+    window.addEventListener("cios-ai-hub-load-chat", onLoadChat);
+    return () => {
+      window.removeEventListener("cios-ai-hub-new-chat", onNewChat);
+      window.removeEventListener("cios-ai-hub-load-chat", onLoadChat);
+    };
   }, []);
 
   useEffect(() => {
@@ -144,6 +187,52 @@ export function ChatClient({ firstName }: { firstName: string }) {
     } catch { /* ignore */ }
   };
 
+  // Title-menu outside click. Menu is portaled to body, so we also accept
+  // clicks inside the tagged `[data-title-menu]` container as "inside".
+  useEffect(() => {
+    if (!titleMenuOpen) return;
+    const onClick = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (titleMenuRef.current?.contains(t)) return;
+      if ((t as Element)?.closest?.("[data-title-menu]")) return;
+      setTitleMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [titleMenuOpen]);
+
+  // Recompute menu position whenever it opens so the portaled dropdown
+  // anchors directly below the title button regardless of scroll/layout.
+  useEffect(() => {
+    if (!titleMenuOpen || !titleBtnRef.current) return;
+    const rect = titleBtnRef.current.getBoundingClientRect();
+    setTitleMenuPos({ top: rect.bottom + 6, left: rect.left });
+  }, [titleMenuOpen]);
+
+  const beginRename = () => {
+    setTitleDraft(chatTitle);
+    setRenaming(true);
+    setTitleMenuOpen(false);
+  };
+  const commitRename = () => {
+    const next = titleDraft.trim() || chatTitle;
+    setChatTitle(next);
+    setRenaming(false);
+    if (messages.length > 0) persistRecent(messages, next);
+  };
+  const deleteChat = () => {
+    try {
+      const others = readRecents().filter((r) => r.id !== chatId);
+      writeRecents(others);
+    } catch { /* ignore */ }
+    // Reset to blank state
+    setMessages([]);
+    setInput("");
+    setChatTitle("New chat");
+    setChatId(`c_${Date.now()}`);
+    setTitleMenuOpen(false);
+  };
+
   return (
     <>
       {!isEmpty && (
@@ -153,24 +242,118 @@ export function ChatClient({ firstName }: { firstName: string }) {
             alignItems: "center",
             justifyContent: "space-between",
             padding: "12px 20px",
-            borderBottom: "1px solid #F0EDE5",
+            borderBottom: "1px solid var(--ws-border, #F0EDE5)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: 14, color: "#1F2430" }}>
-            <span style={{ maxWidth: 380, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {chatTitle}
-            </span>
-            <span style={{ color: "#9E9A8E", fontSize: 12 }}>▾</span>
+          <div ref={titleMenuRef} style={{ position: "relative" }}>
+            {renaming ? (
+              <input
+                autoFocus
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onBlur={commitRename}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); commitRename(); }
+                  if (e.key === "Escape") { setRenaming(false); setTitleDraft(""); }
+                }}
+                style={{
+                  maxWidth: 380,
+                  padding: "6px 10px",
+                  borderRadius: 8,
+                  border: "1px solid var(--ws-border, #EAE7DF)",
+                  background: "var(--ws-canvas, #fff)",
+                  color: "var(--ws-text, #1F2430)",
+                  fontFamily: "inherit",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  outline: "none",
+                }}
+              />
+            ) : (
+              <button
+                ref={titleBtnRef}
+                onClick={() => setTitleMenuOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={titleMenuOpen}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "6px 10px",
+                  borderRadius: 8,
+                  border: "1px solid transparent",
+                  background: titleMenuOpen ? "var(--ws-chip, #F2F1ED)" : "transparent",
+                  color: "var(--ws-text, #1F2430)",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  fontFamily: "inherit",
+                  cursor: "pointer",
+                  transition: "background 120ms ease",
+                }}
+                onMouseEnter={(e) => { if (!titleMenuOpen) e.currentTarget.style.background = "var(--ws-chip, #F2F1ED)"; }}
+                onMouseLeave={(e) => { if (!titleMenuOpen) e.currentTarget.style.background = "transparent"; }}
+              >
+                <span style={{ maxWidth: 380, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {chatTitle}
+                </span>
+                <span
+                  style={{
+                    color: "var(--ws-text-dim, #9E9A8E)",
+                    fontSize: 10,
+                    transform: titleMenuOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    transition: "transform 160ms ease",
+                    display: "inline-block",
+                  }}
+                >
+                  ▾
+                </span>
+              </button>
+            )}
+
+            {mounted && titleMenuOpen && titleMenuPos && createPortal(
+              <div
+                role="menu"
+                data-title-menu
+                style={{
+                  position: "fixed",
+                  top: titleMenuPos.top,
+                  left: titleMenuPos.left,
+                  minWidth: 220,
+                  padding: 6,
+                  borderRadius: 12,
+                  background: "var(--ws-canvas, #fff)",
+                  border: "1px solid var(--ws-border, #EAE7DF)",
+                  boxShadow: "0 20px 40px rgba(15,23,42,0.22)",
+                  zIndex: 10000,
+                  display: "grid",
+                  gap: 2,
+                  fontFamily: "inherit",
+                }}
+              >
+                <MenuItem icon="✏️" label="Rename chat"  onClick={beginRename} />
+                <MenuItem icon="＋" label="New chat"      onClick={() => {
+                  setTitleMenuOpen(false);
+                  setMessages([]);
+                  setInput("");
+                  setChatTitle("New chat");
+                  setChatId(`c_${Date.now()}`);
+                  setTimeout(() => inputRef.current?.focus(), 30);
+                }} />
+                <div style={{ height: 1, background: "var(--ws-border, #EAE7DF)", margin: "2px 4px" }} />
+                <MenuItem icon="🗑️" label="Delete chat"  onClick={deleteChat} danger />
+              </div>,
+              document.body,
+            )}
           </div>
           <div
             style={{
               padding: "6px 12px",
               borderRadius: 999,
-              background: "#F7F6F3",
+              background: "var(--ws-sidebar, #F7F6F3)",
               fontSize: 12,
               fontWeight: 700,
-              color: "#55524A",
-              border: "1px solid #EAE7DF",
+              color: "var(--ws-text-muted, #55524A)",
+              border: "1px solid var(--ws-border, #EAE7DF)",
             }}
           >
             CIOS Opus · Adaptive
@@ -202,7 +385,7 @@ export function ChatClient({ firstName }: { firstName: string }) {
                 boxShadow: sending ? `0 0 0 8px ${ACCENT}22` : "0 2px 8px rgba(0,0,0,0.05)",
               }}
             />
-            <h1 style={{ margin: 0, fontWeight: 800, fontSize: 30, color: "#1F2430", letterSpacing: -0.3, textAlign: "center" }}>
+            <h1 style={{ margin: 0, fontWeight: 800, fontSize: 30, color: "var(--ws-text, #1F2430)", letterSpacing: -0.3, textAlign: "center" }}>
               {greeting}, {firstName}
             </h1>
           </div>
@@ -231,9 +414,9 @@ export function ChatClient({ firstName }: { firstName: string }) {
                   gap: 6,
                   padding: "8px 14px",
                   borderRadius: 999,
-                  border: "1px solid #EAE7DF",
-                  background: "#fff",
-                  color: "#55524A",
+                  border: "1px solid var(--ws-border, #EAE7DF)",
+                  background: "var(--ws-canvas, #fff)",
+                  color: "var(--ws-text-muted, #55524A)",
                   fontSize: 13,
                   fontWeight: 700,
                   cursor: "pointer",
@@ -263,7 +446,7 @@ export function ChatClient({ firstName }: { firstName: string }) {
               <div ref={bottomRef} />
             </div>
           </div>
-          <div style={{ borderTop: "1px solid #F0EDE5", padding: "16px 20px 24px", background: "#fff" }}>
+          <div style={{ borderTop: "1px solid var(--ws-border, #F0EDE5)", padding: "16px 20px 24px", background: "var(--ws-canvas, #fff)" }}>
             <Composer
               value={input}
               onChange={setInput}
@@ -300,7 +483,7 @@ function Composer({
           gap: 10,
           padding: "10px 12px 10px 16px",
           borderRadius: 20,
-          background: "#fff",
+          background: "var(--ws-canvas, #fff)",
           border: "1px solid #E6E3DA",
           boxShadow: "0 6px 24px rgba(16,16,16,0.06)",
         }}
@@ -324,7 +507,7 @@ function Composer({
             resize: "none",
             fontFamily: "inherit",
             fontSize: 15,
-            color: "#1F2430",
+            color: "var(--ws-text, #1F2430)",
             background: "transparent",
             padding: "8px 0",
             lineHeight: 1.4,
@@ -357,7 +540,7 @@ function Composer({
           ↑
         </button>
       </div>
-      <div style={{ textAlign: "center", fontSize: 11, color: "#9E9A8E", marginTop: 8 }}>
+      <div style={{ textAlign: "center", fontSize: 11, color: "var(--ws-text-dim, #9E9A8E)", marginTop: 8 }}>
         CIOS can make mistakes. Verify important information.
       </div>
     </div>
@@ -380,8 +563,8 @@ function MessageBubble({
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <div
           style={{
-            background: "#F2F1ED",
-            color: "#1F2430",
+            background: "var(--ws-chip, #F2F1ED)",
+            color: "var(--ws-text, #1F2430)",
             padding: "12px 16px",
             borderRadius: 18,
             maxWidth: "78%",
@@ -402,7 +585,7 @@ function MessageBubble({
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
-            color: "#1F2430",
+            color: "var(--ws-text, #1F2430)",
             fontSize: 15,
             lineHeight: 1.65,
             whiteSpace: "pre-wrap",
@@ -422,6 +605,51 @@ function MessageBubble({
   );
 }
 
+function MenuItem({
+  icon,
+  label,
+  onClick,
+  danger,
+}: {
+  icon: string;
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+}) {
+  return (
+    <button
+      role="menuitem"
+      onClick={onClick}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "9px 10px",
+        borderRadius: 8,
+        border: "none",
+        background: "transparent",
+        color: danger ? "#DC2626" : "var(--ws-text, #1F2430)",
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: "pointer",
+        textAlign: "left",
+        width: "100%",
+        fontFamily: "inherit",
+        transition: "background 120ms ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = danger
+          ? "rgba(220,38,38,0.08)"
+          : "var(--ws-chip, #F2F1ED)";
+      }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+    >
+      <span style={{ fontSize: 14, width: 18, textAlign: "center" }}>{icon}</span>
+      <span>{label}</span>
+    </button>
+  );
+}
+
 function IconBtn({ children, label, onClick }: { children: React.ReactNode; label: string; onClick?: () => void }) {
   return (
     <button
@@ -433,7 +661,7 @@ function IconBtn({ children, label, onClick }: { children: React.ReactNode; labe
         padding: "6px 8px",
         borderRadius: 6,
         cursor: onClick ? "pointer" : "default",
-        color: "#8F8B80",
+        color: "var(--ws-text-faint, #8F8B80)",
         fontSize: 14,
       }}
       onMouseEnter={(e) => { e.currentTarget.style.background = "#F2F1ED"; }}
@@ -486,15 +714,15 @@ function renderMarkdown(text: string): React.ReactNode {
         <pre
           key={bi}
           style={{
-            background: "#F7F6F3",
-            border: "1px solid #EAE7DF",
+            background: "var(--ws-sidebar, #F7F6F3)",
+            border: "1px solid var(--ws-border, #EAE7DF)",
             borderRadius: 12,
             padding: 14,
             overflow: "auto",
             fontFamily: "ui-monospace,Menlo,Monaco,monospace",
             fontSize: 13,
             lineHeight: 1.55,
-            color: "#1F2430",
+            color: "var(--ws-text, #1F2430)",
             margin: "6px 0",
           }}
         >
@@ -513,7 +741,7 @@ function renderMarkdown(text: string): React.ReactNode {
             fontSize: sizes[level - 1],
             fontWeight: 800,
             margin: "10px 0 4px",
-            color: "#1F2430",
+            color: "var(--ws-text, #1F2430)",
           }}
         >
           {inline(h[2])}
@@ -566,7 +794,7 @@ function inline(text: string): React.ReactNode {
         <code
           key={idx++}
           style={{
-            background: "#F2F1ED",
+            background: "var(--ws-chip, #F2F1ED)",
             padding: "1px 6px",
             borderRadius: 4,
             fontFamily: "ui-monospace,Menlo,Monaco,monospace",

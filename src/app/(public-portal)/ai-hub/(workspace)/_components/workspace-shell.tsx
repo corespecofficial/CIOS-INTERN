@@ -104,12 +104,19 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
   const loadRecent = useCallback((r: Recent) => {
     try { localStorage.setItem("cios-ai-hub-active-chat", r.id); } catch { /* ignore */ }
     setSearchOpen(false);
+    // Tell chat-client to swap messages (pushing the same path doesn't remount it).
+    try {
+      window.dispatchEvent(new CustomEvent("cios-ai-hub-load-chat", { detail: { id: r.id } }));
+    } catch { /* ignore */ }
     router.push("/ai-hub/chat?c=" + encodeURIComponent(r.id));
   }, [router]);
 
   const startNewChat = useCallback(() => {
     try { localStorage.removeItem("cios-ai-hub-active-chat"); } catch { /* ignore */ }
     setSearchOpen(false);
+    // Tell chat-client to reset — it stays mounted when we push the same URL,
+    // so a URL-only navigation wouldn't clear messages / input / title.
+    try { window.dispatchEvent(new Event("cios-ai-hub-new-chat")); } catch { /* ignore */ }
     router.push("/ai-hub/chat");
   }, [router]);
 
@@ -119,8 +126,8 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "#fff",
-        color: "#1F2430",
+        background: "var(--ws-canvas, #fff)",
+        color: "var(--ws-text, #1F2430)",
         display: "grid",
         gridTemplateColumns: sidebarOpen ? "260px 1fr" : "64px 1fr",
         fontFamily: "'Nunito', sans-serif",
@@ -131,8 +138,8 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
       {/* SIDEBAR */}
       <aside
         style={{
-          background: "#F7F6F3",
-          borderRight: "1px solid #EAE7DF",
+          background: "var(--ws-sidebar, #F7F6F3)",
+          borderRight: "1px solid var(--ws-border, #EAE7DF)",
           display: "flex",
           flexDirection: "column",
           padding: 12,
@@ -189,7 +196,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
-                color: "#8F8B80",
+                color: "var(--ws-text-faint, #8F8B80)",
                 fontSize: 11,
                 fontWeight: 700,
                 letterSpacing: 0.5,
@@ -226,7 +233,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
         {/* Recents */}
         {sidebarOpen && (
           <div style={{ marginTop: 18, flex: 1, overflow: "auto" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#8F8B80", letterSpacing: 0.5, padding: "0 8px 6px" }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--ws-text-faint, #8F8B80)", letterSpacing: 0.5, padding: "0 8px 6px" }}>
               RECENTS
             </div>
             {recents.length === 0 && (
@@ -242,7 +249,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
                   textAlign: "left",
                   padding: "8px 10px",
                   fontSize: 13,
-                  color: "#55524A",
+                  color: "var(--ws-text-muted, #55524A)",
                   background: "transparent",
                   border: "none",
                   borderRadius: 8,
@@ -251,7 +258,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = "#EFECE4"; }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--ws-chip-hover, #EFECE4)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
               >
                 {r.title}
@@ -271,7 +278,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
               padding: "10px 8px",
               borderRadius: 8,
               textDecoration: "none",
-              color: "#55524A",
+              color: "var(--ws-text-muted, #55524A)",
               fontSize: 13,
               fontWeight: 700,
             }}
@@ -294,7 +301,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
             style={{
               position: "absolute",
               inset: 0,
-              background: "#fff",
+              background: "var(--ws-canvas, #fff)",
               padding: 18,
               overflowY: "auto",
               zIndex: 3,
@@ -314,7 +321,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
                   borderRadius: 8,
                   cursor: "pointer",
                   fontSize: 16,
-                  color: "#1F2430",
+                  color: "var(--ws-text, #1F2430)",
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -322,7 +329,7 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
               >
                 ←
               </button>
-              <div style={{ fontWeight: 900, fontSize: 16, color: "#1F2430" }}>Search chats</div>
+              <div style={{ fontWeight: 900, fontSize: 16, color: "var(--ws-text, #1F2430)" }}>Search chats</div>
             </div>
             <input
               autoFocus
@@ -356,14 +363,14 @@ export function WorkspaceShell({ children }: { children: React.ReactNode }) {
                       padding: "10px 12px",
                       borderRadius: 8,
                       border: "1px solid #EAE7DF",
-                      background: "#fff",
+                      background: "var(--ws-canvas, #fff)",
                       cursor: "pointer",
                       fontSize: 13,
-                      color: "#1F2430",
+                      color: "var(--ws-text, #1F2430)",
                     }}
                   >
                     <div style={{ fontWeight: 700 }}>{r.title}</div>
-                    <div style={{ color: "#8F8B80", fontSize: 12, marginTop: 2 }}>
+                    <div style={{ color: "var(--ws-text-faint, #8F8B80)", fontSize: 12, marginTop: 2 }}>
                       {r.messages.length} message{r.messages.length === 1 ? "" : "s"}
                     </div>
                   </button>
@@ -419,18 +426,19 @@ function SideBtn({
         padding: open ? "10px 12px" : "10px 8px",
         margin: "2px 0",
         border: "none",
-        background: primary ? "#fff" : "transparent",
+        // Primary "New chat" button always keeps its bright pill look in both themes.
+        background: primary ? "var(--ws-canvas, #fff)" : "transparent",
         borderRadius: 10,
         cursor: "pointer",
         width: "100%",
         textAlign: "left",
-        color: primary ? "#1F2430" : "#55524A",
+        color: primary ? "var(--ws-text, #1F2430)" : "var(--ws-text-muted, #55524A)",
         fontWeight: primary ? 800 : 700,
         fontSize: 13,
         boxShadow: primary ? "0 1px 3px rgba(0,0,0,0.05)" : "none",
         justifyContent: open ? "flex-start" : "center",
       }}
-      onMouseEnter={(e) => { if (!primary) e.currentTarget.style.background = "#EDEAE0"; }}
+      onMouseEnter={(e) => { if (!primary) e.currentTarget.style.background = "var(--ws-chip-hover, #EDEAE0)"; }}
       onMouseLeave={(e) => { if (!primary) e.currentTarget.style.background = "transparent"; }}
     >
       <span style={{ fontSize: 16, width: 20, textAlign: "center" }}>{icon}</span>
@@ -463,11 +471,11 @@ function SideLink({
         padding: open ? "10px 12px" : "10px 8px",
         margin: "2px 0",
         border: "none",
-        background: active ? "#EDEAE0" : "transparent",
+        background: active ? "var(--ws-chip-hover, #EDEAE0)" : "transparent",
         borderRadius: 10,
         textDecoration: "none",
         width: "100%",
-        color: active ? "#1F2430" : "#55524A",
+        color: active ? "var(--ws-text, #1F2430)" : "var(--ws-text-muted, #55524A)",
         fontWeight: active ? 800 : 700,
         fontSize: 13,
         justifyContent: open ? "flex-start" : "center",

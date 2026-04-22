@@ -60,7 +60,7 @@ export function ChatsClient() {
     <div style={{ flex: 1, overflow: "auto", padding: "32px 40px" }}>
       <div style={{ maxWidth: 920, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: "#1F2430", letterSpacing: -0.3 }}>Chats</h1>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: "var(--ws-text, #1F2430)", letterSpacing: -0.3 }}>Chats</h1>
           <button
             onClick={newChat}
             style={{
@@ -69,8 +69,8 @@ export function ChatsClient() {
               gap: 6,
               padding: "10px 18px",
               borderRadius: 10,
-              background: "#1F2430",
-              color: "#fff",
+              background: "var(--ws-text, #1F2430)",
+              color: "var(--ws-canvas, #fff)",
               fontWeight: 800,
               fontSize: 13,
               border: "none",
@@ -94,7 +94,7 @@ export function ChatsClient() {
               top: "50%",
               transform: "translateY(-50%)",
               fontSize: 16,
-              color: "#8F8B80",
+              color: "var(--ws-text-faint, #8F8B80)",
               pointerEvents: "none",
             }}
           >
@@ -113,12 +113,12 @@ export function ChatsClient() {
               outline: "none",
               fontFamily: "inherit",
               boxSizing: "border-box",
-              background: "#fff",
+              background: "var(--ws-canvas, #fff)",
             }}
           />
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 4px", color: "#55524A", fontSize: 13 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 4px", color: "var(--ws-text-muted, #55524A)", fontSize: 13 }}>
           <span style={{ fontWeight: 700 }}>Your chats with CIOS</span>
           {recents.length > 0 && (
             <Link href="/ai-hub/chat" style={{ color: ACCENT, textDecoration: "underline", fontSize: 13 }}>
@@ -129,7 +129,7 @@ export function ChatsClient() {
 
         <div style={{ borderTop: "1px solid #EAE7DF" }}>
           {filtered.length === 0 ? (
-            <div style={{ padding: "60px 20px", textAlign: "center", color: "#8F8B80", fontSize: 14 }}>
+            <div style={{ padding: "60px 20px", textAlign: "center", color: "var(--ws-text-faint, #8F8B80)", fontSize: 14 }}>
               {recents.length === 0
                 ? "No chats yet. Start a new conversation to see it here."
                 : `No chats match “${query}”.`}
@@ -143,7 +143,7 @@ export function ChatsClient() {
                   width: "100%",
                   textAlign: "left",
                   padding: "18px 12px",
-                  borderBottom: "1px solid #EAE7DF",
+                  borderBottom: "1px solid var(--ws-border, #EAE7DF)",
                   background: "transparent",
                   border: "none",
                   borderTop: "none",
@@ -155,8 +155,8 @@ export function ChatsClient() {
                 onMouseEnter={(e) => { e.currentTarget.style.background = "#FBFAF6"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
               >
-                <div style={{ fontWeight: 700, fontSize: 15, color: "#1F2430" }}>{r.title}</div>
-                <div style={{ color: "#8F8B80", fontSize: 13, marginTop: 4 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, color: "var(--ws-text, #1F2430)" }}>{r.title}</div>
+                <div style={{ color: "var(--ws-text-faint, #8F8B80)", fontSize: 13, marginTop: 4 }}>
                   Last message {relTime(r.updatedAt)}
                 </div>
               </button>

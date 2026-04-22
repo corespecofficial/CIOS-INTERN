@@ -39,7 +39,7 @@ export function ProjectsClient() {
     <div style={{ flex: 1, overflow: "auto", padding: "32px 40px" }}>
       <div style={{ maxWidth: 920, margin: "0 auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: "#1F2430", letterSpacing: -0.3 }}>Projects</h1>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: "var(--ws-text, #1F2430)", letterSpacing: -0.3 }}>Projects</h1>
           <button
             onClick={() => toast("Projects creation coming soon")}
             style={{
@@ -48,8 +48,8 @@ export function ProjectsClient() {
               gap: 6,
               padding: "10px 18px",
               borderRadius: 10,
-              background: "#1F2430",
-              color: "#fff",
+              background: "var(--ws-text, #1F2430)",
+              color: "var(--ws-canvas, #fff)",
               fontWeight: 800,
               fontSize: 13,
               border: "none",
@@ -61,7 +61,7 @@ export function ProjectsClient() {
         </div>
 
         <div style={{ position: "relative", marginBottom: 12 }}>
-          <span style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", fontSize: 16, color: "#8F8B80", pointerEvents: "none" }}>🔍</span>
+          <span style={{ position: "absolute", left: 16, top: "50%", transform: "translateY(-50%)", fontSize: 16, color: "var(--ws-text-faint, #8F8B80)", pointerEvents: "none" }}>🔍</span>
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -75,12 +75,12 @@ export function ProjectsClient() {
               outline: "none",
               fontFamily: "inherit",
               boxSizing: "border-box",
-              background: "#fff",
+              background: "var(--ws-canvas, #fff)",
             }}
           />
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, margin: "6px 0 18px", color: "#55524A", fontSize: 13 }}>
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8, margin: "6px 0 18px", color: "var(--ws-text-muted, #55524A)", fontSize: 13 }}>
           <span>Sort by</span>
           <select
             value={sort}
@@ -88,8 +88,8 @@ export function ProjectsClient() {
             style={{
               padding: "6px 10px",
               borderRadius: 8,
-              border: "1px solid #EAE7DF",
-              background: "#fff",
+              border: "1px solid var(--ws-border, #EAE7DF)",
+              background: "var(--ws-canvas, #fff)",
               fontSize: 13,
               fontFamily: "inherit",
             }}
@@ -125,20 +125,20 @@ function ProjectCard({ project }: { project: Project }) {
       style={{
         padding: "18px 20px",
         borderRadius: 14,
-        border: "1px solid #EAE7DF",
-        background: "#fff",
+        border: "1px solid var(--ws-border, #EAE7DF)",
+        background: "var(--ws-canvas, #fff)",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-        <div style={{ fontWeight: 800, fontSize: 16, color: "#1F2430" }}>{project.title}</div>
+        <div style={{ fontWeight: 800, fontSize: 16, color: "var(--ws-text, #1F2430)" }}>{project.title}</div>
         {project.example && (
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#55524A", background: "#F2F1ED", padding: "3px 8px", borderRadius: 999 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: "var(--ws-text-muted, #55524A)", background: "var(--ws-chip, #F2F1ED)", padding: "3px 8px", borderRadius: 999 }}>
             Example project
           </span>
         )}
       </div>
-      <p style={{ margin: "6px 0 10px", color: "#55524A", fontSize: 14, lineHeight: 1.55 }}>{project.blurb}</p>
-      <div style={{ color: "#8F8B80", fontSize: 12 }}>Updated {project.updatedAt}</div>
+      <p style={{ margin: "6px 0 10px", color: "var(--ws-text-muted, #55524A)", fontSize: 14, lineHeight: 1.55 }}>{project.blurb}</p>
+      <div style={{ color: "var(--ws-text-faint, #8F8B80)", fontSize: 12 }}>Updated {project.updatedAt}</div>
     </div>
   );
 }
@@ -147,15 +147,15 @@ function EmptyState({ emoji, title, subtitle, cta, onCta }: { emoji: string; tit
   return (
     <div style={{ padding: "60px 20px", textAlign: "center" }}>
       <div style={{ fontSize: 56, marginBottom: 12 }}>{emoji}</div>
-      <div style={{ fontWeight: 800, fontSize: 18, color: "#1F2430", marginBottom: 6 }}>{title}</div>
-      <div style={{ color: "#8F8B80", fontSize: 14, maxWidth: 480, margin: "0 auto 18px" }}>{subtitle}</div>
+      <div style={{ fontWeight: 800, fontSize: 18, color: "var(--ws-text, #1F2430)", marginBottom: 6 }}>{title}</div>
+      <div style={{ color: "var(--ws-text-faint, #8F8B80)", fontSize: 14, maxWidth: 480, margin: "0 auto 18px" }}>{subtitle}</div>
       <button
         onClick={onCta}
         style={{
           padding: "10px 20px",
           borderRadius: 10,
-          border: "1px solid #EAE7DF",
-          background: "#fff",
+          border: "1px solid var(--ws-border, #EAE7DF)",
+          background: "var(--ws-canvas, #fff)",
           fontSize: 13,
           fontWeight: 700,
           cursor: "pointer",

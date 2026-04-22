@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAppStore, type ThemeChoice } from "@/store/use-app-store";
 
 // Keeps the zustand state, localStorage, and <html data-theme> in sync on mount.
@@ -41,16 +42,56 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const themeChoice = useAppStore((s) => s.themeChoice);
   const setThemeChoice = useAppStore((s) => s.setThemeChoice);
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; left?: number; right?: number } | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => { setMounted(true); }, []);
 
   // Close on outside click
   useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (rootRef.current?.contains(t)) return;
+      // Clicks inside the portaled menu (tagged data-theme-menu) also count as "inside"
+      if ((t as Element)?.closest?.("[data-theme-menu]")) return;
+      setOpen(false);
     };
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
+  }, [open]);
+
+  // Compute menu position when it opens so the portaled dropdown lines up
+  // under the button, no matter how deeply nested the button is.
+  useEffect(() => {
+    if (!open || !btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const MENU_W = 200;    // matches minWidth on the menu
+    const MENU_H = 180;    // approx full menu height (3 rows + tip)
+    const MARGIN = 8;
+
+    // Horizontal anchor — if the button is on the LEFT half of the viewport,
+    // anchor the menu's LEFT edge to the button's LEFT. If on the RIGHT half,
+    // anchor the menu's RIGHT edge to the button's RIGHT. Keeps menus on-screen
+    // for toggles in the left sidebar AND the top-right header in one pass.
+    const buttonOnLeft = rect.left + rect.width / 2 < vw / 2;
+    const horiz: { left?: number; right?: number } = buttonOnLeft
+      ? { left: Math.max(MARGIN, Math.min(rect.left, vw - MENU_W - MARGIN)) }
+      : { right: Math.max(MARGIN, Math.min(vw - rect.right, vw - MENU_W - MARGIN)) };
+
+    // Vertical — flip upward when there's more room above than below.
+    const spaceBelow = vh - rect.bottom;
+    const spaceAbove = rect.top;
+    const openUpward = spaceBelow < MENU_H + MARGIN && spaceAbove > spaceBelow;
+    const top = openUpward
+      ? Math.max(MARGIN, rect.top - MENU_H - MARGIN)
+      : Math.min(rect.bottom + MARGIN, vh - MENU_H - MARGIN);
+
+    setMenuPos({ top, ...horiz });
   }, [open]);
 
   const current = OPTIONS.find((o) => o.id === themeChoice) || OPTIONS[1];
@@ -58,6 +99,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   return (
     <div ref={rootRef} style={{ position: "relative", display: "inline-block" }}>
       <button
+        ref={btnRef}
         onClick={() => setOpen((v) => !v)}
         aria-label={`Theme: ${current.label}. Click to change.`}
         title={`Theme: ${current.label}`}
@@ -82,14 +124,16 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
         <span style={{ opacity: 0.6, fontSize: 9 }}>▾</span>
       </button>
 
-      {open && (
+      {mounted && open && menuPos && createPortal(
         <div
           role="menu"
+          data-theme-menu
           style={{
-            position: "absolute",
-            right: 0,
-            top: "calc(100% + 8px)",
-            minWidth: 170,
+            position: "fixed",
+            top: menuPos.top,
+            ...(menuPos.left != null ? { left: menuPos.left } : {}),
+            ...(menuPos.right != null ? { right: menuPos.right } : {}),
+            minWidth: 200,
             padding: 6,
             borderRadius: 12,
             background: "var(--bg-elevated, #1F2937)",
@@ -98,6 +142,7 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
             zIndex: 10000,
             display: "grid",
             gap: 2,
+            fontFamily: "inherit",
           }}
         >
           {OPTIONS.map((o) => {
@@ -134,7 +179,8 @@ export function ThemeToggle({ compact = false }: { compact?: boolean }) {
           <div style={{ padding: "6px 12px 2px", fontSize: 10, color: "var(--text-muted, #94A3B8)", letterSpacing: 0.3 }}>
             Tip: &ldquo;System&rdquo; follows your OS setting.
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

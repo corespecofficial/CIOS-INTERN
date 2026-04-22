@@ -14,9 +14,9 @@ export function CustomizeClient() {
       {/* Secondary nav */}
       <nav
         style={{
-          borderRight: "1px solid #EAE7DF",
+          borderRight: "1px solid var(--ws-border, #EAE7DF)",
           padding: "18px 14px",
-          background: "#FBFAF6",
+          background: "var(--ws-sidebar, #FBFAF6)",
           display: "flex",
           flexDirection: "column",
           gap: 2,
@@ -31,13 +31,13 @@ export function CustomizeClient() {
               background: "transparent",
               cursor: "pointer",
               fontSize: 16,
-              color: "#1F2430",
+              color: "var(--ws-text, #1F2430)",
               padding: 4,
             }}
           >
             ←
           </button>
-          <div style={{ fontWeight: 900, fontSize: 16, color: "#1F2430" }}>Customize</div>
+          <div style={{ fontWeight: 900, fontSize: 16, color: "var(--ws-text, #1F2430)" }}>Customize</div>
         </div>
         <SubNav emoji="📜" label="Skills"     active={section === "skills"}     onClick={() => setSection("skills")} />
         <SubNav emoji="🔗" label="Connectors" active={section === "connectors"} onClick={() => setSection("connectors")} />
@@ -62,7 +62,7 @@ function Home({ onGo }: { onGo: (s: Section) => void }) {
           height: 120,
           margin: "0 auto 24px",
           borderRadius: 24,
-          background: "#F7F6F3",
+          background: "var(--ws-sidebar, #F7F6F3)",
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
@@ -71,10 +71,10 @@ function Home({ onGo }: { onGo: (s: Section) => void }) {
       >
         🧰
       </div>
-      <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: "#1F2430", letterSpacing: -0.3 }}>
+      <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: "var(--ws-text, #1F2430)", letterSpacing: -0.3 }}>
         Customize CIOS
       </h1>
-      <p style={{ color: "#55524A", fontSize: 15, lineHeight: 1.55, marginTop: 10 }}>
+      <p style={{ color: "var(--ws-text-muted, #55524A)", fontSize: 15, lineHeight: 1.55, marginTop: 10 }}>
         Skills, connectors, and plugins shape how CIOS works with you.
       </p>
 
@@ -97,10 +97,10 @@ function Home({ onGo }: { onGo: (s: Section) => void }) {
         style={{
           marginTop: 28,
           padding: "14px 16px",
-          background: "#F2F1ED",
+          background: "var(--ws-chip, #F2F1ED)",
           borderRadius: 12,
           fontSize: 13,
-          color: "#55524A",
+          color: "var(--ws-text-muted, #55524A)",
           lineHeight: 1.55,
           textAlign: "left",
         }}
@@ -148,8 +148,8 @@ function ConnectorsView() {
 function SectionHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div style={{ marginBottom: 24 }}>
-      <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: "#1F2430", letterSpacing: -0.3 }}>{title}</h1>
-      <p style={{ color: "#55524A", fontSize: 14, marginTop: 6 }}>{subtitle}</p>
+      <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: "var(--ws-text, #1F2430)", letterSpacing: -0.3 }}>{title}</h1>
+      <p style={{ color: "var(--ws-text-muted, #55524A)", fontSize: 14, marginTop: 6 }}>{subtitle}</p>
     </div>
   );
 }
@@ -165,15 +165,15 @@ function SubNav({ emoji, label, active, onClick }: { emoji: string; label: strin
         padding: "10px 12px",
         border: "none",
         borderRadius: 10,
-        background: active ? "#EDEAE0" : "transparent",
+        background: active ? "var(--ws-chip-hover, #EDEAE0)" : "transparent",
         cursor: "pointer",
         width: "100%",
         textAlign: "left",
-        color: active ? "#1F2430" : "#55524A",
+        color: active ? "var(--ws-text, #1F2430)" : "var(--ws-text-muted, #55524A)",
         fontWeight: active ? 800 : 700,
         fontSize: 13,
       }}
-      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "#EFECE4"; }}
+      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--ws-chip-hover, #EFECE4)"; }}
       onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}
     >
       <span style={{ fontSize: 15, width: 20, textAlign: "center" }}>{emoji}</span>
@@ -202,8 +202,8 @@ function TileLink({
         gap: 14,
         padding: "18px 20px",
         borderRadius: 16,
-        border: "1px solid #EAE7DF",
-        background: "#fff",
+        border: "1px solid var(--ws-border, #EAE7DF)",
+        background: "var(--ws-canvas, #fff)",
         cursor: "pointer",
         textAlign: "left",
         width: "100%",
@@ -215,7 +215,7 @@ function TileLink({
           width: 44,
           height: 44,
           borderRadius: 10,
-          background: "#F7F6F3",
+          background: "var(--ws-sidebar, #F7F6F3)",
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
@@ -226,10 +226,10 @@ function TileLink({
         {emoji}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 800, fontSize: 15, color: "#1F2430" }}>{title}</div>
-        <div style={{ color: "#8F8B80", fontSize: 13, marginTop: 2 }}>{blurb}</div>
+        <div style={{ fontWeight: 800, fontSize: 15, color: "var(--ws-text, #1F2430)" }}>{title}</div>
+        <div style={{ color: "var(--ws-text-faint, #8F8B80)", fontSize: 13, marginTop: 2 }}>{blurb}</div>
       </div>
-      <div style={{ fontSize: 16, color: "#8F8B80" }}>→</div>
+      <div style={{ fontSize: 16, color: "var(--ws-text-faint, #8F8B80)" }}>→</div>
     </button>
   );
 }
@@ -247,14 +247,14 @@ function ListRow({ emoji, title, blurb, status }: { emoji: string; title: string
         gap: 14,
         padding: "14px 16px",
         borderRadius: 12,
-        border: "1px solid #EAE7DF",
-        background: "#fff",
+        border: "1px solid var(--ws-border, #EAE7DF)",
+        background: "var(--ws-canvas, #fff)",
       }}
     >
       <div style={{ fontSize: 22 }}>{emoji}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 800, fontSize: 14, color: "#1F2430" }}>{title}</div>
-        <div style={{ color: "#8F8B80", fontSize: 13 }}>{blurb}</div>
+        <div style={{ fontWeight: 800, fontSize: 14, color: "var(--ws-text, #1F2430)" }}>{title}</div>
+        <div style={{ color: "var(--ws-text-faint, #8F8B80)", fontSize: 13 }}>{blurb}</div>
       </div>
       <div
         style={{

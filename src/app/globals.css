@@ -25,6 +25,22 @@
   --portal-nav-active: #ffffff;
   --portal-nav-idle: #94A3B8;
   --portal-nav-active-bg: rgba(30,136,229,0.18);
+
+  /* Workspace (AI Hub / Study Buddy / CV wizard / Interview prep) —
+     these pages default to LIGHT (because they render as full-bleed white
+     canvases). The ws-* tokens below hold the light palette; dark-theme
+     overrides sit next to the bg-/text- tokens under [data-theme="light"]
+     and the html[data-theme="dark"] block at the bottom of this file. */
+  --ws-canvas:       #FFFFFF;
+  --ws-sidebar:      #F7F6F3;
+  --ws-chip:         #F2F1ED;
+  --ws-chip-hover:   #EDEAE0;
+  --ws-border:       #EAE7DF;
+  --ws-text:         #1F2430;
+  --ws-text-muted:   #55524A;
+  --ws-text-faint:   #8F8B80;
+  --ws-text-dim:     #9E9A8E;
+  --ws-ink-subtle:   #4A4A4A;
   /* Background */
   --bg-primary: #0A0E1A;
   --bg-secondary: #111827;
@@ -1213,6 +1229,107 @@ html[data-theme="light"] [style*="border: 1px solid rgba(255,255,255,0.08)"] { b
 [data-theme="dark"] [data-workspace] [style*="border-bottom: 1px solid #EEF2FF"],
 [data-theme="dark"] [data-workspace] [style*="border-right: 1px solid #EAE7DF"] {
   border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* ============================================================
+   Workspace CSS custom properties — dark overrides.
+   The workspace-shell consumes these via var() so theme flips
+   natively at the browser level — no specificity war. Light defaults
+   live in the :root block at the top of this file.
+   ============================================================ */
+html[data-theme="dark"] {
+  --ws-canvas:       #0A0E1A;
+  --ws-sidebar:      #0C1222;
+  --ws-chip:         #1F2937;
+  --ws-chip-hover:   #243044;
+  --ws-border:       rgba(255,255,255,0.08);
+  /* Text ramp is deliberately brighter than the usual slate shades —
+     the user wants near-white for sidebar labels in dark mode. */
+  --ws-text:         #FFFFFF;
+  --ws-text-muted:   #F8FAFC;
+  --ws-text-faint:   #E2E8F0;
+  --ws-text-dim:     #CBD5E1;
+  --ws-ink-subtle:   #F1F5F9;
+}
+
+/* Workspace form controls — force bright caret + text colour in dark mode
+   so what the user types is clearly visible regardless of inline style. */
+html[data-theme="dark"] [data-workspace] input,
+html[data-theme="dark"] [data-workspace] textarea,
+html[data-theme="dark"] [data-workspace] select {
+  color: #F8FAFC !important;
+  caret-color: #F8FAFC !important;
+}
+html[data-theme="dark"] [data-workspace] input::placeholder,
+html[data-theme="dark"] [data-workspace] textarea::placeholder {
+  color: #94A3B8 !important;
+}
+
+/* Twinkling-stars field — dark theme only. Sits inside the workspace main
+   section, absolutely positioned behind the content so the hero greeting +
+   composer render on top. Two layered star fields at different pulse rates
+   give the space-like twinkle without dominating the canvas. */
+html[data-theme="dark"] [data-workspace] > section {
+  position: relative;
+}
+html[data-theme="dark"] [data-workspace] > section::before,
+html[data-theme="dark"] [data-workspace] > section::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-repeat: repeat;
+  background-size: 280px 280px;
+  opacity: 0.55;
+}
+html[data-theme="dark"] [data-workspace] > section::before {
+  /* Soft, varied star positions inside a 600px tile — the large tile + mixed
+     percentages stop the human eye from reading repetition lines. */
+  background-image:
+    radial-gradient(1.2px 1.2px at 13% 18%, rgba(255,255,255,0.95), transparent 60%),
+    radial-gradient(1px 1px at 37% 74%, rgba(255,255,255,0.85), transparent 60%),
+    radial-gradient(1.4px 1.4px at 64% 42%, rgba(255,255,255,0.9), transparent 60%),
+    radial-gradient(1px 1px at 82% 12%, rgba(255,255,255,0.7), transparent 60%),
+    radial-gradient(1px 1px at 27% 57%, rgba(255,255,255,0.8), transparent 60%),
+    radial-gradient(1.2px 1.2px at 51% 88%, rgba(255,255,255,0.75), transparent 60%),
+    radial-gradient(1px 1px at 91% 63%, rgba(255,255,255,0.8), transparent 60%);
+  background-size: 600px 600px;
+  animation: ws-twinkle-a 4.5s ease-in-out infinite;
+}
+html[data-theme="dark"] [data-workspace] > section::after {
+  background-image:
+    radial-gradient(1px 1px at 9% 44%, rgba(147,197,253,0.85), transparent 60%),
+    radial-gradient(1.4px 1.4px at 46% 25%, rgba(255,255,255,0.75), transparent 60%),
+    radial-gradient(1px 1px at 78% 77%, rgba(251,191,36,0.7), transparent 60%),
+    radial-gradient(1px 1px at 33% 9%, rgba(255,255,255,0.7), transparent 60%),
+    radial-gradient(1.2px 1.2px at 68% 61%, rgba(255,255,255,0.65), transparent 60%);
+  background-size: 780px 780px;
+  background-position: 120px 60px;
+  animation: ws-twinkle-b 6.5s ease-in-out infinite;
+  animation-delay: 1.2s;
+}
+/* Make sure every direct child of the section renders ABOVE the stars. */
+html[data-theme="dark"] [data-workspace] > section > * {
+  position: relative;
+  z-index: 1;
+}
+@keyframes ws-twinkle-a {
+  0%, 100% { opacity: 0.35; transform: translate3d(0, 0, 0); }
+  50%      { opacity: 0.75; transform: translate3d(-3px, -2px, 0); }
+}
+@keyframes ws-twinkle-b {
+  0%, 100% { opacity: 0.25; transform: translate3d(0, 0, 0); }
+  50%      { opacity: 0.6;  transform: translate3d(2px, 3px, 0); }
+}
+
+/* Respect users who prefer reduced motion — twinkle is decorative only. */
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="dark"] [data-workspace] > section::before,
+  html[data-theme="dark"] [data-workspace] > section::after {
+    animation: none !important;
+    opacity: 0.4;
+  }
 }
 
 /* ============================================================
