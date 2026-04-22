@@ -249,8 +249,8 @@ export function LearnClient({ firstName }: { firstName: string }) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "#fff",
-        color: "#1F2430",
+        background: "var(--ws-canvas, #fff)",
+        color: "var(--ws-text, #1F2430)",
         display: "flex",
         flexDirection: "column",
         fontFamily: "'Nunito', sans-serif",
@@ -265,14 +265,14 @@ export function LearnClient({ firstName }: { firstName: string }) {
           justifyContent: "space-between",
           padding: "14px 20px",
           borderBottom: "1px solid #EEF2FF",
-          background: "#fff",
+          background: "var(--ws-canvas, #fff)",
         }}
       >
         <Link href="/study-buddy" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "inherit" }}>
           <img src={CIOS_LOGO} alt="CIOS" width={28} height={28} style={{ borderRadius: 6 }} />
           <div>
-            <div style={{ fontSize: 14, fontWeight: 900, color: "#1F2430" }}>CIOS Study Buddy</div>
-            <div style={{ fontSize: 11, color: "#64748B" }}>Socratic learning · voice or written</div>
+            <div style={{ fontSize: 14, fontWeight: 900, color: "var(--ws-text, #1F2430)" }}>CIOS Study Buddy</div>
+            <div style={{ fontSize: 11, color: "var(--ws-text-faint, #64748B)" }}>Socratic learning · voice or written</div>
           </div>
         </Link>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -296,8 +296,8 @@ export function LearnClient({ firstName }: { firstName: string }) {
             href="/study-buddy"
             style={{
               padding: "8px 16px",
-              background: "#F1F5F9",
-              color: "#1F2430",
+              background: "var(--ws-chip, #F1F5F9)",
+              color: "var(--ws-text, #1F2430)",
               borderRadius: 10,
               fontSize: 13,
               fontWeight: 700,
@@ -464,10 +464,10 @@ function Welcome({ firstName, onStart }: { firstName: string; onStart: () => voi
           animation: "sbPulse 2.4s ease-in-out infinite",
         }}
       />
-      <h1 style={{ margin: 0, fontSize: 32, fontWeight: 900, color: "#0F172A", letterSpacing: -0.4 }}>
+      <h1 style={{ margin: 0, fontSize: 32, fontWeight: 900, color: "var(--ws-text, #0F172A)", letterSpacing: -0.4 }}>
         Hi {firstName} 👋
       </h1>
-      <p style={{ fontSize: 16, color: "#475569", lineHeight: 1.6, marginTop: 10 }}>
+      <p style={{ fontSize: 16, color: "var(--ws-text-muted, #475569)", lineHeight: 1.6, marginTop: 10 }}>
         I&apos;m your CIOS study coach. We&apos;ll set up a quick session together,
         then I&apos;ll build a knowledge map and we&apos;ll learn by conversation.
       </p>
@@ -502,7 +502,7 @@ function OnboardingShell({
   return (
     <div style={{ maxWidth: 640, margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
-        <div style={{ flex: 1, height: 10, borderRadius: 999, background: "#E2E8F0", overflow: "hidden" }}>
+        <div style={{ flex: 1, height: 10, borderRadius: 999, background: "var(--ws-chip-hover, #E2E8F0)", overflow: "hidden" }}>
           <div
             style={{
               height: "100%",
@@ -513,14 +513,14 @@ function OnboardingShell({
             }}
           />
         </div>
-        <div style={{ fontSize: 12, fontWeight: 800, color: "#64748B" }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: "var(--ws-text-faint, #64748B)" }}>
           {step} / {total}
         </div>
       </div>
 
       <div style={{ animation: "sbPop .4s ease both" }}>
-        <h2 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: "#0F172A", letterSpacing: -0.3 }}>{title}</h2>
-        <p style={{ fontSize: 14, color: "#64748B", marginTop: 6 }}>{subtitle}</p>
+        <h2 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: "var(--ws-text, #0F172A)", letterSpacing: -0.3 }}>{title}</h2>
+        <p style={{ fontSize: 14, color: "var(--ws-text-faint, #64748B)", marginTop: 6 }}>{subtitle}</p>
         <div style={{ marginTop: 22 }}>{children}</div>
       </div>
     </div>
@@ -533,8 +533,8 @@ function OptionCard({ emoji, title, blurb, onClick }: { emoji: string; title: st
       onClick={onClick}
       style={{
         padding: "20px 18px",
-        border: "2px solid #E2E8F0",
-        background: "#fff",
+        border: "2px solid var(--ws-border, #E2E8F0)",
+        background: "var(--ws-canvas, #fff)",
         borderRadius: 18,
         textAlign: "left",
         cursor: "pointer",
@@ -547,8 +547,8 @@ function OptionCard({ emoji, title, blurb, onClick }: { emoji: string; title: st
       onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
     >
       <div style={{ fontSize: 30, marginBottom: 10 }}>{emoji}</div>
-      <div style={{ fontSize: 16, fontWeight: 800, color: "#0F172A" }}>{title}</div>
-      <div style={{ fontSize: 13, color: "#64748B", marginTop: 4 }}>{blurb}</div>
+      <div style={{ fontSize: 16, fontWeight: 800, color: "var(--ws-text, #0F172A)" }}>{title}</div>
+      <div style={{ fontSize: 13, color: "var(--ws-text-faint, #64748B)", marginTop: 4 }}>{blurb}</div>
     </button>
   );
 }
@@ -594,25 +594,25 @@ function SourcePhase({
   return (
     <div style={{ maxWidth: 760, margin: "0 auto" }}>
       <div style={{ textAlign: "center", marginBottom: 22 }}>
-        <h2 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: "#0F172A", letterSpacing: -0.3 }}>
+        <h2 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: "var(--ws-text, #0F172A)", letterSpacing: -0.3 }}>
           Bring your notes on <span style={{ color: ACCENT_DARK }}>{ctx.topic}</span>
         </h2>
-        <p style={{ color: "#64748B", fontSize: 14, marginTop: 6 }}>
+        <p style={{ color: "var(--ws-text-faint, #64748B)", fontSize: 14, marginTop: 6 }}>
           Paste a chapter, upload a .txt/.md file, or let CIOS write one for you.
         </p>
       </div>
 
       <div
         style={{
-          background: "#fff",
-          border: "1px solid #E2E8F0",
+          background: "var(--ws-canvas, #fff)",
+          border: "1px solid var(--ws-border, #E2E8F0)",
           borderRadius: 20,
           padding: 22,
           boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <label style={{ fontSize: 13, fontWeight: 800, color: "#0F172A" }}>Study material</label>
+          <label style={{ fontSize: 13, fontWeight: 800, color: "var(--ws-text, #0F172A)" }}>Study material</label>
           <div style={{ display: "flex", gap: 8 }}>
             <label
               style={{
@@ -621,12 +621,12 @@ function SourcePhase({
                 gap: 6,
                 padding: "6px 12px",
                 borderRadius: 8,
-                border: "1px solid #E2E8F0",
-                background: "#F8FAFC",
+                border: "1px solid var(--ws-border, #E2E8F0)",
+                background: "var(--ws-chip, #F8FAFC)",
                 cursor: "pointer",
                 fontSize: 12,
                 fontWeight: 700,
-                color: "#334155",
+                color: "var(--ws-text-muted, #334155)",
               }}
             >
               📎 Upload .txt / .md
@@ -642,19 +642,19 @@ function SourcePhase({
           style={{
             width: "100%",
             padding: "14px 16px",
-            border: "1px solid #E2E8F0",
+            border: "1px solid var(--ws-border, #E2E8F0)",
             borderRadius: 14,
             fontSize: 14,
             lineHeight: 1.55,
-            background: "#F8FAFC",
-            color: "#0F172A",
+            background: "var(--ws-chip, #F8FAFC)",
+            color: "var(--ws-text, #0F172A)",
             fontFamily: "inherit",
             resize: "vertical",
             outline: "none",
             boxSizing: "border-box",
           }}
         />
-        <div style={{ fontSize: 12, color: "#64748B", marginTop: 8 }}>{source.length.toLocaleString()} characters</div>
+        <div style={{ fontSize: 12, color: "var(--ws-text-faint, #64748B)", marginTop: 8 }}>{source.length.toLocaleString()} characters</div>
       </div>
 
       <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap", justifyContent: "space-between" }}>
@@ -709,10 +709,10 @@ function MapPhase({
     <div style={{ maxWidth: 960, margin: "0 auto" }}>
       <div style={{ textAlign: "center", marginBottom: 24 }}>
         <div style={{ fontSize: 12, fontWeight: 800, color: ACCENT_DARK, letterSpacing: 0.5 }}>YOUR KNOWLEDGE MAP</div>
-        <h2 style={{ margin: "6px 0 8px", fontSize: 28, fontWeight: 900, color: "#0F172A", letterSpacing: -0.3 }}>
+        <h2 style={{ margin: "6px 0 8px", fontSize: 28, fontWeight: 900, color: "var(--ws-text, #0F172A)", letterSpacing: -0.3 }}>
           {map.mainTopic}
         </h2>
-        <p style={{ color: "#475569", fontSize: 14, maxWidth: 620, margin: "0 auto", lineHeight: 1.6 }}>
+        <p style={{ color: "var(--ws-text-muted, #475569)", fontSize: 14, maxWidth: 620, margin: "0 auto", lineHeight: 1.6 }}>
           {map.overview}
         </p>
       </div>
@@ -756,10 +756,10 @@ function MapPhase({
                 >
                   {done ? "✓" : i + 1}
                 </span>
-                <div style={{ fontWeight: 800, fontSize: 15, color: "#0F172A" }}>{c.title}</div>
+                <div style={{ fontWeight: 800, fontSize: 15, color: "var(--ws-text, #0F172A)" }}>{c.title}</div>
               </div>
-              <div style={{ color: "#475569", fontSize: 13, lineHeight: 1.55 }}>{c.summary}</div>
-              <ul style={{ margin: "10px 0 0", paddingLeft: 18, color: "#64748B", fontSize: 12, lineHeight: 1.6 }}>
+              <div style={{ color: "var(--ws-text-muted, #475569)", fontSize: 13, lineHeight: 1.55 }}>{c.summary}</div>
+              <ul style={{ margin: "10px 0 0", paddingLeft: 18, color: "var(--ws-text-faint, #64748B)", fontSize: 12, lineHeight: 1.6 }}>
                 {c.keyPoints.slice(0, 3).map((kp, k) => <li key={k}>{kp}</li>)}
               </ul>
               <div style={{ marginTop: 10, color: ACCENT_DARK, fontSize: 12, fontWeight: 800 }}>
@@ -888,10 +888,10 @@ function SessionPhase(props: {
         <div style={{ fontSize: 11, fontWeight: 800, color: ACCENT_DARK, letterSpacing: 0.5, marginBottom: 4 }}>
           CONCEPT {map.concepts.findIndex((c) => c.id === concept.id) + 1} / {map.concepts.length}
         </div>
-        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#0F172A", letterSpacing: -0.3 }}>
+        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "var(--ws-text, #0F172A)", letterSpacing: -0.3 }}>
           {concept.title}
         </h2>
-        <p style={{ color: "#334155", fontSize: 14, marginTop: 6, lineHeight: 1.55 }}>{concept.summary}</p>
+        <p style={{ color: "var(--ws-text-muted, #334155)", fontSize: 14, marginTop: 6, lineHeight: 1.55 }}>{concept.summary}</p>
         <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
           {concept.keyPoints.slice(0, 4).map((kp, i) => (
             <span
@@ -899,11 +899,11 @@ function SessionPhase(props: {
               style={{
                 padding: "4px 10px",
                 borderRadius: 999,
-                background: "#fff",
-                border: "1px solid #CBD5E1",
+                background: "var(--ws-canvas, #fff)",
+                border: "1px solid var(--ws-border, #CBD5E1)",
                 fontSize: 11,
                 fontWeight: 700,
-                color: "#475569",
+                color: "var(--ws-text-muted, #475569)",
               }}
             >
               {kp}
@@ -915,8 +915,8 @@ function SessionPhase(props: {
       {/* Transcript */}
       <div
         style={{
-          background: "#fff",
-          border: "1px solid #E2E8F0",
+          background: "var(--ws-canvas, #fff)",
+          border: "1px solid var(--ws-border, #E2E8F0)",
           borderRadius: 20,
           padding: 18,
           display: "grid",
@@ -941,12 +941,12 @@ function SessionPhase(props: {
                   style={{
                     width: "100%",
                     padding: "12px 14px",
-                    border: "1px solid #E2E8F0",
+                    border: "1px solid var(--ws-border, #E2E8F0)",
                     borderRadius: 12,
                     fontSize: 14,
                     lineHeight: 1.55,
                     background: listening ? "#FFF7ED" : "#F8FAFC",
-                    color: "#0F172A",
+                    color: "var(--ws-text, #0F172A)",
                     fontFamily: "inherit",
                     resize: "vertical",
                     outline: "none",
@@ -1004,13 +1004,13 @@ function Turn({ turn, firstName }: { turn: StudyTurn; firstName: string }) {
         <div style={{ fontSize: 11, fontWeight: 800, color: ACCENT_DARK, letterSpacing: 0.3 }}>CIOS</div>
         <div
           style={{
-            background: "#F8FAFC",
-            border: "1px solid #E2E8F0",
+            background: "var(--ws-chip, #F8FAFC)",
+            border: "1px solid var(--ws-border, #E2E8F0)",
             padding: "12px 14px",
             borderRadius: 14,
             fontSize: 14,
             lineHeight: 1.55,
-            color: "#0F172A",
+            color: "var(--ws-text, #0F172A)",
             whiteSpace: "pre-wrap",
           }}
         >
@@ -1021,7 +1021,7 @@ function Turn({ turn, firstName }: { turn: StudyTurn; firstName: string }) {
   }
   return (
     <div style={{ display: "grid", gap: 4, textAlign: "right" }}>
-      <div style={{ fontSize: 11, fontWeight: 800, color: "#0F172A" }}>{firstName}</div>
+      <div style={{ fontSize: 11, fontWeight: 800, color: "var(--ws-text, #0F172A)" }}>{firstName}</div>
       <div
         style={{
           background: `${ACCENT}14`,
@@ -1030,7 +1030,7 @@ function Turn({ turn, firstName }: { turn: StudyTurn; firstName: string }) {
           borderRadius: 14,
           fontSize: 14,
           lineHeight: 1.55,
-          color: "#0F172A",
+          color: "var(--ws-text, #0F172A)",
           whiteSpace: "pre-wrap",
           display: "inline-block",
           marginLeft: "auto",
@@ -1072,13 +1072,13 @@ function GradePanel({
           Score {grade.score}/10
         </span>
       </div>
-      <div style={{ color: "#0F172A", fontSize: 14, lineHeight: 1.6 }}>{grade.explanation}</div>
+      <div style={{ color: "var(--ws-text, #0F172A)", fontSize: 14, lineHeight: 1.6 }}>{grade.explanation}</div>
       <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
         <button
           onClick={onNext}
           style={{
             padding: "10px 18px",
-            background: "#fff",
+            background: "var(--ws-canvas, #fff)",
             color: ACCENT_DARK,
             border: `1.5px solid ${ACCENT}`,
             borderRadius: 10,
@@ -1115,7 +1115,7 @@ function Thinking() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
       <img src={CIOS_LOGO} alt="" width={24} height={24} style={{ borderRadius: 6, animation: "sbPulse 1.2s ease-in-out infinite" }} />
-      <span style={{ fontSize: 13, color: "#64748B" }}>CIOS is preparing your question…</span>
+      <span style={{ fontSize: 13, color: "var(--ws-text-faint, #64748B)" }}>CIOS is preparing your question…</span>
     </div>
   );
 }
@@ -1124,10 +1124,10 @@ function CelebratePhase({ map, mastered, onRestart }: { map: KnowledgeMap; maste
   return (
     <div style={{ maxWidth: 620, margin: "40px auto 0", textAlign: "center", animation: "sbPop .5s ease both" }}>
       <div style={{ fontSize: 72, marginBottom: 6 }}>🎊</div>
-      <h2 style={{ margin: 0, fontSize: 32, fontWeight: 900, color: "#0F172A", letterSpacing: -0.3 }}>
+      <h2 style={{ margin: 0, fontSize: 32, fontWeight: 900, color: "var(--ws-text, #0F172A)", letterSpacing: -0.3 }}>
         Session complete
       </h2>
-      <p style={{ color: "#475569", fontSize: 15, marginTop: 8 }}>
+      <p style={{ color: "var(--ws-text-muted, #475569)", fontSize: 15, marginTop: 8 }}>
         You mastered <strong>{mastered.size}</strong> of {map.concepts.length} concepts on <strong>{map.mainTopic}</strong>.
       </p>
       <div
@@ -1143,7 +1143,7 @@ function CelebratePhase({ map, mastered, onRestart }: { map: KnowledgeMap; maste
         <div style={{ fontSize: 12, fontWeight: 800, color: ACCENT_DARK, letterSpacing: 0.5, marginBottom: 8 }}>
           CONCEPTS YOU PRACTISED
         </div>
-        <ul style={{ margin: 0, paddingLeft: 20, color: "#0F172A", fontSize: 14, lineHeight: 1.7 }}>
+        <ul style={{ margin: 0, paddingLeft: 20, color: "var(--ws-text, #0F172A)", fontSize: 14, lineHeight: 1.7 }}>
           {map.concepts.map((c) => (
             <li key={c.id} style={{ color: mastered.has(c.id) ? "#166534" : "#64748B" }}>
               {mastered.has(c.id) ? "✓" : "○"} {c.title}
@@ -1172,8 +1172,8 @@ function CelebratePhase({ map, mastered, onRestart }: { map: KnowledgeMap; maste
           href="/study-buddy"
           style={{
             padding: "12px 22px",
-            background: "#F1F5F9",
-            color: "#0F172A",
+            background: "var(--ws-chip, #F1F5F9)",
+            color: "var(--ws-text, #0F172A)",
             borderRadius: 10,
             fontSize: 13,
             fontWeight: 700,
@@ -1192,11 +1192,11 @@ function CelebratePhase({ map, mastered, onRestart }: { map: KnowledgeMap; maste
 const bigInput: React.CSSProperties = {
   width: "100%",
   padding: "16px 18px",
-  border: "2px solid #E2E8F0",
+  border: "2px solid var(--ws-border, #E2E8F0)",
   borderRadius: 16,
   fontSize: 16,
-  color: "#0F172A",
-  background: "#fff",
+  color: "var(--ws-text, #0F172A)",
+  background: "var(--ws-canvas, #fff)",
   outline: "none",
   fontFamily: "inherit",
   boxSizing: "border-box",
@@ -1212,9 +1212,9 @@ function chip(): React.CSSProperties {
   return {
     padding: "8px 14px",
     borderRadius: 999,
-    border: "1px solid #E2E8F0",
-    background: "#fff",
-    color: "#334155",
+    border: "1px solid var(--ws-border, #E2E8F0)",
+    background: "var(--ws-canvas, #fff)",
+    color: "var(--ws-text-muted, #334155)",
     fontSize: 13,
     fontWeight: 700,
     cursor: "pointer",
@@ -1241,7 +1241,7 @@ function IconToggle({
         width: 42,
         height: 42,
         borderRadius: 12,
-        border: "1px solid #E2E8F0",
+        border: "1px solid var(--ws-border, #E2E8F0)",
         background: on ? (activeBg || "#E0E7FF") : "#fff",
         color: on ? (activeColor || "#3730A3") : "#334155",
         fontSize: 16,

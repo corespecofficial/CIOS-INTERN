@@ -1149,6 +1149,9 @@ html[data-theme="light"] [style*="border: 1px solid rgba(255,255,255,0.08)"] { b
 [data-theme="dark"] [data-workspace] {
   background: #0A0E1A !important;
   color: #F8FAFC !important;
+  /* Tells the browser to render native form-control chrome (scrollbars,
+     caret, resize handle, spellcheck squiggles) in their dark variants. */
+  color-scheme: dark;
 }
 [data-theme="dark"] [data-workspace] [style*="background: #fff"],
 [data-theme="dark"] [data-workspace] [style*="background:#fff"],

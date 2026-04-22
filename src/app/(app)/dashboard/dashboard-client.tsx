@@ -659,11 +659,32 @@ function InternDashboard({ stats }: { stats: InternStats }) {
 }
 
 /* ── Main Dashboard ── */
-export default function DashboardClient({ stats, role }: { stats: InternStats; role: string }) {
+import type { FeatureFlags } from "@/app/actions/platform-settings";
+interface SuperAdminPayload {
+  stats: { totalUsers: number; totalRevenue: number; orgs: number; systemHealth: number };
+  featureFlags: FeatureFlags;
+  roleBreakdown: Record<string, number>;
+}
+
+export default function DashboardClient({
+  stats,
+  role,
+  superAdmin,
+}: {
+  stats: InternStats;
+  role: string;
+  superAdmin?: SuperAdminPayload;
+}) {
   // role is passed directly from the server page — no store lookup, no hydration mismatch
 
   if (role === "admin") return <AdminDashboard />;
-  if (role === "super_admin") return <SuperAdminDashboard />;
+  if (role === "super_admin") return (
+    <SuperAdminDashboard
+      stats={superAdmin?.stats}
+      featureFlags={superAdmin?.featureFlags}
+      roleBreakdown={superAdmin?.roleBreakdown}
+    />
+  );
   if (role === "team_lead") return <TeamLeadDashboard stats={stats.teamStats} leaderboard={stats.teamLeaderboard} />;
   if (role === "instructor") return (
     <InstructorDashboard

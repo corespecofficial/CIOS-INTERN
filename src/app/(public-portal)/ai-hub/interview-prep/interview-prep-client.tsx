@@ -327,8 +327,8 @@ export function InterviewPrepClient({ firstName }: { firstName: string }) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "#fff",
-        color: "#1F2430",
+        background: "var(--ws-canvas, #fff)",
+        color: "var(--ws-text, #1F2430)",
         display: "flex",
         flexDirection: "column",
         fontFamily: "'Nunito', sans-serif",
@@ -342,15 +342,15 @@ export function InterviewPrepClient({ firstName }: { firstName: string }) {
           alignItems: "center",
           justifyContent: "space-between",
           padding: "14px 20px",
-          borderBottom: "1px solid #F0EDE5",
-          background: "#fff",
+          borderBottom: "1px solid var(--ws-border, #F0EDE5)",
+          background: "var(--ws-canvas, #fff)",
         }}
       >
         <Link href="/ai-hub" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "inherit" }}>
           <img src={CIOS_LOGO} alt="CIOS" width={28} height={28} style={{ borderRadius: 6 }} />
           <div>
-            <div style={{ fontSize: 14, fontWeight: 900, color: "#1F2430" }}>CIOS AI Interview</div>
-            <div style={{ fontSize: 11, color: "#8F8B80" }}>Live practice · real-time feedback</div>
+            <div style={{ fontSize: 14, fontWeight: 900, color: "var(--ws-text, #1F2430)" }}>CIOS AI Interview</div>
+            <div style={{ fontSize: 11, color: "var(--ws-text-faint, #8F8B80)" }}>Live practice · real-time feedback</div>
           </div>
         </Link>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -373,8 +373,8 @@ export function InterviewPrepClient({ firstName }: { firstName: string }) {
             href="/ai-hub"
             style={{
               padding: "8px 16px",
-              background: "#F2F1ED",
-              color: "#1F2430",
+              background: "var(--ws-chip, #F2F1ED)",
+              color: "var(--ws-text, #1F2430)",
               borderRadius: 10,
               fontSize: 13,
               fontWeight: 700,
@@ -534,25 +534,25 @@ function CvPhase({
             boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
           }}
         />
-        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: "#1F2430", letterSpacing: -0.3 }}>
+        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: "var(--ws-text, #1F2430)", letterSpacing: -0.3 }}>
           Let&apos;s set you up, {firstName}
         </h1>
-        <p style={{ color: "#55524A", fontSize: 14, marginTop: 8, lineHeight: 1.55 }}>
+        <p style={{ color: "var(--ws-text-muted, #55524A)", fontSize: 14, marginTop: 8, lineHeight: 1.55 }}>
           Paste your CV so CIOS can ground questions in your real experience. We extract it once and keep it only for this session.
         </p>
       </div>
 
       <div
         style={{
-          background: "#fff",
-          border: "1px solid #EAE7DF",
+          background: "var(--ws-canvas, #fff)",
+          border: "1px solid var(--ws-border, #EAE7DF)",
           borderRadius: 18,
           padding: 22,
           boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-          <label style={{ fontSize: 13, fontWeight: 800, color: "#1F2430" }}>Paste your CV</label>
+          <label style={{ fontSize: 13, fontWeight: 800, color: "var(--ws-text, #1F2430)" }}>Paste your CV</label>
           <label
             style={{
               display: "inline-flex",
@@ -560,12 +560,12 @@ function CvPhase({
               gap: 6,
               padding: "6px 12px",
               borderRadius: 8,
-              border: "1px solid #E6E3DA",
-              background: "#FBFAF6",
+              border: "1px solid var(--ws-border, #E6E3DA)",
+              background: "var(--ws-chip, #FBFAF6)",
               cursor: "pointer",
               fontSize: 12,
               fontWeight: 700,
-              color: "#55524A",
+              color: "var(--ws-text-muted, #55524A)",
             }}
           >
             📎 Upload .txt
@@ -580,19 +580,19 @@ function CvPhase({
           style={{
             width: "100%",
             padding: "14px 16px",
-            border: "1px solid #E6E3DA",
+            border: "1px solid var(--ws-border, #E6E3DA)",
             borderRadius: 14,
             fontSize: 14,
             lineHeight: 1.55,
-            background: "#FBFAF6",
-            color: "#1F2430",
+            background: "var(--ws-chip, #FBFAF6)",
+            color: "var(--ws-text, #1F2430)",
             fontFamily: "inherit",
             resize: "vertical",
             outline: "none",
             boxSizing: "border-box",
           }}
         />
-        <div style={{ fontSize: 12, color: "#8F8B80", marginTop: 8 }}>{cvText.length.toLocaleString()} characters</div>
+        <div style={{ fontSize: 12, color: "var(--ws-text-faint, #8F8B80)", marginTop: 8 }}>{cvText.length.toLocaleString()} characters</div>
       </div>
 
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
@@ -601,8 +601,8 @@ function CvPhase({
           style={{
             padding: "12px 20px",
             background: "transparent",
-            color: "#55524A",
-            border: "1px solid #E6E3DA",
+            color: "var(--ws-text-muted, #55524A)",
+            border: "1px solid var(--ws-border, #E6E3DA)",
             borderRadius: 10,
             fontSize: 13,
             fontWeight: 700,
@@ -656,18 +656,18 @@ function SetupPhase(props: {
   return (
     <div style={{ maxWidth: 720, margin: "0 auto" }}>
       <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: "#1F2430", letterSpacing: -0.3 }}>
+        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: "var(--ws-text, #1F2430)", letterSpacing: -0.3 }}>
           Practice sample interview questions
         </h1>
-        <p style={{ color: "#55524A", fontSize: 14, marginTop: 6 }}>
+        <p style={{ color: "var(--ws-text-muted, #55524A)", fontSize: 14, marginTop: 6 }}>
           Configure the interview exactly like the real one.
         </p>
       </div>
 
       <div
         style={{
-          background: "#fff",
-          border: "1px solid #EAE7DF",
+          background: "var(--ws-canvas, #fff)",
+          border: "1px solid var(--ws-border, #EAE7DF)",
           borderRadius: 18,
           padding: 24,
           boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
@@ -701,12 +701,12 @@ function SetupPhase(props: {
             style={{
               width: "100%",
               padding: "14px 16px",
-              border: "1px solid #E6E3DA",
+              border: "1px solid var(--ws-border, #E6E3DA)",
               borderRadius: 14,
               fontSize: 14,
               lineHeight: 1.55,
-              background: "#FBFAF6",
-              color: "#1F2430",
+              background: "var(--ws-chip, #FBFAF6)",
+              color: "var(--ws-text, #1F2430)",
               fontFamily: "inherit",
               resize: "vertical",
               outline: "none",
@@ -727,11 +727,11 @@ function SetupPhase(props: {
             style={{
               width: 200,
               padding: "12px 14px",
-              border: "1px solid #E6E3DA",
+              border: "1px solid var(--ws-border, #E6E3DA)",
               borderRadius: 12,
               fontSize: 14,
-              background: "#fff",
-              color: "#1F2430",
+              background: "var(--ws-canvas, #fff)",
+              color: "var(--ws-text, #1F2430)",
               fontFamily: "inherit",
               outline: "none",
               boxSizing: "border-box",
@@ -763,8 +763,8 @@ function SetupPhase(props: {
             onClick={onClear}
             style={{
               padding: "13px 22px",
-              background: "#F2F1ED",
-              color: "#55524A",
+              background: "var(--ws-chip, #F2F1ED)",
+              color: "var(--ws-text-muted, #55524A)",
               border: "none",
               borderRadius: 12,
               fontSize: 14,
@@ -809,7 +809,7 @@ function BriefingModal({
         style={{
           maxWidth: 540,
           width: "100%",
-          background: "#fff",
+          background: "var(--ws-canvas, #fff)",
           borderRadius: 20,
           padding: "28px 32px",
           boxShadow: "0 30px 80px rgba(0,0,0,0.35)",
@@ -832,15 +832,15 @@ function BriefingModal({
             <div style={{ fontSize: 11, fontWeight: 800, color: ACCENT, letterSpacing: 0.5 }}>
               {interviewType || "AI INTERVIEW"} · {language || "English"}
             </div>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#1F2430", letterSpacing: -0.2 }}>
+            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "var(--ws-text, #1F2430)", letterSpacing: -0.2 }}>
               Your interview starts soon.
             </h2>
           </div>
         </div>
-        <p style={{ fontSize: 14, color: "#55524A", lineHeight: 1.55, marginTop: 4 }}>
+        <p style={{ fontSize: 14, color: "var(--ws-text-muted, #55524A)", lineHeight: 1.55, marginTop: 4 }}>
           Keep the following in mind:
         </p>
-        <ul style={{ margin: "8px 0 18px", paddingLeft: 20, color: "#1F2430", fontSize: 14, lineHeight: 1.75 }}>
+        <ul style={{ margin: "8px 0 18px", paddingLeft: 20, color: "var(--ws-text, #1F2430)", fontSize: 14, lineHeight: 1.75 }}>
           <li>CIOS will ask the first question.</li>
           <li>Type your answer, or press 🎤 to speak and CIOS will transcribe it.</li>
           <li>When you&apos;re done, press <strong>End response</strong> to send it.</li>
@@ -964,7 +964,7 @@ function LivePhase(props: {
                 boxShadow: aiThinking ? `0 0 0 4px ${ACCENT}33` : "none",
               }}
             />
-            <div style={{ fontSize: 11, fontWeight: 800, color: "#1F2430" }}>CIOS</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: "var(--ws-text, #1F2430)" }}>CIOS</div>
             <div style={{ fontSize: 10, color: aiThinking ? ACCENT_DARK : "#8F8B80" }}>
               {aiThinking ? "Thinking…" : "Listening"}
             </div>
@@ -993,8 +993,8 @@ function LivePhase(props: {
         {/* Composer */}
         <div
           style={{
-            background: "#fff",
-            border: "1px solid #EAE7DF",
+            background: "var(--ws-canvas, #fff)",
+            border: "1px solid var(--ws-border, #EAE7DF)",
             borderRadius: 18,
             padding: 14,
             boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
@@ -1008,12 +1008,12 @@ function LivePhase(props: {
             style={{
               width: "100%",
               padding: "12px 14px",
-              border: "1px solid #E6E3DA",
+              border: "1px solid var(--ws-border, #E6E3DA)",
               borderRadius: 12,
               fontSize: 14,
               lineHeight: 1.55,
               background: listening ? "#FFF7ED" : "#FBFAF6",
-              color: "#1F2430",
+              color: "var(--ws-text, #1F2430)",
               fontFamily: "inherit",
               resize: "vertical",
               outline: "none",
@@ -1043,9 +1043,9 @@ function LivePhase(props: {
                 style={{
                   padding: "10px 14px",
                   borderRadius: 10,
-                  border: "1px solid #E6E3DA",
-                  background: "#fff",
-                  color: "#55524A",
+                  border: "1px solid var(--ws-border, #E6E3DA)",
+                  background: "var(--ws-canvas, #fff)",
+                  color: "var(--ws-text-muted, #55524A)",
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: "pointer",
@@ -1079,8 +1079,8 @@ function LivePhase(props: {
       {/* RIGHT — live transcript */}
       <aside
         style={{
-          background: "#FBFAF6",
-          border: "1px solid #EAE7DF",
+          background: "var(--ws-chip, #FBFAF6)",
+          border: "1px solid var(--ws-border, #EAE7DF)",
           borderRadius: 20,
           overflow: "hidden",
           display: "flex",
@@ -1088,12 +1088,12 @@ function LivePhase(props: {
           boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
         }}
       >
-        <div style={{ padding: "14px 18px", borderBottom: "1px solid #EAE7DF", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 900, color: "#1F2430" }}>
+        <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--ws-border, #EAE7DF)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 900, color: "var(--ws-text, #1F2430)" }}>
             <span style={{ width: 8, height: 8, borderRadius: 999, background: "#EF4444", animation: "ciosRecordPulse 1.4s ease-in-out infinite" }} />
             Live transcript
           </div>
-          <span style={{ fontSize: 11, color: "#8F8B80", fontWeight: 700 }}>
+          <span style={{ fontSize: 11, color: "var(--ws-text-faint, #8F8B80)", fontWeight: 700 }}>
             {history.filter((t) => t.role === "interviewer").length} Q · {history.filter((t) => t.role === "candidate").length} A
           </span>
         </div>
@@ -1116,13 +1116,13 @@ function TurnBubble({ turn, firstName }: { turn: InterviewTurn; firstName: strin
         <div style={{ fontSize: 11, fontWeight: 800, color: ACCENT_DARK, letterSpacing: 0.3 }}>CIOS</div>
         <div
           style={{
-            background: "#fff",
-            border: "1px solid #EAE7DF",
+            background: "var(--ws-canvas, #fff)",
+            border: "1px solid var(--ws-border, #EAE7DF)",
             padding: "12px 14px",
             borderRadius: 14,
             fontSize: 14,
             lineHeight: 1.55,
-            color: "#1F2430",
+            color: "var(--ws-text, #1F2430)",
             whiteSpace: "pre-wrap",
           }}
         >
@@ -1133,7 +1133,7 @@ function TurnBubble({ turn, firstName }: { turn: InterviewTurn; firstName: strin
   }
   return (
     <div style={{ display: "grid", gap: 4, textAlign: "right" }}>
-      <div style={{ fontSize: 11, fontWeight: 800, color: "#1F2430" }}>{firstName}</div>
+      <div style={{ fontSize: 11, fontWeight: 800, color: "var(--ws-text, #1F2430)" }}>{firstName}</div>
       <div
         style={{
           background: `${ACCENT}14`,
@@ -1142,7 +1142,7 @@ function TurnBubble({ turn, firstName }: { turn: InterviewTurn; firstName: strin
           borderRadius: 14,
           fontSize: 14,
           lineHeight: 1.55,
-          color: "#1F2430",
+          color: "var(--ws-text, #1F2430)",
           whiteSpace: "pre-wrap",
           display: "inline-block",
           marginLeft: "auto",
@@ -1160,7 +1160,7 @@ function ThinkingBubble() {
   return (
     <div style={{ display: "grid", gap: 4 }}>
       <div style={{ fontSize: 11, fontWeight: 800, color: ACCENT_DARK, letterSpacing: 0.3 }}>CIOS</div>
-      <div style={{ display: "inline-flex", gap: 6, padding: "10px 14px", borderRadius: 14, background: "#fff", border: "1px solid #EAE7DF", width: "fit-content" }}>
+      <div style={{ display: "inline-flex", gap: 6, padding: "10px 14px", borderRadius: 14, background: "var(--ws-canvas, #fff)", border: "1px solid var(--ws-border, #EAE7DF)", width: "fit-content" }}>
         {[0, 1, 2].map((i) => (
           <span
             key={i}
@@ -1184,7 +1184,7 @@ function DebriefPhase({ debrief, loading, onRestart }: { debrief: Debrief | null
     return (
       <div style={{ textAlign: "center", padding: "80px 20px" }}>
         <img src={CIOS_LOGO} alt="" width={48} height={48} style={{ borderRadius: 12, animation: "ciosPulse 1.2s ease-in-out infinite" }} />
-        <div style={{ fontSize: 15, color: "#55524A", marginTop: 14, fontWeight: 700 }}>Writing your debrief…</div>
+        <div style={{ fontSize: 15, color: "var(--ws-text-muted, #55524A)", marginTop: 14, fontWeight: 700 }}>Writing your debrief…</div>
       </div>
     );
   }
@@ -1205,8 +1205,8 @@ function DebriefPhase({ debrief, loading, onRestart }: { debrief: Debrief | null
         <div style={{ fontSize: 56, fontWeight: 900, color: scoreColor, lineHeight: 1 }}>
           {debrief.overallScore}
         </div>
-        <div style={{ fontSize: 14, color: "#55524A", marginTop: 6 }}>out of 10</div>
-        <div style={{ fontSize: 15, color: "#1F2430", fontWeight: 800, marginTop: 14 }}>
+        <div style={{ fontSize: 14, color: "var(--ws-text-muted, #55524A)", marginTop: 6 }}>out of 10</div>
+        <div style={{ fontSize: 15, color: "var(--ws-text, #1F2430)", fontWeight: 800, marginTop: 14 }}>
           {debrief.overallScore >= 8 ? "Excellent! You're interview-ready. 🌟"
             : debrief.overallScore >= 6 ? "Solid. A few sharp tweaks and you'll nail it."
             : "Keep practicing — review the notes below."}
@@ -1215,17 +1215,17 @@ function DebriefPhase({ debrief, loading, onRestart }: { debrief: Debrief | null
 
       <div style={{ padding: 20, borderRadius: 16, background: "#F1FBF3", border: "1px solid #C6E7CB" }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: "#2E7D32", letterSpacing: 0.5, marginBottom: 6 }}>✓ STRENGTHS</div>
-        <div style={{ fontSize: 14, color: "#1F2430", lineHeight: 1.6 }}>{debrief.strengths}</div>
+        <div style={{ fontSize: 14, color: "var(--ws-text, #1F2430)", lineHeight: 1.6 }}>{debrief.strengths}</div>
       </div>
 
       <div style={{ padding: 20, borderRadius: 16, background: "#FFF7E0", border: "1px solid #F4E3A8" }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: "#B7791F", letterSpacing: 0.5, marginBottom: 6 }}>↑ IMPROVE</div>
-        <div style={{ fontSize: 14, color: "#1F2430", lineHeight: 1.6 }}>{debrief.improvements}</div>
+        <div style={{ fontSize: 14, color: "var(--ws-text, #1F2430)", lineHeight: 1.6 }}>{debrief.improvements}</div>
       </div>
 
       <div style={{ padding: 20, borderRadius: 16, background: `${ACCENT}0D`, border: `1px solid ${ACCENT}33` }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: ACCENT_DARK, letterSpacing: 0.5, marginBottom: 6 }}>→ NEXT STEPS</div>
-        <div style={{ fontSize: 14, color: "#1F2430", lineHeight: 1.6 }}>{debrief.nextSteps}</div>
+        <div style={{ fontSize: 14, color: "var(--ws-text, #1F2430)", lineHeight: 1.6 }}>{debrief.nextSteps}</div>
       </div>
 
       <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 6, flexWrap: "wrap" }}>
@@ -1249,8 +1249,8 @@ function DebriefPhase({ debrief, loading, onRestart }: { debrief: Debrief | null
           href="/ai-hub"
           style={{
             padding: "12px 22px",
-            background: "#F2F1ED",
-            color: "#1F2430",
+            background: "var(--ws-chip, #F2F1ED)",
+            color: "var(--ws-text, #1F2430)",
             borderRadius: 10,
             fontSize: 13,
             fontWeight: 700,
@@ -1268,7 +1268,7 @@ function DebriefPhase({ debrief, loading, onRestart }: { debrief: Debrief | null
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <label style={{ display: "block", fontSize: 13, fontWeight: 800, color: "#1F2430", marginBottom: 6 }}>
+    <label style={{ display: "block", fontSize: 13, fontWeight: 800, color: "var(--ws-text, #1F2430)", marginBottom: 6 }}>
       {children}
     </label>
   );
@@ -1294,7 +1294,7 @@ function Select({
           padding: "12px 14px",
           border: `1px solid ${value ? ACCENT : "#E6E3DA"}`,
           borderRadius: 12,
-          background: "#fff",
+          background: "var(--ws-canvas, #fff)",
           color: value ? "#1F2430" : "#8F8B80",
           fontSize: 14,
           outline: "none",
@@ -1337,7 +1337,7 @@ function IconToggle({
         width: 42,
         height: 42,
         borderRadius: 12,
-        border: "1px solid #E6E3DA",
+        border: "1px solid var(--ws-border, #E6E3DA)",
         background: on ? (activeBg || "#EDEAE0") : "#fff",
         color: on ? (activeColor || "#1F2430") : "#55524A",
         fontSize: 16,

@@ -133,19 +133,19 @@ export function CvWizard({ firstName, seedEmail }: { firstName: string; seedEmai
   };
 
   return (
-    <div data-workspace="cv-wizard" style={{ position: "fixed", inset: 0, background: "#fff", color: "#0F172A", overflow: "auto", fontFamily: "'Nunito', sans-serif", zIndex: 9999 }}>
+    <div data-workspace="cv-wizard" style={{ position: "fixed", inset: 0, background: "var(--ws-canvas, #fff)", color: "var(--ws-text, #0F172A)", overflow: "auto", fontFamily: "'Nunito', sans-serif", zIndex: 9999 }}>
       {/* Top bar */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderBottom: "1px solid #F1F5F9", background: "#fff" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 20px", borderBottom: "1px solid #F1F5F9", background: "var(--ws-canvas, #fff)" }}>
         <Link href="/documents" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none", color: "inherit" }}>
           <img src={CIOS_LOGO} alt="CIOS" width={28} height={28} style={{ borderRadius: 6 }} />
           <div>
-            <div style={{ fontSize: 14, fontWeight: 900, color: "#0F172A" }}>CIOS CV Builder</div>
-            <div style={{ fontSize: 11, color: "#64748B" }}>Region-aware · AI-polished</div>
+            <div style={{ fontSize: 14, fontWeight: 900, color: "var(--ws-text, #0F172A)" }}>CIOS CV Builder</div>
+            <div style={{ fontSize: 11, color: "var(--ws-text-faint, #64748B)" }}>Region-aware · AI-polished</div>
           </div>
         </Link>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <ThemeToggle compact />
-          <Link href="/documents/app" style={{ padding: "8px 14px", background: "#F1F5F9", color: "#0F172A", borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+          <Link href="/documents/app" style={{ padding: "8px 14px", background: "var(--ws-chip, #F1F5F9)", color: "var(--ws-text, #0F172A)", borderRadius: 10, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
             ← Tools
           </Link>
         </div>
@@ -155,10 +155,10 @@ export function CvWizard({ firstName, seedEmail }: { firstName: string; seedEmai
       {phase !== "welcome" && phase !== "result" && (
         <div style={{ maxWidth: 720, margin: "20px auto 0", padding: "0 20px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ flex: 1, height: 8, borderRadius: 999, background: "#E2E8F0", overflow: "hidden" }}>
+            <div style={{ flex: 1, height: 8, borderRadius: 999, background: "var(--ws-chip-hover, #E2E8F0)", overflow: "hidden" }}>
               <div style={{ height: "100%", borderRadius: 999, background: `linear-gradient(90deg, ${A1}, ${A2})`, width: `${pct}%`, transition: "width .25s ease" }} />
             </div>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "#64748B" }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "var(--ws-text-faint, #64748B)" }}>
               {progressIdx + 1} / {visibleOrder.length}
             </div>
           </div>
@@ -181,11 +181,11 @@ export function CvWizard({ firstName, seedEmail }: { firstName: string; seedEmai
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ fontSize: 22 }}>{r.flag}</span>
                     <div>
-                      <div style={{ fontWeight: 800, fontSize: 15, color: "#0F172A" }}>{r.label}</div>
-                      <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>{r.tagline}</div>
+                      <div style={{ fontWeight: 800, fontSize: 15, color: "var(--ws-text, #0F172A)" }}>{r.label}</div>
+                      <div style={{ fontSize: 12, color: "var(--ws-text-faint, #64748B)", marginTop: 2 }}>{r.tagline}</div>
                     </div>
                   </div>
-                  <div style={{ color: "#64748B", fontSize: 12, marginTop: 6 }}>{r.summary}</div>
+                  <div style={{ color: "var(--ws-text-faint, #64748B)", fontSize: 12, marginTop: 6 }}>{r.summary}</div>
                 </button>
               ))}
             </div>
@@ -213,10 +213,10 @@ export function CvWizard({ firstName, seedEmail }: { firstName: string; seedEmai
                     }}
                   >
                     <div style={{ fontSize: 28, marginBottom: 6 }}>{t.emoji}</div>
-                    <div style={{ fontWeight: 800, color: "#0F172A", fontSize: 15 }}>{t.label}</div>
-                    <div style={{ fontSize: 12, color: "#64748B", marginTop: 4, lineHeight: 1.5 }}>{t.blurb}</div>
+                    <div style={{ fontWeight: 800, color: "var(--ws-text, #0F172A)", fontSize: 15 }}>{t.label}</div>
+                    <div style={{ fontSize: 12, color: "var(--ws-text-faint, #64748B)", marginTop: 4, lineHeight: 1.5 }}>{t.blurb}</div>
                     {disabled && (
-                      <span style={{ position: "absolute", top: 10, right: 10, fontSize: 10, padding: "2px 8px", borderRadius: 999, background: "#F1F5F9", color: "#64748B", fontWeight: 800, letterSpacing: 0.3 }}>SOON</span>
+                      <span style={{ position: "absolute", top: 10, right: 10, fontSize: 10, padding: "2px 8px", borderRadius: 999, background: "var(--ws-chip, #F1F5F9)", color: "var(--ws-text-faint, #64748B)", fontWeight: 800, letterSpacing: 0.3 }}>SOON</span>
                     )}
                   </button>
                 );
@@ -278,7 +278,7 @@ export function CvWizard({ firstName, seedEmail }: { firstName: string; seedEmai
               placeholder="e.g. Frontend engineer with 4 years building accessible web apps. Shipped a design system used across 7 products. Looking for a senior role at a product-led team…"
               style={textAreaStyle}
             />
-            <div style={{ fontSize: 12, color: "#64748B", marginTop: 6 }}>{summary.length} characters</div>
+            <div style={{ fontSize: 12, color: "var(--ws-text-faint, #64748B)", marginTop: 6 }}>{summary.length} characters</div>
             <FooterNav onBack={back} onNext={advance} />
           </Step>
         )}
@@ -413,7 +413,7 @@ export function CvWizard({ firstName, seedEmail }: { firstName: string; seedEmai
             )}
 
             {!spec.allowsInterests && !spec.requiresReferees && (
-              <div style={{ color: "#64748B", fontSize: 14, padding: "24px 0" }}>
+              <div style={{ color: "var(--ws-text-faint, #64748B)", fontSize: 14, padding: "24px 0" }}>
                 Nothing region-specific for {spec.label}. You&apos;re good to review.
               </div>
             )}
@@ -471,10 +471,10 @@ function Welcome({ firstName, onStart }: { firstName: string; onStart: () => voi
   return (
     <div style={{ textAlign: "center", paddingTop: 20 }}>
       <img src={CIOS_LOGO} alt="CIOS" width={72} height={72} style={{ display: "block", margin: "0 auto 18px", borderRadius: 18, boxShadow: `0 6px 20px ${A1}40` }} />
-      <h1 style={{ margin: 0, fontSize: 32, fontWeight: 900, color: "#0F172A", letterSpacing: -0.4 }}>
+      <h1 style={{ margin: 0, fontSize: 32, fontWeight: 900, color: "var(--ws-text, #0F172A)", letterSpacing: -0.4 }}>
         Hi {firstName} 👋 let&apos;s build your CV
       </h1>
-      <p style={{ fontSize: 16, color: "#475569", lineHeight: 1.6, marginTop: 10, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
+      <p style={{ fontSize: 16, color: "var(--ws-text-muted, #475569)", lineHeight: 1.6, marginTop: 10, maxWidth: 560, marginLeft: "auto", marginRight: "auto" }}>
         10 short steps. You pick your region and template, answer a few questions,
         and CIOS polishes everything into a clean, downloadable PDF.
       </p>
@@ -488,8 +488,8 @@ function Welcome({ firstName, onStart }: { firstName: string; onStart: () => voi
 function Step({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
     <div>
-      <h2 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: "#0F172A", letterSpacing: -0.3 }}>{title}</h2>
-      <p style={{ color: "#64748B", fontSize: 14, marginTop: 6, lineHeight: 1.55 }}>{subtitle}</p>
+      <h2 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: "var(--ws-text, #0F172A)", letterSpacing: -0.3 }}>{title}</h2>
+      <p style={{ color: "var(--ws-text-faint, #64748B)", fontSize: 14, marginTop: 6, lineHeight: 1.55 }}>{subtitle}</p>
       <div style={{ marginTop: 18 }}>{children}</div>
     </div>
   );
@@ -536,8 +536,8 @@ function Summary({ payload }: { payload: CvFormPayload }) {
 function Line({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 12, padding: "6px 0", borderBottom: "1px solid #F1F5F9" }}>
-      <div style={{ fontSize: 11, color: "#64748B", fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase" }}>{label}</div>
-      <div style={{ fontSize: 13, color: "#0F172A" }}>{value || "—"}</div>
+      <div style={{ fontSize: 11, color: "var(--ws-text-faint, #64748B)", fontWeight: 700, letterSpacing: 0.3, textTransform: "uppercase" }}>{label}</div>
+      <div style={{ fontSize: 13, color: "var(--ws-text, #0F172A)" }}>{value || "—"}</div>
     </div>
   );
 }
@@ -545,25 +545,25 @@ function Line({ label, value }: { label: string; value: string }) {
 function Preview({ polished, payload }: { polished: CvPolished; payload: CvFormPayload }) {
   return (
     <div style={{ ...cardLight, padding: 22 }}>
-      <div style={{ fontSize: 22, fontWeight: 900, color: "#0F172A" }}>{payload.fullName}</div>
+      <div style={{ fontSize: 22, fontWeight: 900, color: "var(--ws-text, #0F172A)" }}>{payload.fullName}</div>
       <div style={{ color: A1, fontWeight: 700, fontSize: 13, marginTop: 2 }}>{payload.headline}</div>
-      <div style={{ fontSize: 12, color: "#475569", marginTop: 4 }}>
+      <div style={{ fontSize: 12, color: "var(--ws-text-muted, #475569)", marginTop: 4 }}>
         {[payload.email, payload.phone, payload.location].filter(Boolean).join(" · ")}
       </div>
       <PreviewSection title="Summary">
-        <div style={{ fontSize: 13, color: "#0F172A", lineHeight: 1.65 }}>{polished.summary}</div>
+        <div style={{ fontSize: 13, color: "var(--ws-text, #0F172A)", lineHeight: 1.65 }}>{polished.summary}</div>
       </PreviewSection>
       <PreviewSection title="Experience">
         {polished.experience.map((x, i) => (
           <div key={i} style={{ marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-              <strong style={{ color: "#0F172A" }}>{x.role}</strong>
-              <span style={{ color: "#64748B", fontSize: 12 }}>{x.startDate} — {x.endDate}</span>
+              <strong style={{ color: "var(--ws-text, #0F172A)" }}>{x.role}</strong>
+              <span style={{ color: "var(--ws-text-faint, #64748B)", fontSize: 12 }}>{x.startDate} — {x.endDate}</span>
             </div>
-            <div style={{ color: "#475569", fontSize: 12, margin: "2px 0 4px" }}>
+            <div style={{ color: "var(--ws-text-muted, #475569)", fontSize: 12, margin: "2px 0 4px" }}>
               {[x.company, x.location].filter(Boolean).join(" · ")}
             </div>
-            <ul style={{ margin: 0, paddingLeft: 18, color: "#0F172A", fontSize: 13, lineHeight: 1.55 }}>
+            <ul style={{ margin: 0, paddingLeft: 18, color: "var(--ws-text, #0F172A)", fontSize: 13, lineHeight: 1.55 }}>
               {x.bullets.map((b, j) => <li key={j}>{b}</li>)}
             </ul>
           </div>
@@ -572,13 +572,13 @@ function Preview({ polished, payload }: { polished: CvPolished; payload: CvFormP
       <PreviewSection title="Skills">
         {polished.skillsGrouped.map((g, i) => (
           <div key={i} style={{ fontSize: 13, marginBottom: 4 }}>
-            <strong>{g.group}:</strong> <span style={{ color: "#475569" }}>{g.items.join(" · ")}</span>
+            <strong>{g.group}:</strong> <span style={{ color: "var(--ws-text-muted, #475569)" }}>{g.items.join(" · ")}</span>
           </div>
         ))}
       </PreviewSection>
       {polished.achievements.length > 0 && (
         <PreviewSection title="Key achievements">
-          <ul style={{ margin: 0, paddingLeft: 18, color: "#0F172A", fontSize: 13, lineHeight: 1.6 }}>
+          <ul style={{ margin: 0, paddingLeft: 18, color: "var(--ws-text, #0F172A)", fontSize: 13, lineHeight: 1.6 }}>
             {polished.achievements.map((a, i) => <li key={i}>{a}</li>)}
           </ul>
         </PreviewSection>
@@ -606,7 +606,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function LabelRow({ label }: { label: string }) {
-  return <div style={{ fontSize: 11, color: "#64748B", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6 }}>{label}</div>;
+  return <div style={{ fontSize: 11, color: "var(--ws-text-faint, #64748B)", fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 6 }}>{label}</div>;
 }
 
 function Grid2({ children }: { children: React.ReactNode }) {
@@ -676,20 +676,20 @@ function updateAt<T>(arr: T[], setter: (next: T[]) => void, i: number, patch: Pa
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "11px 14px", borderRadius: 12,
-  border: "1px solid #E2E8F0", background: "#fff", color: "#0F172A",
+  border: "1px solid var(--ws-border, #E2E8F0)", background: "var(--ws-canvas, #fff)", color: "var(--ws-text, #0F172A)",
   fontSize: 14, outline: "none", fontFamily: "inherit", boxSizing: "border-box",
 };
 
 const textAreaStyle: React.CSSProperties = {
   width: "100%", padding: "12px 14px", borderRadius: 14,
-  border: "1px solid #E2E8F0", background: "#F8FAFC", color: "#0F172A",
+  border: "1px solid var(--ws-border, #E2E8F0)", background: "var(--ws-chip, #F8FAFC)", color: "var(--ws-text, #0F172A)",
   fontSize: 14, lineHeight: 1.55, outline: "none", fontFamily: "inherit",
   resize: "vertical", boxSizing: "border-box",
 };
 
 const cardLight: React.CSSProperties = {
-  padding: 14, borderRadius: 14, background: "#fff",
-  border: "1px solid #E2E8F0", marginBottom: 10,
+  padding: 14, borderRadius: 14, background: "var(--ws-canvas, #fff)",
+  border: "1px solid var(--ws-border, #E2E8F0)", marginBottom: 10,
 };
 
 function primaryBtn(busy: boolean): React.CSSProperties {
@@ -703,8 +703,8 @@ function primaryBtn(busy: boolean): React.CSSProperties {
 }
 const ghostBtn: React.CSSProperties = {
   padding: "12px 20px", borderRadius: 12,
-  background: "#fff", color: "#0F172A",
-  border: "1.5px solid #E2E8F0", fontSize: 13, fontWeight: 700, cursor: "pointer",
+  background: "var(--ws-canvas, #fff)", color: "var(--ws-text, #0F172A)",
+  border: "1.5px solid var(--ws-border, #E2E8F0)", fontSize: 13, fontWeight: 700, cursor: "pointer",
   fontFamily: "inherit",
 };
 const removeBtn: React.CSSProperties = {
@@ -714,7 +714,7 @@ const removeBtn: React.CSSProperties = {
 };
 const addMoreBtn: React.CSSProperties = {
   padding: "10px 16px", borderRadius: 10,
-  background: "#F1F5F9", color: "#0F172A",
+  background: "var(--ws-chip, #F1F5F9)", color: "var(--ws-text, #0F172A)",
   border: "1px dashed #CBD5E1", fontSize: 13, fontWeight: 700, cursor: "pointer",
   fontFamily: "inherit", marginTop: 4,
 };

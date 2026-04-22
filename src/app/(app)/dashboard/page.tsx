@@ -11,12 +11,74 @@ import {
   getMyCoursesAsInstructor,
   getInstructorUpcomingClasses,
   getInstructorRecentGrades,
+  sumRevenue,
+  supabaseAdmin,
 } from "@/lib/db";
 import { computePersonalMetrics, getWeights } from "@/lib/performance";
 import { levelFromXP } from "@/lib/gamification-shared";
+import { getFeatureFlags } from "@/app/actions/platform-settings";
+import { clerkClient } from "@clerk/nextjs/server";
 import DashboardClient from "./dashboard-client";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+/** Fetches the four super-admin stat tiles (users, orgs, revenue, health)
+ *  + per-role breakdown, using the same multi-source fan-out as /super-admin.
+ *  Returns undefined shape identical to SuperAdminDashboard's `stats` prop. */
+async function fetchSuperAdminData() {
+  const candidates: number[] = [0];
+  let roleBreakdown: Record<string, number> = {};
+
+  try {
+    const sb = supabaseAdmin();
+    const [headRes, breakdownRes] = await Promise.all([
+      sb.from("users").select("*", { count: "exact", head: true }),
+      sb.from("users").select("id, role").range(0, 999),
+    ]);
+    if (typeof headRes.count === "number") candidates.push(headRes.count);
+    if (breakdownRes.data) {
+      candidates.push(breakdownRes.data.length);
+      for (const u of breakdownRes.data) {
+        const role = (u.role as string) || "intern";
+        roleBreakdown[role] = (roleBreakdown[role] || 0) + 1;
+      }
+    }
+  } catch (e) {
+    console.error("[Dashboard super-admin] supabase exception:", e);
+  }
+
+  try {
+    const client = await clerkClient();
+    const res = await client.users.getUserList({ limit: 200, offset: 0 });
+    if (typeof res.totalCount === "number") candidates.push(res.totalCount);
+    candidates.push(res.data.length);
+    if (Object.keys(roleBreakdown).length === 0) {
+      for (const u of res.data) {
+        const role = (u.publicMetadata?.role as string) || "intern";
+        roleBreakdown[role] = (roleBreakdown[role] || 0) + 1;
+      }
+    }
+  } catch (e) {
+    console.error("[Dashboard super-admin] clerk exception:", e);
+  }
+
+  const [totalRevenue, featureFlags] = await Promise.all([
+    sumRevenue(),
+    getFeatureFlags(),
+  ]);
+
+  return {
+    stats: {
+      totalUsers: Math.max(...candidates),
+      totalRevenue,
+      orgs: 1,
+      systemHealth: 100,
+    },
+    featureFlags,
+    roleBreakdown,
+  };
+}
 
 export default async function DashboardPage() {
   const [dbUser, weights] = await Promise.all([getCurrentDbUser(), getWeights()]);
@@ -85,5 +147,12 @@ export default async function DashboardPage() {
     } : null,
   };
 
-  return <DashboardClient stats={stats} role={dbUser?.role ?? "intern"} />;
+  const role = dbUser?.role ?? "intern";
+
+  // Super-admins get an extra data bundle (total users, revenue, flags, role
+  // breakdown). Every other role renders from `stats` alone, so we skip the
+  // extra queries to keep the page fast.
+  const superAdmin = role === "super_admin" ? await fetchSuperAdminData() : undefined;
+
+  return <DashboardClient stats={stats} role={role} superAdmin={superAdmin} />;
 }
