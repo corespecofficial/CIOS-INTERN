@@ -32,7 +32,6 @@ const STANDALONE_PUBLIC_ROUTES = ["/investors", "/guardian/", "/suspended"];
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const collapsed = useAppStore((s) => s.sidebarCollapsed);
-  const setTheme = useAppStore((s) => s.setTheme);
   const showCopilot = AI_COPILOT_ROUTES.some((r) => pathname === r || pathname.startsWith(r + "/"));
 
   // Render public standalone pages without any portal chrome
@@ -74,19 +73,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     })();
   }, []);
 
-  // Initialize theme from localStorage on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("cios-theme");
-      if (saved === "light" || saved === "dark") {
-        setTheme(saved);
-      } else {
-        document.documentElement.setAttribute("data-theme", "dark");
-      }
-    } catch {
-      document.documentElement.setAttribute("data-theme", "dark");
-    }
-  }, [setTheme]);
+  // Theme hydration lives in the root layout's <ThemeHydrator />, which reads
+  // the new `cios-theme-choice` key. An older effect here read the legacy
+  // `cios-theme` key and forced `data-theme="dark"` when it was missing — that
+  // was overwriting the correct theme any time a user entered the (app) group
+  // from a public route, causing dark glitches until hard refresh.
 
   return (
     <div suppressHydrationWarning style={{ minHeight: "100vh", background: "#0A0E1A", color: "#E8EDF5", fontFamily: "'Nunito', sans-serif" }}>

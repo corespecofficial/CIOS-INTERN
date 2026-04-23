@@ -205,8 +205,8 @@ export function CvWizard({ firstName, seedEmail }: { firstName: string; seedEmai
                     onClick={() => { if (!disabled) { setTemplate(t.id); setTimeout(advance, 120); } }}
                     style={{
                       padding: 16, borderRadius: 16,
-                      background: template === t.id ? `${A1}0F` : "#fff",
-                      border: `1.5px solid ${template === t.id ? A1 : "#E2E8F0"}`,
+                      background: template === t.id ? `${A1}0F` : "var(--ws-canvas, #fff)",
+                      border: `1.5px solid ${template === t.id ? A1 : "var(--ws-border, #E2E8F0)"}`,
                       textAlign: "left", cursor: disabled ? "not-allowed" : "pointer",
                       fontFamily: "inherit", opacity: disabled ? 0.55 : 1,
                       position: "relative",
@@ -722,8 +722,8 @@ const addMoreBtn: React.CSSProperties = {
 function regionCard(active: boolean): React.CSSProperties {
   return {
     padding: 16, borderRadius: 16,
-    background: active ? `${A1}0F` : "#fff",
-    border: `1.5px solid ${active ? A1 : "#E2E8F0"}`,
+    background: active ? `${A1}0F` : "var(--ws-canvas, #fff)",
+    border: `1.5px solid ${active ? A1 : "var(--ws-border, #E2E8F0)"}`,
     textAlign: "left", cursor: "pointer", fontFamily: "inherit",
     transition: "border-color .15s, background .15s",
   };
