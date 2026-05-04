@@ -13,23 +13,33 @@ const LOGO_URL =
 interface NavItem {
   emoji: string;
   label: string;
+  /** Path appended to /visitor (in-portal items) OR an absolute path
+   *  starting with `/` (root-level shared surfaces). The renderer
+   *  decides based on `inPortal`. */
   href: string;
   section: string;
+  /** Items inside the visitor portal route group → prepend /visitor.
+   *  Discover / Notifications / Settings live at the root → use href
+   *  as-is. Without this distinction every Discover link 404s
+   *  (`/visitor/notifications` doesn't exist; `/notifications` does). */
+  inPortal: boolean;
 }
 
 const ITEMS: NavItem[] = [
-  { emoji: "🏠", label: "Overview",        href: "",              section: "MAIN" },
-  { emoji: "🔍", label: "Explore",         href: "/explore",      section: "MAIN" },
-  { emoji: "📨", label: "My applications", href: "/applications", section: "MAIN" },
-  { emoji: "👤", label: "Profile",         href: "/profile",      section: "MAIN" },
-  { emoji: "🔔", label: "Notifications",   href: "/notifications", section: "MAIN" },
-  { emoji: "⚙️", label: "Settings",        href: "/settings",     section: "MAIN" },
-  { emoji: "🛒", label: "Marketplace",     href: "/marketplace",  section: "DISCOVER" },
-  { emoji: "🏫", label: "Creative spaces", href: "/creative-space", section: "DISCOVER" },
-  { emoji: "💼", label: "Opportunities",   href: "/opportunities", section: "DISCOVER" },
-  { emoji: "🏆", label: "Hackathons",      href: "/hackathons",   section: "DISCOVER" },
-  { emoji: "🎓", label: "Mentorship",      href: "/mentorship",   section: "DISCOVER" },
-  { emoji: "🚀", label: "Startups",        href: "/startups",     section: "DISCOVER" },
+  // Visitor-portal-internal pages
+  { emoji: "🏠", label: "Overview",        href: "",              section: "MAIN",     inPortal: true  },
+  { emoji: "🔍", label: "Explore",         href: "/explore",      section: "MAIN",     inPortal: true  },
+  { emoji: "📨", label: "My applications", href: "/applications", section: "MAIN",     inPortal: true  },
+  { emoji: "👤", label: "Profile",         href: "/profile",      section: "MAIN",     inPortal: true  },
+  // Root-level shared surfaces — every signed-in role can reach these
+  { emoji: "🔔", label: "Notifications",   href: "/notifications", section: "MAIN",    inPortal: false },
+  { emoji: "⚙️", label: "Settings",        href: "/settings",     section: "MAIN",     inPortal: false },
+  { emoji: "🛒", label: "Marketplace",     href: "/marketplace",  section: "DISCOVER", inPortal: false },
+  { emoji: "🏫", label: "Creative spaces", href: "/creative-space", section: "DISCOVER", inPortal: false },
+  { emoji: "💼", label: "Opportunities",   href: "/opportunities", section: "DISCOVER", inPortal: false },
+  { emoji: "🏆", label: "Hackathons",      href: "/hackathons",   section: "DISCOVER", inPortal: false },
+  { emoji: "🎓", label: "Mentorship",      href: "/mentorship",   section: "DISCOVER", inPortal: false },
+  { emoji: "🚀", label: "Startups",        href: "/startups",     section: "DISCOVER", inPortal: false },
 ];
 
 export function VisitorNav({ name }: { name: string }) {
@@ -56,9 +66,17 @@ export function VisitorNav({ name }: { name: string }) {
 
   const sidebarWidth = collapsed ? 64 : 240;
   const base = "/visitor";
-  const isActive = (href: string) => {
-    const full = `${base}${href}`;
-    return href === "" ? pathname === base : pathname === full || pathname.startsWith(`${full}/`);
+
+  /** Resolve a NavItem to its actual URL: in-portal → /visitor + href,
+   *  root-level → href verbatim. Empty href means the visitor home. */
+  const resolveHref = (it: NavItem) => {
+    if (!it.inPortal) return it.href;
+    return it.href === "" ? base : `${base}${it.href}`;
+  };
+  const isActive = (it: NavItem) => {
+    const full = resolveHref(it);
+    if (it.inPortal && it.href === "") return pathname === base;
+    return pathname === full || pathname.startsWith(`${full}/`);
   };
 
   // Group items by section.
@@ -126,10 +144,10 @@ export function VisitorNav({ name }: { name: string }) {
             )}
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 2 }}>
               {section.items.map((it) => {
-                const active = isActive(it.href);
-                const full = `${base}${it.href}`;
+                const active = isActive(it);
+                const full = resolveHref(it);
                 return (
-                  <li key={it.href || "_root"}>
+                  <li key={`${it.section}-${it.href || "_root"}`}>
                     <Link
                       href={full}
                       title={collapsed ? it.label : undefined}
