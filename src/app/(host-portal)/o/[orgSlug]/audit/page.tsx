@@ -88,9 +88,24 @@ export default async function OrgAuditPage({ params, searchParams }: {
   for (const a of (actsRaw || []) as { action: string }[]) actionSet.add(a.action);
   const distinctActions = Array.from(actionSet).sort();
 
+  // Build the CSV download URL with the current action filter so the
+  // exported file matches what the user is looking at on screen.
+  const csvHref = `/api/orgs/${ctx.org.id}/audit.csv${actionFilter ? `?action=${encodeURIComponent(actionFilter)}` : ""}`;
+
   return (
     <div style={{ maxWidth: 920 }}>
-      <h1 style={{ fontSize: 24, fontWeight: 800, margin: "0 0 4px" }}>Audit log</h1>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16, marginBottom: 4 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Audit log</h1>
+        {/* Plain anchor — Content-Disposition triggers the download.
+            target=_blank not needed; the browser stays on this page. */}
+        <a
+          href={csvHref}
+          download
+          style={{ padding: "7px 14px", background: "transparent", color: "#1E88E5", border: "1px solid rgba(30,136,229,0.40)", borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap" }}
+        >
+          ⬇ Export {actionFilter ? "filtered " : ""}CSV
+        </a>
+      </div>
       <p style={{ color: "#8892A4", fontSize: 13, margin: "0 0 18px" }}>
         Append-only ops trail. {total} event{total === 1 ? "" : "s"} · visible to owners and org admins.
       </p>
