@@ -1,6 +1,7 @@
 /**
  * Host-portal dashboard — the first thing the host sees when entering
- * their org. Shows a few signal counts; deeper analytics ship in Phase 5.
+ * their org. Shows headline counts + a recent-activity feed so creators
+ * can see signups, posts, and grading happening in near real-time.
  */
 
 import { notFound } from "next/navigation";
@@ -19,6 +20,90 @@ interface DashboardCounts {
   instructors: number;
   lessons: number;
   assignments: number;
+}
+
+interface ActivityRow {
+  id: string;
+  action: string;
+  target: string | null;
+  meta: Record<string, unknown>;
+  created_at: string;
+  actor_name: string | null;
+}
+
+/**
+ * Recent org events — drawn from org_audit_log because every meaningful
+ * mutation already logs there (member.joined, announcement.posted,
+ * lesson.created, submission.graded, etc.). Joining users for actor name
+ * keeps it one round-trip; fall back to "System" when actor_id is null
+ * (provisioning, system-triggered actions).
+ *
+ * Not cached — the whole point is "real-time-ish" and the query is
+ * indexed (org_audit_log_org_idx on org_id, created_at DESC).
+ */
+async function getRecentActivity(orgId: string, limit = 12): Promise<ActivityRow[]> {
+  const sb = supabaseAdmin();
+  const { data, error } = await sb
+    .from("org_audit_log")
+    .select("id, action, target, meta, created_at, users:actor_id(name)")
+    .eq("org_id", orgId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return (data as unknown as Array<{
+    id: string; action: string; target: string | null;
+    meta: Record<string, unknown>; created_at: string;
+    users: { name: string | null } | null;
+  }>).map((r) => ({
+    id: r.id,
+    action: r.action,
+    target: r.target,
+    meta: r.meta || {},
+    created_at: r.created_at,
+    actor_name: r.users?.name ?? null,
+  }));
+}
+
+/**
+ * Human-readable spin per audit action. The action vocabulary is fixed
+ * in src/lib/org-audit.ts — keep this in sync if new actions land.
+ */
+function describeActivity(row: ActivityRow): { emoji: string; text: string } {
+  const who = row.actor_name || "Someone";
+  const m = row.meta as Record<string, string | number | boolean | undefined>;
+  switch (row.action) {
+    case "org.created":         return { emoji: "🎉", text: `Org created` };
+    case "org.suspended":       return { emoji: "⏸",  text: `Org suspended by admin` };
+    case "org.archived":        return { emoji: "🗄",  text: `Org archived` };
+    case "org.unsuspended":     return { emoji: "▶",  text: `Org reinstated` };
+    case "member.joined":       return { emoji: "👋", text: `${who} joined as ${m.role || "member"}` };
+    case "member.invited":      return { emoji: "✉️",  text: `${who} invited ${m.email || "someone"}` };
+    case "member.role_updated": return { emoji: "🔧", text: `${who} changed a member's role to ${m.new_role || "?"}` };
+    case "member.removed":      return { emoji: "👋", text: `${who} removed a member` };
+    case "code.created":        return { emoji: "🔑", text: `${who} created an enrollment code` };
+    case "code.revoked":        return { emoji: "🔒", text: `${who} revoked an enrollment code` };
+    case "channel.created":     return { emoji: "💬", text: `${who} created channel #${m.name || ""}` };
+    case "announcement.posted": return { emoji: "📣", text: `${who} posted "${m.title || "an announcement"}"${m.fanout_count ? ` · ${m.fanout_count} notified` : ""}` };
+    case "lesson.created":      return { emoji: "📚", text: `${who} added lesson "${m.title || ""}"` };
+    case "assignment.created":  return { emoji: "📝", text: `${who} created assignment "${m.title || ""}"` };
+    case "submission.graded":   return { emoji: "✅", text: `${who} graded a submission${m.score !== undefined ? ` (${m.score})` : ""}` };
+    case "file.uploaded":       return { emoji: "📎", text: `${who} uploaded ${m.name || "a file"}` };
+    case "file.deleted":        return { emoji: "🗑", text: `${who} deleted ${m.name || "a file"}` };
+    default:                    return { emoji: "•", text: `${who} · ${row.action}` };
+  }
+}
+
+function timeAgo(iso: string): string {
+  const then = new Date(iso).getTime();
+  const diff = Math.max(0, Date.now() - then);
+  const m = Math.floor(diff / 60_000);
+  if (m < 1)    return "just now";
+  if (m < 60)   return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24)   return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  if (d < 7)    return `${d}d ago`;
+  return new Date(iso).toLocaleDateString();
 }
 
 /**
@@ -49,7 +134,10 @@ export default async function OrgDashboard({ params }: Props) {
   const ctx = await getActiveOrg(orgSlug);
   if (!ctx) notFound();
 
-  const counts = await getCounts(ctx.org.id);
+  const [counts, activity] = await Promise.all([
+    getCounts(ctx.org.id),
+    getRecentActivity(ctx.org.id, 15),
+  ]);
 
   const cards = [
     { label: "Students", value: counts.students, color: "#1E88E5" },
@@ -88,7 +176,47 @@ export default async function OrgDashboard({ params }: Props) {
         ))}
       </div>
 
+      {/* Recent activity feed — drawn straight from org_audit_log so it
+          covers everything: signups, invites, announcements, lessons,
+          grading. Hidden when truly empty (brand-new org with only the
+          org.created entry shows that single row, which is fine). */}
       <div style={{ marginTop: 32, padding: 20, background: "#111827", border: "1px solid #1F2937", borderRadius: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>Recent activity</h2>
+          <a href={`/o/${ctx.org.slug}/audit`} style={{ fontSize: 11, color: "#1E88E5", textDecoration: "none" }}>Full log →</a>
+        </div>
+        {activity.length === 0 ? (
+          <div style={{ padding: 16, color: "#5A6478", fontSize: 13, textAlign: "center" }}>
+            No activity yet. Post an announcement or invite a member to get started.
+          </div>
+        ) : (
+          <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column" }}>
+            {activity.map((row, i) => {
+              const d = describeActivity(row);
+              return (
+                <li
+                  key={row.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 12,
+                    padding: "10px 0",
+                    borderBottom: i === activity.length - 1 ? "none" : "1px solid rgba(255,255,255,0.04)",
+                  }}
+                >
+                  <span style={{ fontSize: 16, lineHeight: "20px", flexShrink: 0 }}>{d.emoji}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, color: "#E8EDF5", lineHeight: 1.5 }}>{d.text}</div>
+                    <div style={{ fontSize: 11, color: "#5A6478", marginTop: 2 }}>{timeAgo(row.created_at)}</div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+
+      <div style={{ marginTop: 18, padding: 20, background: "#111827", border: "1px solid #1F2937", borderRadius: 12 }}>
         <h2 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 6px 0" }}>Get started</h2>
         <ul style={{ margin: 0, padding: "0 0 0 18px", color: "#8892A4", fontSize: 13, lineHeight: 1.8 }}>
           <li>Add your first lesson under <strong style={{ color: "#E8EDF5" }}>Lessons</strong></li>

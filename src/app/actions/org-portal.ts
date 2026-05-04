@@ -304,20 +304,27 @@ export async function postAnnouncement(orgId: string, title: string, body: strin
   // sequentially in milliseconds each and never block other writes.
   const { data: members } = await sb
     .from("org_members")
-    .select("user_id")
+    .select("user_id, role")
     .eq("org_id", orgId)
     .eq("status", "active");
-  const recipients = (members || []) as { user_id: string }[];
+  // Filter out the author — they don't need a notification about their
+  // own post — and split routing by role: students/instructors land on
+  // /s/<slug>/announcements (their portal); host roles open
+  // /o/<slug>/announcements where they can edit/pin.
+  const recipients = ((members || []) as { user_id: string; role: string }[])
+    .filter((m) => m.user_id !== a.data.me.id);
   if (recipients.length > 0) {
     const CHUNK = 500;
-    const action_url = `/o/${a.data.org.slug}/announcements`;
+    const HOST_LINK = `/o/${a.data.org.slug}/announcements`;
+    const STUDENT_LINK = `/s/${a.data.org.slug}/announcements`;
+    const hostRoles = new Set(["owner", "org_admin", "instructor"]);
     const rows = recipients.map((m) => ({
       user_id: m.user_id,
       org_id: orgId,
       title: `📣 ${title.trim()}`,
       message: body.trim().slice(0, 240),
       type: "info",
-      action_url,
+      action_url: hostRoles.has(m.role) ? HOST_LINK : STUDENT_LINK,
       is_read: false,
     }));
     for (let i = 0; i < rows.length; i += CHUNK) {
