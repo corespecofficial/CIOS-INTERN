@@ -39,6 +39,8 @@ const ACTION_META: Record<string, { emoji: string; color: string; label: string 
   "lesson.created":        { emoji: "📚", color: "#1E88E5", label: "Lesson created" },
   "assignment.created":    { emoji: "📝", color: "#A855F7", label: "Assignment created" },
   "submission.graded":     { emoji: "✅", color: "#26A69A", label: "Submission graded" },
+  "file.uploaded":         { emoji: "📎", color: "#1E88E5", label: "File uploaded" },
+  "file.deleted":          { emoji: "🗑",  color: "#FF8A80", label: "File deleted" },
 };
 
 const STAFF = new Set(["owner", "org_admin"]);

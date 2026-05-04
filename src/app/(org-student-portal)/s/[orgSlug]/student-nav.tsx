@@ -9,6 +9,7 @@ const ITEMS: { href: string; label: string; icon: string }[] = [
   { href: "/assignments", label: "Assignments", icon: "📝" },
   { href: "/announcements", label: "Announcements", icon: "📣" },
   { href: "/chat", label: "Chat", icon: "💬" },
+  { href: "/files", label: "Files", icon: "📁" },
   { href: "/members", label: "Classmates", icon: "👥" },
 ];
 

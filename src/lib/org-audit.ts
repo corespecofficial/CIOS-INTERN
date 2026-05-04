@@ -36,7 +36,8 @@ export type OrgAuditAction =
   | "member.invited" | "member.joined" | "member.role_updated" | "member.removed"
   | "code.created" | "code.revoked"
   | "channel.created" | "announcement.posted"
-  | "lesson.created" | "assignment.created" | "submission.graded";
+  | "lesson.created" | "assignment.created" | "submission.graded"
+  | "file.uploaded" | "file.deleted";
 
 export interface OrgAuditEntry {
   orgId: string;
