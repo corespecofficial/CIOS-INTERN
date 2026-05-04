@@ -56,9 +56,20 @@ export default async function OnboardingIntentPage({ searchParams }: {
     );
   }
 
-  // Already done — don't show the gate twice.
-  // We re-fetch the row directly (getCurrentDbUser already returns it).
-  if ((me as unknown as { onboarding_completed_at?: string | null }).onboarding_completed_at) {
+  // Re-entry rules:
+  //   - Already onboarded AND already a privileged role → redirect away.
+  //     Letting a creative_host / recruiter / mentor click "Switch
+  //     intent" and pick "Just exploring" would silently demote them
+  //     to public_user; that's destructive and almost never what they
+  //     meant. Send them home instead.
+  //   - Already onboarded BUT still a public_user → ALLOW re-entry.
+  //     The "Switch intent" link in the visitor sidebar lands here;
+  //     visitors are public_user by definition, so they can re-pick
+  //     (e.g. switch from "just exploring" to "applying as mentor")
+  //     without losing anything they had.
+  //   - Not onboarded → render the gate (first-run flow).
+  const onboarded = !!(me as unknown as { onboarding_completed_at?: string | null }).onboarding_completed_at;
+  if (onboarded && me.role !== "public_user") {
     redirect("/post-auth");
   }
 
