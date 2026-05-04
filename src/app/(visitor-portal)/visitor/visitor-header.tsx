@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useUser, UserButton } from "@clerk/nextjs";
+import { listMyNotifications } from "@/app/actions/notifications";
 
 /**
  * Top header for the visitor portal. Mirrors the (app) header look —
@@ -16,6 +17,7 @@ export function VisitorHeader() {
   const { user, isLoaded } = useUser();
   const [isDark, setIsDark] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [unread, setUnread] = useState(0);
 
   // Theme toggle reads the existing cios-theme-choice key shared with
   // the rest of the app so the user's preference travels.
@@ -27,6 +29,31 @@ export function VisitorHeader() {
       setIsDark(dark);
       document.documentElement.dataset.theme = dark ? "dark" : "light";
     } catch {}
+  }, []);
+
+  // Live unread-notifications count for the bell.
+  // Refreshes on mount, on focus (so the badge clears immediately
+  // after the user reads notifications in another tab), and every
+  // 90s as a slow poll. We pass limit=1 because we only need the
+  // unread COUNT — the response shape includes it regardless.
+  useEffect(() => {
+    let cancelled = false;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+    const refresh = async () => {
+      try {
+        const r = await listMyNotifications(1);
+        if (!cancelled && r.ok) setUnread(r.data!.unread);
+      } catch {/* non-fatal */}
+    };
+    refresh();
+    const onFocus = () => refresh();
+    window.addEventListener("focus", onFocus);
+    pollTimer = setInterval(refresh, 90_000);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", onFocus);
+      if (pollTimer) clearInterval(pollTimer);
+    };
   }, []);
 
   function toggleTheme() {
@@ -112,10 +139,14 @@ export function VisitorHeader() {
         {mounted ? (isDark ? "🌙" : "☀️") : "🌙"}
       </button>
 
-      {/* Notifications bell */}
+      {/* Notifications bell — live unread count badge.
+          Routes to /visitor/notifications (the in-shell page) not
+          the root /notifications, so visitors stay inside their
+          portal chrome. */}
       <Link
-        href="/notifications"
-        aria-label="Notifications"
+        href="/visitor/notifications"
+        aria-label={unread > 0 ? `Notifications (${unread} unread)` : "Notifications"}
+        title={unread > 0 ? `${unread} unread` : "Notifications"}
         style={{
           width: 40,
           height: 40,
@@ -128,9 +159,36 @@ export function VisitorHeader() {
           textDecoration: "none",
           color: "#FFC107",
           fontSize: 16,
+          position: "relative",
         }}
       >
         🔔
+        {unread > 0 && (
+          // Pill in the corner. Caps at "99+" so a long stretch
+          // away from the platform doesn't blow the layout.
+          <span
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              top: -4,
+              right: -4,
+              minWidth: 18,
+              height: 18,
+              padding: "0 5px",
+              borderRadius: 999,
+              background: "#FF5252",
+              color: "#fff",
+              fontSize: 10,
+              fontWeight: 800,
+              lineHeight: "18px",
+              textAlign: "center",
+              boxShadow: "0 0 0 2px var(--bg-secondary, #111827)",
+              fontFamily: "system-ui, -apple-system, sans-serif",
+            }}
+          >
+            {unread > 99 ? "99+" : unread}
+          </span>
+        )}
       </Link>
 
       {/* Role badge — mirrors image 1 styling */}
