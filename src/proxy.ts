@@ -1,18 +1,23 @@
 import { clerkMiddleware, createRouteMatcher, clerkClient } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { cacheGet, cacheSet, orgCacheKey, TTL } from '@/lib/cache';
 
 type Role =
   | "intern" | "team_lead" | "admin" | "super_admin"
   | "instructor" | "moderator" | "finance" | "support" | "recruiter"
   | "mentor" | "alumni"
   // Public-portal roles (Phase 0)
-  | "public_user" | "investor" | "startup_founder" | "partner_org";
+  | "public_user" | "investor" | "startup_founder" | "partner_org"
+  // Creative-space host portal (per-org tenant owner)
+  | "creative_host";
 
 const VALID_ROLES: Role[] = [
   "intern", "team_lead", "admin", "super_admin",
   "instructor", "moderator", "finance", "support", "recruiter",
   "mentor", "alumni",
   "public_user", "investor", "startup_founder", "partner_org",
+  "creative_host",
 ];
 
 // Role → home path
@@ -28,11 +33,17 @@ const ROLE_HOME: Record<Role, string> = {
   recruiter: "/recruiter",
   mentor: "/mentor",
   alumni: "/alumni",
-  // Public-portal roles land users directly in their branded portal
-  public_user: "/marketplace",
+  // Public-portal roles land users directly in their branded portal.
+  // public_user → /visitor (their dedicated portal). DO NOT change this
+  // back to /marketplace — that's a public surface, not their home; sending
+  // them there triggers the post-auth ⇄ marketplace loop via the
+  // "My portal →" button.
+  public_user: "/visitor",
   investor: "/investor/dashboard",
   startup_founder: "/startup",
   partner_org: "/partner-portal",
+  // Per-host org owner. /o (no slug) redirects to their last-used org.
+  creative_host: "/o",
 };
 
 // Shared routes everyone can access
@@ -40,8 +51,8 @@ const SHARED_ROUTES = ["/profile", "/settings", "/notifications", "/post-auth", 
 
 // Per-role allowed route prefixes
 const ROLE_ACCESS: Record<Role, string[]> = {
-  intern: ["/dashboard", "/classroom", "/courses", "/tasks", "/messages", "/community", "/wallet", "/gamification", "/notes", "/performance", "/calendar", "/ai-hub", "/documents", "/recruitment", "/productivity", "/certificates", "/my-analytics", "/announcements", "/mentorship", "/marketplace", "/creative-space", "/wellness", "/guardian", "/hackathons", "/startup", "/compliance", "/appeals", "/suspended"],
-  team_lead: ["/team-lead", "/dashboard", "/classroom", "/courses", "/tasks", "/messages", "/community", "/wallet", "/gamification", "/notes", "/performance", "/calendar", "/ai-hub", "/documents", "/recruitment", "/productivity", "/certificates", "/my-analytics", "/announcements", "/mentorship", "/marketplace", "/creative-space", "/wellness", "/guardian", "/hackathons", "/startup", "/compliance", "/appeals", "/suspended"],
+  intern: ["/dashboard", "/classroom", "/courses", "/tasks", "/messages", "/community", "/wallet", "/gamification", "/notes", "/performance", "/calendar", "/ai-hub", "/documents", "/recruitment", "/productivity", "/certificates", "/my-analytics", "/announcements", "/mentorship", "/marketplace", "/creative-space", "/wellness", "/guardian", "/hackathons", "/startup", "/compliance", "/appeals", "/suspended", "/s"],
+  team_lead: ["/team-lead", "/dashboard", "/classroom", "/courses", "/tasks", "/messages", "/community", "/wallet", "/gamification", "/notes", "/performance", "/calendar", "/ai-hub", "/documents", "/recruitment", "/productivity", "/certificates", "/my-analytics", "/announcements", "/mentorship", "/marketplace", "/creative-space", "/wellness", "/guardian", "/hackathons", "/startup", "/compliance", "/appeals", "/suspended", "/s"],
   admin: [
     "/admin", "/dashboard", "/analytics", "/status",
     "/community", "/team-lead", "/messages", "/tasks", "/classroom",
@@ -55,6 +66,7 @@ const ROLE_ACCESS: Record<Role, string[]> = {
     "/badges", "/missions", "/streaks", "/achievements", "/levels",
     "/live", "/teams", "/peer-review", "/study-buddy",
     "/planner", "/alarms", "/reminders", "/focus-mode",
+    "/o", "/s",
   ],
   super_admin: [
     "/dashboard","/classroom","/courses","/tasks","/messages","/community","/wallet","/gamification","/notes","/performance","/calendar",
@@ -71,13 +83,34 @@ const ROLE_ACCESS: Record<Role, string[]> = {
   mentor: ["/mentor", "/mentorship", "/messages", "/community", "/notes", "/calendar", "/productivity", "/certificates", "/announcements", "/alumni", "/marketplace", "/creative-space", "/hackathons", "/compliance", "/appeals", "/suspended"],
   alumni: ["/alumni", "/community", "/opportunities", "/messages", "/notes", "/calendar", "/mentorship", "/announcements", "/marketplace", "/creative-space", "/hackathons", "/startup", "/compliance", "/appeals", "/suspended"],
   // Public-portal roles — see masterplan §2.2.
-  // public_user is the baseline registered public: can browse/buy/book/apply across
-  // public portals. Investor/startup_founder/partner_org get their dedicated portals.
-  public_user: ["/marketplace", "/creative-space", "/opportunities", "/hackathons", "/study-buddy", "/ai-hub", "/documents", "/startups", "/profile", "/settings", "/notifications"],
+  // public_user is the baseline registered public ("visitor"): /visitor is
+  // their dedicated portal home; the rest are public surfaces they can
+  // freely browse. /applications + /onboarding let them track role
+  // applications and re-enter the intent gate via "Switch intent".
+  public_user: [
+    "/visitor",
+    "/marketplace", "/creative-space", "/opportunities",
+    "/hackathons", "/study-buddy", "/ai-hub", "/documents", "/startups",
+    "/mentorship", "/applications", "/onboarding",
+    "/profile", "/settings", "/notifications",
+  ],
   investor: ["/investor", "/startup", "/startups", "/profile", "/settings", "/notifications"],
   startup_founder: ["/startup", "/startups", "/investor", "/profile", "/settings", "/notifications"],
   partner_org: ["/partner-portal", "/institution", "/company-portal", "/gov-portal", "/partners", "/profile", "/settings", "/notifications"],
+  // Creative-space host: their tenant portal at /o, plus /s if they're also
+  // a student in someone else's org, plus the marketplace and the same
+  // baseline surfaces an intern gets so creators can use the platform too.
+  creative_host: [
+    "/o", "/s",
+    "/dashboard", "/marketplace", "/creative-space", "/messages", "/notifications",
+    "/wallet", "/calendar", "/community", "/ai-hub", "/documents",
+    "/profile", "/settings",
+  ],
 };
+
+// Always-shared "in transit" routes — every signed-in user can reach the
+// onboarding gate and the invite-redemption page regardless of role.
+const ONBOARDING_ROUTES = ["/onboarding/intent", "/join", "/post-auth"];
 
 const isProtectedRoute = createRouteMatcher([
   '/post-auth(.*)',
@@ -122,7 +155,113 @@ const isProtectedRoute = createRouteMatcher([
   '/investor', '/investor/(.*)',
   '/partner-portal', '/partner-portal/(.*)',
   '/startups', '/startups/(.*)',
+  // Per-host org portal (Phase 3). /o = host view, /s = student-in-org view.
+  '/o', '/o/(.*)',
+  '/s', '/s/(.*)',
+  // Visitor portal + onboarding gate + invite redemption (Phase 5/6).
+  '/visitor', '/visitor/(.*)',
+  '/onboarding/intent', '/onboarding/intent/(.*)',
+  '/join/(.*)',
 ]);
+
+const ORG_PATH_RE = /^\/(o|s)\/([^\/]+)/;
+type OrgMemberRole = "owner" | "org_admin" | "instructor" | "student";
+const HOST_ROLES: OrgMemberRole[] = ["owner", "org_admin", "instructor"];
+const STUDENT_ROLES: OrgMemberRole[] = ["student", "owner", "org_admin", "instructor"];
+
+let edgeSb: ReturnType<typeof createClient> | null = null;
+function getEdgeSupabase() {
+  if (edgeSb) return edgeSb;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  edgeSb = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  return edgeSb;
+}
+
+/**
+ * Has this Clerk user finished onboarding? Cached in Upstash — true is
+ * sticky (onboarding doesn't reverse) so we cache true 10 min and false
+ * 30s so a user who just completed the gate isn't stuck for long.
+ *
+ * Returns null if the lookup itself failed (treat as "let through" so a
+ * Postgres outage doesn't lock everyone out).
+ */
+async function checkOnboardingCompleted(clerkUserId: string): Promise<boolean | null> {
+  const key = `onboarded:${clerkUserId}`;
+  const hit = await cacheGet<boolean | "no">(key);
+  if (hit === true) return true;
+  if (hit === "no") return false;
+
+  const sb = getEdgeSupabase();
+  if (!sb) return null;
+
+  const { data } = await sb
+    .from("users")
+    .select("onboarding_completed_at")
+    .eq("clerk_id", clerkUserId)
+    .maybeSingle();
+  type Row = { onboarding_completed_at: string | null };
+  const row = data as Row | null;
+  if (!row) {
+    // Webhook hasn't synced yet — treat as not-onboarded so the user lands
+    // on /onboarding/intent which calls ensureCurrentDbUser anyway.
+    await cacheSet(key, "no", 30);
+    return false;
+  }
+  const completed = !!row.onboarding_completed_at;
+  await cacheSet(key, completed ? true : "no", completed ? 600 : 30);
+  return completed;
+}
+
+/**
+ * Look up "is this Clerk user a member of this org slug, and what role?"
+ * Cached in Upstash for 60s so the per-request edge call doesn't hit
+ * Postgres at scale (this is the hottest line in the system).
+ *
+ * Returns null if the org doesn't exist, isn't active, or the user isn't
+ * a member. Negative results are also cached briefly to absorb stampedes.
+ */
+async function lookupOrgMembership(
+  clerkUserId: string,
+  slug: string,
+): Promise<{ orgId: string; role: OrgMemberRole } | null> {
+  const key = orgCacheKey.membership(clerkUserId, slug);
+  const hit = await cacheGet<{ orgId: string; role: OrgMemberRole } | null>(key);
+  if (hit !== null) return hit;
+
+  const sb = getEdgeSupabase();
+  if (!sb) return null;
+
+  // Resolve clerk_id → users.id, then look up the membership joined to slug.
+  // Two queries because the edge supabase REST client doesn't compose joins
+  // through a non-FK lookup cleanly. Both are indexed.
+  const { data: u } = await sb.from("users").select("id").eq("clerk_id", clerkUserId).maybeSingle();
+  const userId = (u as { id?: string } | null)?.id;
+  if (!userId) {
+    await cacheSet(key, null, 60);
+    return null;
+  }
+
+  const { data } = await sb
+    .from("org_members")
+    .select("org_id, role, creative_orgs!inner(slug, status)")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .eq("creative_orgs.slug", slug)
+    .maybeSingle();
+
+  type Row = { org_id: string; role: OrgMemberRole; creative_orgs: { slug: string; status: string } };
+  const row = data as Row | null;
+  if (!row || row.creative_orgs.status !== "active") {
+    await cacheSet(key, null, 60);
+    return null;
+  }
+
+  const value = { orgId: row.org_id, role: row.role };
+  await cacheSet(key, value, TTL.short);
+  return value;
+}
 
 function extractRole(source: unknown): Role | null {
   if (!source || typeof source !== "object") return null;
@@ -170,12 +309,51 @@ export default clerkMiddleware(async (auth, request) => {
 
   const pathname = request.nextUrl.pathname;
 
+  // Onboarding gate: every signed-in user must pass through
+  // /onboarding/intent on first auth'd request unless they're already
+  // grandfathered (onboarding_completed_at set). Existing users were
+  // backfilled in p392 so they skip. Routes that are themselves part
+  // of onboarding (the gate, invite redemption, post-auth) are exempt
+  // so we don't infinite-loop. Super_admin also bypasses to avoid
+  // locking ourselves out during ops.
+  const isOnboardingRoute = ONBOARDING_ROUTES.some(r => matchPrefix(r, pathname)) || pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up");
+  if (!isOnboardingRoute && role !== "super_admin") {
+    const onboarded = await checkOnboardingCompleted(userId);
+    if (onboarded === false) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/onboarding/intent";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+  }
+
   if (!canAccess(role, pathname)) {
     const home = ROLE_HOME[role] || "/dashboard";
     const url = request.nextUrl.clone();
     url.pathname = home;
     url.searchParams.set("denied", pathname);
     return NextResponse.redirect(url);
+  }
+
+  // Per-tenant guard: /o/<slug>/... and /s/<slug>/... — verify org
+  // membership and the right per-org role for the portal kind. Super
+  // admin bypasses entirely (they preview every org). The membership
+  // lookup is Upstash-cached at 60s; see lookupOrgMembership above.
+  if (role !== "super_admin") {
+    const m = pathname.match(ORG_PATH_RE);
+    if (m) {
+      const portalKind = m[1] as "o" | "s";
+      const slug = m[2];
+      const membership = await lookupOrgMembership(userId, slug);
+      const allowedRoles = portalKind === "o" ? HOST_ROLES : STUDENT_ROLES;
+      if (!membership || !allowedRoles.includes(membership.role)) {
+        // 404 (don't leak existence) by rewriting to the not-found page
+        // rather than redirecting — preserves the user's URL.
+        const url = request.nextUrl.clone();
+        url.pathname = "/not-found";
+        return NextResponse.rewrite(url);
+      }
+    }
   }
 
   return NextResponse.next();

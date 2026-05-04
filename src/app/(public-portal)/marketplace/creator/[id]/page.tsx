@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 import { getPublicProfile } from "@/lib/db";
 import { listProductsBySeller } from "@/app/actions/marketplace";
 import { creatorCredibility } from "@/lib/creator-credibility";
@@ -8,6 +9,27 @@ import { CreatorProfileClient } from "./creator-profile-client";
 export const dynamic = "force-dynamic";
 
 const SITE = process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.vercel.app";
+
+// Server-authoritative — see instructor profile page for why this is
+// computed server-side instead of in the client via useCurrentUser.
+const COMMUNITY_PROFILE_ROLES = new Set([
+  "intern", "team_lead", "admin", "super_admin",
+  "instructor", "moderator", "finance", "support",
+  "recruiter", "mentor", "alumni",
+]);
+
+async function viewerCanSeeFullActivity(): Promise<boolean> {
+  try {
+    const { userId, sessionClaims } = await auth();
+    if (!userId) return false;
+    const claims = sessionClaims as Record<string, unknown> | null;
+    const meta = (claims?.publicMetadata ?? claims?.metadata ?? null) as Record<string, unknown> | null;
+    const role = typeof meta?.role === "string" ? (meta.role as string) : null;
+    return !!role && COMMUNITY_PROFILE_ROLES.has(role);
+  } catch {
+    return false;
+  }
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -33,9 +55,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function CreatorProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const [profile, productsRes] = await Promise.all([
+  const [profile, productsRes, canSeeFullActivity] = await Promise.all([
     getPublicProfile(id),
     listProductsBySeller(id),
+    viewerCanSeeFullActivity(),
   ]);
 
   if (!profile) return notFound();
@@ -69,6 +92,7 @@ export default async function CreatorProfilePage({ params }: { params: Promise<{
       credBadge={cred.badge}
       credTier={cred.tier}
       provenance={cred.provenance}
+      canSeeFullActivity={canSeeFullActivity}
     />
   );
 }

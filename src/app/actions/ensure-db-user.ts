@@ -1,7 +1,7 @@
 "use server";
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { supabase, ensureDbUser } from "@/lib/db";
+import { supabase, supabaseAdmin, ensureDbUser } from "@/lib/db";
 
 /**
  * Ensures the currently signed-in Clerk user has a matching row in Supabase users table.
@@ -32,11 +32,37 @@ export async function ensureCurrentDbUser(): Promise<{
       .eq("clerk_id", userId)
       .maybeSingle();
 
-    // If we already have a row with a role, skip the Clerk round-trip entirely.
-    // This is the hot path after initial sign-in and is what makes post-auth
-    // reliable when Clerk's edge has transient failures.
+    // 1a. Fast path returns Supabase role directly — BUT only if it agrees
+    // with Clerk's session role. Middleware enforces routing using Clerk's
+    // publicMetadata.role; if Supabase has drifted (legacy 'intern' from
+    // before the public_user webhook default, never reconciled) this
+    // function would hand back the stale role and post-auth would route
+    // the user to a path their actual session can't access — denied loop.
+    //
+    // The session's `org` claim is unreliable here, but `sessionClaims`
+    // already carries publicMetadata for free with no extra Clerk RPC.
     if (existing && (existing as { role?: string }).role) {
-      return { ok: true, created: false, role: String((existing as { role: string }).role) };
+      const supaRole = String((existing as { role: string }).role);
+      const { sessionClaims } = await auth();
+      const claims = sessionClaims as Record<string, unknown> | null;
+      const meta = (claims?.publicMetadata ?? claims?.metadata ?? null) as Record<string, unknown> | null;
+      const clerkRole = typeof meta?.role === "string" ? (meta.role as string) : null;
+
+      // No clerk role in claims (e.g. JWT not yet refreshed) → trust Supabase.
+      if (!clerkRole || clerkRole === supaRole) {
+        return { ok: true, created: false, role: supaRole };
+      }
+
+      // Drift: reconcile Supabase to Clerk so future fast-path hits agree.
+      // Clerk is the source of truth — the middleware uses it, the badge
+      // uses it, the user's mental model is "I'm a <clerkRole>".
+      try {
+        await supabaseAdmin().from("users").update({ role: clerkRole }).eq("clerk_id", userId);
+        console.info(`[ensureCurrentDbUser] reconciled Supabase role ${supaRole}→${clerkRole} for ${userId}`);
+      } catch (e) {
+        console.warn("[ensureCurrentDbUser] reconcile failed (non-fatal):", e);
+      }
+      return { ok: true, created: false, role: clerkRole };
     }
 
     // 2. Slow path — need Clerk data. Retry once on transient fetch failure.
@@ -44,7 +70,7 @@ export async function ensureCurrentDbUser(): Promise<{
     if (!clerkUser) {
       // Clerk unreachable. If we have an existing row, degrade gracefully.
       if (existing) {
-        const fallbackRole = (existing as { role?: string }).role || "intern";
+        const fallbackRole = (existing as { role?: string }).role || "public_user";
         console.warn("[ensureCurrentDbUser] Clerk unreachable; using cached Supabase row");
         return { ok: true, created: false, role: fallbackRole };
       }
@@ -60,19 +86,26 @@ export async function ensureCurrentDbUser(): Promise<{
     const avatarUrl = clerkUser.imageUrl || null;
 
     // 3. Backfill role if it isn't set on Clerk metadata yet.
+    //    Default is "public_user" — every new signup goes through the
+    //    /onboarding/intent gate to *choose* their portal. Defaulting to
+    //    "intern" was a serious bug: a brand-new user would get auto-
+    //    promoted into the intern portal, see the (app) shell with an
+    //    "INTERN" badge, and be exposed to internal nav before they had
+    //    even consented to a role. Webhook on user.created sets this too;
+    //    this server action only runs as the webhook-failed fallback.
     const currentRole = (clerkUser.publicMetadata?.role as string) || null;
     if (!currentRole) {
       try {
         const client = await clerkClient();
         await client.users.updateUserMetadata(userId, {
-          publicMetadata: { role: "intern" },
+          publicMetadata: { role: "public_user" },
         });
       } catch (metaErr) {
         // Metadata backfill is best-effort; don't fail the whole action.
         console.warn("[ensureCurrentDbUser] failed to set default role on Clerk:", metaErr);
       }
     }
-    const role = currentRole || "intern";
+    const role = currentRole || "public_user";
 
     // 4. Upsert into Supabase.
     await ensureDbUser(userId, email, name, role as never, avatarUrl);

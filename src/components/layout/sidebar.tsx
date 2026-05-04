@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAppStore, getRoleLabel, type Role } from "@/store/use-app-store";
-import { useCurrentUser } from "@/lib/use-current-user";
+import { useCurrentUser, roleCanAccess } from "@/lib/use-current-user";
 import { getSidebarBadges, type SidebarBadges } from "@/app/actions/sidebar-badges";
 
 const LOGO_URL =
@@ -167,6 +167,12 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 function isItemVisible(item: NavItem, currentRole: Role): boolean {
+  // Defense-in-depth: even when an item is dataRole=["all"], the role must
+  // ACTUALLY have route access. Otherwise the user sees a tile, clicks it,
+  // gets denied by middleware, and bounces back through their role home —
+  // which loops if the home is the very page that surfaced the link
+  // (this hit public_user → /visitor with denied=/dashboard).
+  if (!roleCanAccess(currentRole, item.href)) return false;
   if (item.dataRole.includes("all")) return true;
   return item.dataRole.includes(currentRole);
 }
@@ -196,7 +202,15 @@ export function Sidebar() {
   const isSuperAdmin = actualRole === "super_admin";
   const role: Role = isSuperAdmin ? storeRole : actualRole;
 
-  const visibleItems = NAV_ITEMS.filter((item) => isItemVisible(item, role));
+  // Until Clerk has loaded, useCurrentUser() returns role="intern" as
+  // a fallback default. If we filter NAV_ITEMS against that default,
+  // intern-only items (Dashboard, Tasks, etc.) get rendered + prefetched
+  // by Next.js — and a moment later when Clerk reports role=public_user,
+  // those prefetches have already hit the middleware and bounced back
+  // with ?denied=/dashboard. Render an empty list while not loaded.
+  const visibleItems = user.isLoaded
+    ? NAV_ITEMS.filter((item) => isItemVisible(item, role))
+    : [];
 
   // Group by section
   const sections: { label: string; items: NavItem[] }[] = [];

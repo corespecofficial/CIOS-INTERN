@@ -80,7 +80,7 @@ export function getRoleHomePath(role: Role): string {
     mentor: "/mentor",
     alumni: "/alumni",
     // Public-portal roles — land users in their branded portal
-    public_user: "/marketplace",
+    public_user: "/visitor",
     investor: "/investor/dashboard",
     startup_founder: "/startup",
     partner_org: "/partner-portal",
@@ -112,7 +112,7 @@ export function roleCanAccess(role: Role, pathname: string): boolean {
     recruiter: ["/recruiter", "/opportunities", "/talent", "/messages"],
     mentor: ["/mentor", "/mentorship", "/messages", "/community"],
     alumni: ["/alumni", "/community", "/opportunities", "/messages"],
-    public_user: ["/marketplace", "/creative-space", "/opportunities", "/hackathons", "/study-buddy", "/ai-hub", "/documents", "/startups"],
+    public_user: ["/visitor", "/marketplace", "/creative-space", "/opportunities", "/hackathons", "/study-buddy", "/ai-hub", "/documents", "/startups", "/mentorship", "/applications", "/onboarding"],
     investor: ["/investor", "/startup", "/startups"],
     startup_founder: ["/startup", "/investor", "/startups"],
     partner_org: ["/partner-portal", "/institution", "/company-portal", "/gov-portal", "/partners"],

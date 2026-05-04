@@ -100,27 +100,35 @@ async function handleUserCreated(data: ClerkUserData) {
   const email = primaryEmail(data);
   const firstName = data.first_name || "";
   const lastName = data.last_name || "";
-  const name = [firstName, lastName].filter(Boolean).join(" ") || email.split("@")[0] || "Intern";
+  const name = [firstName, lastName].filter(Boolean).join(" ") || email.split("@")[0] || "Visitor";
 
-  // 1. Ensure publicMetadata.role is set (default to "intern" if absent)
+  // 1. Default role is "public_user" — every new signup goes through the
+  //    /onboarding/intent gate first to choose their portal. Existing
+  //    publicMetadata.role (e.g. set programmatically by an invite flow)
+  //    wins. The full enum is now permitted thanks to p392a.
   const existingRole = data.public_metadata?.role as string | undefined;
-  let role = existingRole || "intern";
-  const validRoles = ["intern", "team_lead", "admin", "super_admin", "instructor", "moderator", "finance", "support"];
-  if (!validRoles.includes(role)) role = "intern";
+  const validRoles = [
+    "intern", "team_lead", "admin", "super_admin",
+    "instructor", "moderator", "finance", "support", "premium",
+    "recruiter", "mentor", "alumni",
+    "public_user", "investor", "startup_founder", "partner_org", "creative_host",
+  ];
+  let role = existingRole && validRoles.includes(existingRole) ? existingRole : "public_user";
 
   if (!existingRole) {
     try {
       const client = await clerkClient();
       await client.users.updateUserMetadata(data.id, {
-        publicMetadata: { role: "intern" },
+        publicMetadata: { role: "public_user" },
       });
-      console.log(`[clerk-webhook] set default role "intern" on new user ${data.id}`);
+      console.log(`[clerk-webhook] set default role "public_user" on new user ${data.id}`);
     } catch (e) {
       console.error("[clerk-webhook] failed to set default role:", e);
     }
   }
 
-  // 2. Upsert into Supabase users table
+  // 2. Upsert into Supabase users table. onboarding_completed_at stays
+  //    NULL so the middleware gate fires on first auth'd request.
   const { error } = await supa()
     .from("users")
     .upsert(
@@ -131,6 +139,11 @@ async function handleUserCreated(data: ClerkUserData) {
         role,
         avatar_url: data.image_url || null,
         status: "active",
+        // Webhook can't see browser headers (Clerk proxies the form),
+        // so risk is computed properly on /onboarding/intent which DOES
+        // have the user's request headers. We just record the email
+        // domain here so the super-admin queue has a value to filter on.
+        signup_signals: { email_domain: email.split("@")[1]?.toLowerCase() || "" },
       },
       { onConflict: "clerk_id" }
     );

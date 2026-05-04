@@ -161,24 +161,123 @@ export async function setUserBan(userId: string, banned: boolean): Promise<{ ok:
   }
 }
 
-/* ── Delete a user ── */
-export async function deleteUser(userId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+/* ── Delete a user ──
+ *
+ * Hard-delete from BOTH Clerk and Supabase. The naive version used to
+ * abort on the first failure, leaving a half-deleted user — the most
+ * common shape: Clerk delete throws (user already gone, network blip)
+ * → Supabase row never gets deleted → next time the user signs in,
+ * Clerk says "yes" but Supabase says "no" and they enter a /sign-in ⇄
+ * /onboarding/intent loop.
+ *
+ * New behaviour:
+ *   1. Clerk delete: tolerate 404/410 (already-deleted) as success. Any
+ *      other Clerk error is captured but DOES NOT abort the Supabase
+ *      cleanup — we want the row gone either way.
+ *   2. Supabase cleanup runs unconditionally, in its own try/catch.
+ *   3. After both, we verify Clerk via getUser. If the user is still
+ *      there we surface a partial-success error so the super-admin can
+ *      retry with the still-extant Clerk ID.
+ *   4. The returned `data` object reports what each step did, so the
+ *      UI can show "Cleaned up Supabase, Clerk delete failed" instead
+ *      of a misleading generic error.
+ */
+export async function deleteUser(userId: string): Promise<{
+  ok: true;
+  data: { clerkDeleted: boolean; supabaseDeleted: boolean; warning?: string };
+} | { ok: false; error: string }> {
   try {
     const meId = await requireSuperAdmin();
     if (userId === meId) return { ok: false, error: "You cannot delete yourself" };
+
     const client = await clerkClient();
-    await client.users.deleteUser(userId);
-    await supabaseAdmin().from("users").delete().eq("clerk_id", userId);
+
+    // 1) Clerk delete — idempotent.
+    let clerkDeleted = false;
+    let clerkError: string | null = null;
+    try {
+      await client.users.deleteUser(userId);
+      clerkDeleted = true;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      // Clerk SDK returns generic Error objects; sniff the common
+      // "already gone" shape and treat as success.
+      const alreadyGone = /not found|404|410|gone|does not exist/i.test(msg);
+      if (alreadyGone) {
+        clerkDeleted = true;          // treat as deleted-by-someone-else
+      } else {
+        clerkError = msg;
+      }
+    }
+
+    // 2) Supabase cleanup — runs unconditionally so we never leave a
+    // ghost row that can never be re-claimed without manual SQL.
+    let supabaseDeleted = false;
+    let supabaseError: string | null = null;
+    try {
+      const { error } = await supabaseAdmin()
+        .from("users")
+        .delete()
+        .eq("clerk_id", userId);
+      if (error) supabaseError = error.message;
+      else supabaseDeleted = true;
+    } catch (e) {
+      supabaseError = e instanceof Error ? e.message : String(e);
+    }
+
+    // 3) Verify the Clerk user is actually gone. If a transient error
+    // earlier let the user persist, surface a clear retry hint.
+    if (clerkDeleted && !clerkError) {
+      try {
+        await client.users.getUser(userId);
+        // If getUser succeeds, the deletion didn't actually take effect.
+        clerkDeleted = false;
+        clerkError = "Clerk reports user still exists after deletion attempt";
+      } catch (e) {
+        // Expected — user is gone. Any error here means delete worked.
+        const msg = e instanceof Error ? e.message : String(e);
+        if (!/not found|404|410|does not exist/i.test(msg)) {
+          // Unknown error — be conservative and flag for retry.
+          clerkError = `Verify failed: ${msg}`;
+          clerkDeleted = false;
+        }
+      }
+    }
+
+    // 4) Audit-log whatever happened. We log even partial successes
+    // because operators need to know about half-deletes.
     const me = await getCurrentDbUser();
     await logAudit({
       actionCode: "account.deletion_requested", category: "admin",
-      summary: "User account deleted",
+      summary: clerkDeleted && supabaseDeleted
+        ? "User account fully deleted"
+        : `User deletion partial (clerk=${clerkDeleted}, supabase=${supabaseDeleted})`,
       actorUserId: me?.id, actorName: me?.name, actorRole: me?.role,
       entityType: "user", entityId: userId,
-      severity: "warning",
+      severity: clerkDeleted && supabaseDeleted ? "warning" : "error",
     });
+
     revalidatePath("/super-admin/users");
-    return { ok: true };
+
+    if (!clerkDeleted || !supabaseDeleted) {
+      const parts = [
+        clerkError && `Clerk: ${clerkError}`,
+        supabaseError && `Supabase: ${supabaseError}`,
+      ].filter(Boolean);
+      // Even on partial failure we return ok:true so the UI can stop
+      // showing "deleting…" — but include a `warning` string so the
+      // operator sees what didn't get cleaned up.
+      return {
+        ok: true,
+        data: {
+          clerkDeleted,
+          supabaseDeleted,
+          warning: parts.join(" · ") || "Partial deletion — see audit log",
+        },
+      };
+    }
+
+    return { ok: true, data: { clerkDeleted: true, supabaseDeleted: true } };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed to delete user" };
   }

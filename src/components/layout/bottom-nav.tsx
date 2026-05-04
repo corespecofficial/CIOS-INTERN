@@ -3,6 +3,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useCurrentUser, roleCanAccess } from "@/lib/use-current-user";
 
 // Inner pages (2+ path segments) don't need the bottom nav —
 // they show a back arrow in the header instead.
@@ -16,8 +17,17 @@ const ITEMS = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const me = useCurrentUser();
   const isInnerPage = (pathname ?? "").split("/").filter(Boolean).length >= 2;
   if (isInnerPage) return null;
+  // useCurrentUser() returns role="intern" until Clerk hydrates. If we
+  // render the link list during that window, Next.js prefetches /dashboard
+  // etc.; by the time Clerk reports the real role (e.g. public_user) the
+  // prefetch has already triggered middleware → denied → bounce loop.
+  if (!me.isLoaded) return null;
+  // Filter to items the role can actually reach.
+  const visible = ITEMS.filter((it) => roleCanAccess(me.role, it.href));
+  if (visible.length === 0) return null;
 
   return (
     <nav className="bottom-nav-mobile" style={{
@@ -26,7 +36,7 @@ export function BottomNav() {
       borderTop: "1px solid var(--border-default)", display: "flex",
       alignItems: "center", justifyContent: "space-around", padding: "0 8px",
     }}>
-      {ITEMS.map((item) => {
+      {visible.map((item) => {
         const active = pathname === item.href || pathname?.startsWith(item.href + "/");
         return (
           <Link key={item.href} href={item.href} style={{

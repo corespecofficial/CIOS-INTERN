@@ -4,6 +4,8 @@ import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import type { CreativeSpace, SyllabusSection, SpaceReview } from "./creative-spaces-types";
 import { atomicWalletDebit, atomicWalletCredit } from "@/app/actions/payments/wallet-debit";
+import { slugifyOrgName } from "@/lib/active-org";
+import { clerkClient } from "@clerk/nextjs/server";
 
 export type { CreativeSpace, SyllabusSection, SpaceReview } from "./creative-spaces-types";
 
@@ -85,6 +87,9 @@ function mapBase(r: SpaceRow): Omit<CreativeSpace, "owner_percentile"> & { _owne
     review_count: Number(r.review_count ?? 0),
     is_featured: Boolean(r.is_featured ?? false),
     slug: (r.slug as string | null) ?? null,
+    org_id: (r.org_id as string | null) ?? null,
+    org_slug: null,           // filled in by enrich() via a single org join
+    org_member_count: null,   // ditto
     _owner_xp: xp,
   };
 }
@@ -95,10 +100,32 @@ async function enrich(rows: SpaceRow[]): Promise<CreativeSpace[]> {
   const uniqueXps = Array.from(new Set(bases.map((b) => b._owner_xp)));
   const pctByXp = new Map<number, number | null>();
   await Promise.all(uniqueXps.map(async (xp) => pctByXp.set(xp, await rankFor(xp, total))));
-  return bases.map(({ _owner_xp, ...rest }) => ({
-    ...rest,
-    owner_percentile: pctByXp.get(_owner_xp) ?? null,
-  }));
+
+  // Single batched lookup for the orgs that have been provisioned for these
+  // spaces (only approved spaces have org_id set; pending rows are noop).
+  const orgIds = bases.map((b) => b.org_id).filter((x): x is string => !!x);
+  const orgBySlug = new Map<string, { slug: string; member_count: number }>();
+  if (orgIds.length > 0) {
+    try {
+      const { data } = await supabaseAdmin()
+        .from("creative_orgs")
+        .select("id, slug, member_count")
+        .in("id", orgIds);
+      for (const o of (data || []) as { id: string; slug: string; member_count: number }[]) {
+        orgBySlug.set(o.id, { slug: o.slug, member_count: o.member_count });
+      }
+    } catch {/* table may not yet exist on a fresh deploy — leave fields null */}
+  }
+
+  return bases.map(({ _owner_xp, ...rest }) => {
+    const org = rest.org_id ? orgBySlug.get(rest.org_id) : null;
+    return {
+      ...rest,
+      org_slug: org?.slug ?? null,
+      org_member_count: org?.member_count ?? null,
+      owner_percentile: pctByXp.get(_owner_xp) ?? null,
+    };
+  });
 }
 
 async function enrichOne(r: SpaceRow): Promise<CreativeSpace> {
@@ -474,9 +501,180 @@ export async function reviewSpace(spaceId: string, decision: "approved" | "rejec
     if (!me || !["admin", "super_admin"].includes(me.role)) return { ok: false, error: "Admins only" };
     const sb = supabaseAdmin();
     await sb.from("creative_spaces").update({ status: decision, updated_at: new Date().toISOString() }).eq("id", spaceId);
+
+    // Spawn the host's tenant org on approval. Idempotent — re-running is a
+    // no-op (creative_orgs.space_id is UNIQUE). Failures here MUST NOT roll
+    // back the status flip, otherwise admins are blocked from approving when
+    // a downstream provisioning step misbehaves.
+    if (decision === "approved") {
+      const r = await provisionOrgFromSpace(spaceId);
+      if (!r.ok) console.warn("[reviewSpace] provisionOrgFromSpace failed:", r.error);
+    }
+
     revalidatePath("/admin/creative-spaces");
     revalidatePath("/creative-space");
     return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * Spawn the per-host org tenant from an approved creative_space. Idempotent:
+ *   - re-running does nothing if `creative_orgs.space_id` already exists
+ *   - safe to call from the admin approval path, the backfill route, or
+ *     a manual super-admin "re-provision" button later
+ *
+ * Steps:
+ *   1. Insert creative_orgs (slug from space.slug, owner = space.owner_id)
+ *   2. Backlink: creative_spaces.org_id = <new org>
+ *   3. Insert org_members(owner)
+ *   4. Seed defaults: org_channels (general, announcements) + welcome announcement
+ *   5. Backfill existing creative_enrollments → org_members(student)
+ *   6. Promote owner Clerk role to "creative_host" iff they're currently
+ *      intern/public_user (don't downgrade higher-privileged users)
+ *   7. Send in-app notification with org_id set
+ */
+export async function provisionOrgFromSpace(spaceId: string): Promise<R<{ orgId: string; created: boolean }>> {
+  try {
+    const sb = supabaseAdmin();
+
+    // Idempotency check first — single point of "already provisioned".
+    {
+      const { data: existing } = await sb
+        .from("creative_orgs")
+        .select("id")
+        .eq("space_id", spaceId)
+        .maybeSingle();
+      if (existing) return { ok: true, data: { orgId: (existing as { id: string }).id, created: false } };
+    }
+
+    const { data: spaceRow } = await sb
+      .from("creative_spaces")
+      .select("id, owner_id, title, slug, status")
+      .eq("id", spaceId)
+      .maybeSingle();
+    if (!spaceRow) return { ok: false, error: "Space not found" };
+    const space = spaceRow as { id: string; owner_id: string; title: string; slug: string | null; status: string };
+    if (space.status !== "approved") return { ok: false, error: "Space is not approved" };
+
+    // Slug — try the space's existing slug first; fall back to a fresh one
+    // on collision. Two retries is enough; the random suffix in slugifyOrgName
+    // makes a third collision astronomically unlikely.
+    let slug = space.slug || slugifyOrgName(space.title);
+    let orgId: string | null = null;
+    for (let attempt = 0; attempt < 3 && !orgId; attempt++) {
+      const { data, error } = await sb
+        .from("creative_orgs")
+        .insert({
+          space_id: space.id,
+          slug,
+          name: space.title,
+          owner_user_id: space.owner_id,
+          status: "active",
+          plan: "free",
+          // storage_prefix can't be filled with the org id until we have it;
+          // use a temp value derived from space_id, then update post-insert.
+          // (Avoids a schema-level "DEFAULT" that would couple us to id format.)
+          storage_prefix: `orgs/space-${space.id}/`,
+        })
+        .select("id")
+        .single();
+      if (!error && data) {
+        orgId = (data as { id: string }).id;
+        break;
+      }
+      const msg = error?.message || "";
+      if (/duplicate key/i.test(msg) && /slug/i.test(msg)) {
+        slug = slugifyOrgName(space.title);
+        continue;
+      }
+      return { ok: false, error: msg || "Failed to create org" };
+    }
+    if (!orgId) return { ok: false, error: "Slug collisions exhausted" };
+
+    // Lock storage prefix to the canonical org-id form now that we have it.
+    await sb.from("creative_orgs")
+      .update({ storage_prefix: `orgs/${orgId}/` })
+      .eq("id", orgId);
+
+    // Backlink the marketplace listing to the new tenant.
+    await sb.from("creative_spaces").update({ org_id: orgId }).eq("id", space.id);
+
+    // Owner membership — first member of the org, by definition.
+    await sb.from("org_members").insert({
+      org_id: orgId,
+      user_id: space.owner_id,
+      role: "owner",
+      status: "active",
+    });
+
+    // Default channels.
+    await sb.from("org_channels").insert([
+      { org_id: orgId, name: "general", kind: "general" },
+      { org_id: orgId, name: "announcements", kind: "announcements" },
+    ]);
+
+    // Welcome announcement — visible to everyone the moment they join.
+    await sb.from("org_announcements").insert({
+      org_id: orgId,
+      author_id: space.owner_id,
+      title: `Welcome to ${space.title}`,
+      body: "Your space is live. Add your first lesson to get students started.",
+      pinned: true,
+    });
+
+    // Backfill existing public-marketplace enrollees as org students.
+    const { data: enrollRows } = await sb
+      .from("creative_enrollments")
+      .select("student_id")
+      .eq("space_id", space.id);
+    const enrollees = (enrollRows as { student_id: string }[] | null) ?? [];
+    if (enrollees.length > 0) {
+      const memberRows = enrollees.map((e) => ({
+        org_id: orgId!,
+        user_id: e.student_id,
+        role: "student" as const,
+        status: "active" as const,
+      }));
+      // ON CONFLICT (org_id, user_id) handled by ignoring duplicates.
+      await sb.from("org_members").upsert(memberRows, { onConflict: "org_id,user_id", ignoreDuplicates: true });
+    }
+    const totalMembers = 1 + enrollees.length;
+    await sb.from("creative_orgs").update({ member_count: totalMembers }).eq("id", orgId);
+
+    // Promote Clerk role — only for low-privilege roles. Higher roles keep
+    // their existing access; we never downgrade.
+    try {
+      const { data: ownerRow } = await sb
+        .from("users")
+        .select("clerk_id, role")
+        .eq("id", space.owner_id)
+        .maybeSingle();
+      const owner = ownerRow as { clerk_id: string | null; role: string } | null;
+      if (owner?.clerk_id && (owner.role === "intern" || owner.role === "public_user")) {
+        const client = await clerkClient();
+        await client.users.updateUserMetadata(owner.clerk_id, {
+          publicMetadata: { role: "creative_host" },
+        });
+        await sb.from("users").update({ role: "creative_host" }).eq("id", space.owner_id);
+      }
+    } catch (e) {
+      console.warn("[provisionOrgFromSpace] clerk role promotion failed:", e);
+    }
+
+    // Notify the owner — first thing they'll see in the bell.
+    await sb.from("notifications").insert({
+      user_id: space.owner_id,
+      org_id: orgId,
+      title: "🏫 Your Creative Space is live",
+      message: `"${space.title}" is approved. Your portal is at /o/${slug}.`,
+      type: "success",
+      action_url: `/o/${slug}`,
+      is_read: false,
+    });
+
+    return { ok: true, data: { orgId, created: true } };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

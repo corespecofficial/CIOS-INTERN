@@ -5,6 +5,13 @@ import Link from "next/link";
 import type { CreativeSpace } from "@/app/actions/creative-spaces-types";
 import { TIER_STYLES, type CreatorCredibility } from "@/lib/creator-credibility";
 
+// Whether the viewer can access /community/profile/<id> is decided
+// server-side in the parent page (auth() + publicMetadata.role) and
+// passed in as `canSeeFullActivity`. Doing it server-side avoids the
+// useCurrentUser flicker where role defaults to "intern" before Clerk
+// hydrates — that flicker was enough to render+prefetch the link for
+// visitors and they could click through.
+
 interface Props {
   instructorId: string;
   name: string;
@@ -23,6 +30,8 @@ interface Props {
   credBadge: string;
   credTier: CreatorCredibility["tier"];
   provenance: string;
+  /** Server-determined: viewer's role allows /community/profile/<id>. */
+  canSeeFullActivity: boolean;
 }
 
 const INK = "var(--text-primary, #F8FAFC)";
@@ -34,6 +43,7 @@ const ACCENT_2 = "#0EA5E9";
 export function InstructorProfileClient({
   instructorId, name, avatarUrl, coverUrl, role, bio, headline, location,
   xp, level, streak, reputation, joined, spaces, credBadge, credTier, provenance,
+  canSeeFullActivity,
 }: Props) {
   const tier = TIER_STYLES[credTier];
   const totalLearners = spaces.reduce((a, s) => a + s.enrollment_count, 0);
@@ -195,11 +205,13 @@ export function InstructorProfileClient({
           </div>
         )}
 
-        <div style={{ marginTop: 28, textAlign: "center" }}>
-          <Link href={`/community/profile/${instructorId}`} style={{ fontSize: 13, color: ACCENT, textDecoration: "none", fontWeight: 700 }}>
-            See full CIOS activity →
-          </Link>
-        </div>
+        {canSeeFullActivity && (
+          <div style={{ marginTop: 28, textAlign: "center" }}>
+            <Link href={`/community/profile/${instructorId}`} style={{ fontSize: 13, color: ACCENT, textDecoration: "none", fontWeight: 700 }}>
+              See full CIOS activity →
+            </Link>
+          </div>
+        )}
       </div>
 
       <style>{`

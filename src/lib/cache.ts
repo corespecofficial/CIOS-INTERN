@@ -103,3 +103,23 @@ export const cacheKey = {
   courseContext: (courseId: string) => `course:ctx:${courseId}`,
   userMiniBadges: (userId: string) => `badges:user:${userId}`,
 } as const;
+
+/**
+ * Org-scoped key builder. ALL host-portal / org-student-portal cache reads
+ * MUST go through this so a stray `nav:badges:<userId>` can never leak from
+ * org A to org B (the same user can be a member of both).
+ *
+ * Layout: `org:<orgId>:<...parts>`. Pattern matches the storage prefix
+ * `orgs/<orgId>/...` so a single tenant scrub can wipe both at once.
+ */
+export function orgKey(orgId: string, ...parts: string[]): string {
+  return `org:${orgId}:${parts.join(":")}`;
+}
+
+/** Pre-built org-scoped keys for the host portal — extend as features land. */
+export const orgCacheKey = {
+  /** Edge middleware tenant guard: "is user X a member of slug Y?" */
+  membership: (userId: string, slug: string) => `org:member:${userId}:${slug}`,
+  dashboard: (orgId: string) => orgKey(orgId, "dashboard"),
+  memberCount: (orgId: string) => orgKey(orgId, "member_count"),
+} as const;

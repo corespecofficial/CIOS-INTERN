@@ -5,6 +5,12 @@ import Link from "next/link";
 import type { Product } from "@/app/actions/marketplace-types";
 import { TIER_STYLES, type CreatorCredibility } from "@/lib/creator-credibility";
 
+// Whether the viewer can access /community/profile/<id> is decided
+// server-side in the parent page and passed in as `canSeeFullActivity`.
+// Doing it server-side avoids the useCurrentUser hydration window where
+// role defaults to "intern" before Clerk loads — that flicker was enough
+// for visitors to see the link render, prefetch trigger, and click through.
+
 interface Props {
   creatorId: string;
   name: string;
@@ -23,6 +29,8 @@ interface Props {
   credBadge: string;
   credTier: CreatorCredibility["tier"];
   provenance: string;
+  /** Server-determined: viewer's role allows /community/profile/<id>. */
+  canSeeFullActivity: boolean;
 }
 
 const INK = "var(--text-primary, #F8FAFC)";
@@ -33,6 +41,7 @@ const ACCENT = "#A855F7";
 export function CreatorProfileClient({
   creatorId, name, avatarUrl, coverUrl, role, bio, headline, location,
   xp, level, streak, reputation, joined, products, credBadge, credTier, provenance,
+  canSeeFullActivity,
 }: Props) {
   const tier = TIER_STYLES[credTier];
   const totalSales = products.reduce((a, p) => a + p.sales_count, 0);
@@ -221,15 +230,17 @@ export function CreatorProfileClient({
           </div>
         )}
 
-        {/* Link to full platform profile */}
-        <div style={{ marginTop: 28, textAlign: "center" }}>
-          <Link
-            href={`/community/profile/${creatorId}`}
-            style={{ fontSize: 13, color: ACCENT, textDecoration: "none", fontWeight: 700 }}
-          >
-            See full CIOS activity →
-          </Link>
-        </div>
+        {/* Link to full platform profile — only for roles that can access (app)/community */}
+        {canSeeFullActivity && (
+          <div style={{ marginTop: 28, textAlign: "center" }}>
+            <Link
+              href={`/community/profile/${creatorId}`}
+              style={{ fontSize: 13, color: ACCENT, textDecoration: "none", fontWeight: 700 }}
+            >
+              See full CIOS activity →
+            </Link>
+          </div>
+        )}
       </div>
 
       <style>{`

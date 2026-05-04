@@ -37,6 +37,13 @@ export interface CreativeSpace {
   review_count: number;
   is_featured: boolean;
   slug: string | null;
+
+  // p390 host-portal additions — links the public listing to the per-host
+  // tenant org spawned on approval (NULL until reviewed). The admin review
+  // surface uses this to show "✓ Organization created" + org details.
+  org_id: string | null;
+  org_slug: string | null;
+  org_member_count: number | null;
 }
 
 export interface SyllabusSection {

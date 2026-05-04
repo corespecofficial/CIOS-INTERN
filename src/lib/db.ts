@@ -32,7 +32,9 @@ export type Role =
   | "instructor" | "moderator" | "finance" | "support"
   | "recruiter" | "mentor" | "alumni" | "premium"
   // Public-portal roles (Phase 0 masterplan §2.2)
-  | "public_user" | "investor" | "startup_founder" | "partner_org";
+  | "public_user" | "investor" | "startup_founder" | "partner_org"
+  // Creative-space host portal (per-org tenant owner)
+  | "creative_host";
 
 export interface DbUser {
   id: string;
@@ -95,28 +97,95 @@ export async function getCurrentDbUser(): Promise<DbUser | null> {
   return data as DbUser | null;
 }
 
-/** Ensure the current Clerk user has a matching Supabase row. */
+/** Ensure the current Clerk user has a matching Supabase row.
+ *
+ * Returns true on success, false if the upsert failed. Returning a
+ * status (instead of swallowing) is what lets the auto-heal path in
+ * /onboarding/intent and /visitor distinguish "row exists" from
+ * "tried to recreate but failed silently and now we'll loop forever".
+ */
 export async function ensureDbUser(
   clerkId: string,
   email: string,
   name: string,
-  role: Role = "intern",
+  role: Role = "public_user",
   avatarUrl?: string | null
-): Promise<void> {
-  const { error } = await supabaseAdmin()
-    .from("users")
-    .upsert(
-      {
-        clerk_id: clerkId,
-        email,
-        name,
-        role,
-        avatar_url: avatarUrl || null,
-        status: "active",
-      },
-      { onConflict: "clerk_id" }
+): Promise<boolean> {
+  const sb = supabaseAdmin();
+  const payload = {
+    clerk_id: clerkId,
+    email,
+    name,
+    role,
+    avatar_url: avatarUrl || null,
+    status: "active",
+  } as const;
+
+  const logErr = (label: string, error: unknown) => {
+    // Supabase PostgrestError fields are non-enumerable → plain
+    // console.error logs "{}". Pull them explicitly so operators see
+    // what actually failed (NOT NULL, enum mismatch, FK, etc.).
+    const e = error as { message?: string; details?: string; hint?: string; code?: string };
+    console.error(`[db] ${label}:`, JSON.stringify({
+      message: e?.message ?? null,
+      code: e?.code ?? null,
+      details: e?.details ?? null,
+      hint: e?.hint ?? null,
+      input: { clerkId, email, name, role },
+    }));
+  };
+
+  // Primary path: upsert on clerk_id. Insert if new, update if existing.
+  const { error } = await sb.from("users").upsert(payload, { onConflict: "clerk_id" });
+  if (!error) return true;
+
+  const code = (error as { code?: string }).code || "";
+  const msg = (error as { message?: string }).message || "";
+
+  // Recovery path #1: enum value not yet present in the DB.
+  // Postgres returns code 22P02 ("invalid input value for enum") when
+  // the role string isn't in the user_role enum. This happens when
+  // shipped code references roles (public_user, creative_host, mentor,
+  // alumni, …) before migration p392a_user_role_enum.sql has been run.
+  // Fall back to a role that's been in the enum since day one ("intern")
+  // so the user can at least sign in. The middleware reconcile path
+  // will heal Supabase to match Clerk on next request once the
+  // migration is run.
+  const isBadEnum = code === "22P02" || /invalid input value for enum user_role/i.test(msg);
+  if (isBadEnum) {
+    console.error(
+      `[db] ensureDbUser: role "${role}" is not in the Supabase user_role enum.\n` +
+      `   → Run migration src/db/migrations/p392a_user_role_enum.sql on your Supabase DB.\n` +
+      `   → Falling back to role="intern" so the user can sign in.`,
     );
-  if (error) console.error("[db] ensureDbUser:", error);
+    const { error: fbErr } = await sb
+      .from("users")
+      .upsert({ ...payload, role: "intern" as Role }, { onConflict: "clerk_id" });
+    if (!fbErr) return true;
+    logErr("ensureDbUser fallback-to-intern also failed", fbErr);
+    return false;
+  }
+
+  // Recovery path #2: orphan row with the same email blocking the
+  // UNIQUE constraint. The most common shape after a hard-delete +
+  // re-signup with the same address. Re-point the existing row to the
+  // new clerk_id instead of failing.
+  const isUniqueEmail = code === "23505" || /duplicate key.*email/i.test(msg);
+  if (isUniqueEmail && email) {
+    const { error: updErr } = await sb
+      .from("users")
+      .update({ clerk_id: clerkId, name, role, avatar_url: avatarUrl || null, status: "active" })
+      .eq("email", email);
+    if (!updErr) {
+      console.info(`[db] ensureDbUser: rebound existing row for ${email} to new clerk_id ${clerkId}`);
+      return true;
+    }
+    logErr("ensureDbUser email-rebind failed", updErr);
+    return false;
+  }
+
+  logErr("ensureDbUser failed", error);
+  return false;
 }
 
 /** Update arbitrary user fields (admin privileges required). */
