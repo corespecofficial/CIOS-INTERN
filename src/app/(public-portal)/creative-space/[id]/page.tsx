@@ -30,10 +30,15 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function SpaceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [spaceRes, reviewsRes] = await Promise.all([getSpace(id), getSpaceReviews(id, 10)]);
+  // The route param can be either a UUID or a slug — getSpace handles
+  // both. We must resolve the space FIRST and then look up reviews by
+  // the canonical UUID, otherwise getSpaceReviews (slug-unaware) finds
+  // nothing for slug-based URLs.
+  const spaceRes = await getSpace(id);
   if (!spaceRes.ok || !spaceRes.data) return notFound();
 
   const s = spaceRes.data;
+  const reviewsRes = await getSpaceReviews(s.id, 10);
   const reviews = reviewsRes.ok ? reviewsRes.data! : [];
   const cred = creatorCredibility({
     xp: s.owner_xp,

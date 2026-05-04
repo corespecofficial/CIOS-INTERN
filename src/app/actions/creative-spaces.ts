@@ -168,10 +168,24 @@ export async function listApprovedSpaces(opts?: { category?: string; format?: st
   }
 }
 
-export async function getSpace(id: string): Promise<R<CreativeSpace>> {
+/**
+ * Fetch a space by id OR slug.
+ *
+ * Most public-portal links use the slug (it's pretty + SEO-friendly:
+ * /creative-space/perfect-charisma-me5cf), but a few legacy paths still
+ * pass the UUID. We sniff the param shape to avoid an OR on the
+ * Postgres side: a UUID is exactly 36 chars with the canonical 8-4-4-
+ * 4-12 hex layout, anything else is a slug. The slug column has its
+ * own UNIQUE index (creative_spaces_slug_unique from p382) so the
+ * lookup is single-row + fast either way.
+ */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function getSpace(idOrSlug: string): Promise<R<CreativeSpace>> {
   try {
     const sb = supabaseAdmin();
-    const { data } = await sb.from("creative_spaces").select(SELECT).eq("id", id).maybeSingle();
+    const lookupColumn = UUID_RE.test(idOrSlug) ? "id" : "slug";
+    const { data } = await sb.from("creative_spaces").select(SELECT).eq(lookupColumn, idOrSlug).maybeSingle();
     if (!data) return { ok: false, error: "Space not found" };
     return { ok: true, data: await enrichOne(data as SpaceRow) };
   } catch (e) {
