@@ -4,7 +4,7 @@ import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import type { CreativeSpace, SyllabusSection, SpaceReview } from "./creative-spaces-types";
 import { atomicWalletDebit, atomicWalletCredit } from "@/app/actions/payments/wallet-debit";
-import { slugifyOrgName } from "@/lib/active-org";
+import { slugifyOrgName, isReservedSlug } from "@/lib/active-org";
 import { clerkClient } from "@clerk/nextjs/server";
 
 export type { CreativeSpace, SyllabusSection, SpaceReview } from "./creative-spaces-types";
@@ -495,25 +495,32 @@ export async function toggleSpaceLive(spaceId: string, isLive: boolean): Promise
   }
 }
 
-export async function reviewSpace(spaceId: string, decision: "approved" | "rejected"): Promise<R> {
+export async function reviewSpace(spaceId: string, decision: "approved" | "rejected"): Promise<R<{ provisionWarning?: string }>> {
   try {
     const me = await getCurrentDbUser();
     if (!me || !["admin", "super_admin"].includes(me.role)) return { ok: false, error: "Admins only" };
     const sb = supabaseAdmin();
     await sb.from("creative_spaces").update({ status: decision, updated_at: new Date().toISOString() }).eq("id", spaceId);
 
-    // Spawn the host's tenant org on approval. Idempotent — re-running is a
-    // no-op (creative_orgs.space_id is UNIQUE). Failures here MUST NOT roll
-    // back the status flip, otherwise admins are blocked from approving when
-    // a downstream provisioning step misbehaves.
+    let provisionWarning: string | undefined;
     if (decision === "approved") {
+      // Spawn the host's tenant org. Idempotent on creative_orgs.space_id
+      // UNIQUE, so the admin can re-click Approve to retry a partial
+      // provision (e.g. if Clerk was rate-limiting the role promotion).
       const r = await provisionOrgFromSpace(spaceId);
-      if (!r.ok) console.warn("[reviewSpace] provisionOrgFromSpace failed:", r.error);
+      if (!r.ok) {
+        // Don't roll back the status flip — that would block the admin
+        // from approving entirely. Instead surface the failure so the UI
+        // can show "Approved, but provisioning needs retry: <reason>"
+        // and the admin can re-click after fixing the underlying issue.
+        console.warn("[reviewSpace] provisionOrgFromSpace failed:", r.error);
+        provisionWarning = `Provisioning failed: ${r.error}. Click Approve again to retry.`;
+      }
     }
 
     revalidatePath("/admin/creative-spaces");
     revalidatePath("/creative-space");
-    return { ok: true };
+    return { ok: true, data: provisionWarning ? { provisionWarning } : undefined };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
@@ -561,7 +568,14 @@ export async function provisionOrgFromSpace(spaceId: string): Promise<R<{ orgId:
     // Slug — try the space's existing slug first; fall back to a fresh one
     // on collision. Two retries is enough; the random suffix in slugifyOrgName
     // makes a third collision astronomically unlikely.
-    let slug = space.slug || slugifyOrgName(space.title);
+    //
+    // Reserved-slug guard: if the marketplace slug happens to collide
+    // with a platform path ('admin', 'api', 'settings', etc.), bypass it
+    // and generate a safe one. Without this, /o/admin would shadow the
+    // admin route or just fail unique-conflict against future data.
+    let slug = (space.slug && !isReservedSlug(space.slug))
+      ? space.slug
+      : slugifyOrgName(space.title);
     let orgId: string | null = null;
     for (let attempt = 0; attempt < 3 && !orgId; attempt++) {
       const { data, error } = await sb
@@ -640,11 +654,20 @@ export async function provisionOrgFromSpace(spaceId: string): Promise<R<{ orgId:
       // ON CONFLICT (org_id, user_id) handled by ignoring duplicates.
       await sb.from("org_members").upsert(memberRows, { onConflict: "org_id,user_id", ignoreDuplicates: true });
     }
-    const totalMembers = 1 + enrollees.length;
-    await sb.from("creative_orgs").update({ member_count: totalMembers }).eq("id", orgId);
+    // Drift-proof recount instead of trusting upsert duplicate-ignore
+    // arithmetic. Was: const totalMembers = 1 + enrollees.length —
+    // wrong if any enrollee was already deduped or the owner happened
+    // to also be in creative_enrollments.
+    await sb.rpc("recount_org_members", { p_org_id: orgId });
 
-    // Promote Clerk role — only for low-privilege roles. Higher roles keep
-    // their existing access; we never downgrade.
+    // Promote Clerk role — only for low-privilege roles. Higher roles
+    // keep their existing access; we never downgrade. Failures here
+    // would leave Supabase saying creative_host but Clerk still saying
+    // intern/public_user — the host couldn't enter their own portal
+    // because middleware reads Clerk. Surface as a warning on the
+    // returned data so the admin UI can show "org created but role
+    // promotion needs retry" instead of a silent green toast.
+    let clerkPromotionWarning: string | null = null;
     try {
       const { data: ownerRow } = await sb
         .from("users")
@@ -660,7 +683,9 @@ export async function provisionOrgFromSpace(spaceId: string): Promise<R<{ orgId:
         await sb.from("users").update({ role: "creative_host" }).eq("id", space.owner_id);
       }
     } catch (e) {
-      console.warn("[provisionOrgFromSpace] clerk role promotion failed:", e);
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn("[provisionOrgFromSpace] clerk role promotion failed:", msg);
+      clerkPromotionWarning = `Owner role promotion failed: ${msg}`;
     }
 
     // Notify the owner — first thing they'll see in the bell.
@@ -674,7 +699,10 @@ export async function provisionOrgFromSpace(spaceId: string): Promise<R<{ orgId:
       is_read: false,
     });
 
-    return { ok: true, data: { orgId, created: true } };
+    return {
+      ok: true,
+      data: { orgId, created: true, ...(clerkPromotionWarning ? { warning: clerkPromotionWarning } : {}) } as { orgId: string; created: boolean },
+    };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

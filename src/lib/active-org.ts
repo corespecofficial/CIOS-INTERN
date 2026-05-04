@@ -79,6 +79,15 @@ export const getActiveOrg = cache(async (slug: string): Promise<ActiveOrgContext
 
   const isSuperAdmin = me.role === "super_admin";
 
+  // Org-status gate: members must NOT be able to enter a suspended or
+  // archived org. Super-admin still can (so ops can investigate why an
+  // org was suspended). Without this check, super-admin's "Suspend"
+  // button is cosmetic — affected members keep accessing the portal
+  // until the row is deleted. This is the canonical place to enforce
+  // the gate because every host-portal and student-portal layout
+  // funnels through getActiveOrg.
+  if (org.status !== "active" && !isSuperAdmin) return null;
+
   const { data: memberRow } = await sb
     .from("org_members")
     .select("role")

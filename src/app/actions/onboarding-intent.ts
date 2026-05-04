@@ -119,10 +119,10 @@ export async function redeemOrgInvite(token: string): Promise<R<ResolveResult>> 
   );
   await sb.from("org_invites").update({ accepted_at: new Date().toISOString() }).eq("id", invite.id);
 
-  // Bump member_count atomically.
-  const { data: orgRow } = await sb.from("creative_orgs").select("member_count").eq("id", invite.org_id).maybeSingle();
-  const cur = (orgRow as { member_count: number } | null)?.member_count ?? 0;
-  await sb.from("creative_orgs").update({ member_count: cur + 1 }).eq("id", invite.org_id);
+  // Recompute member_count from org_members (drift-proof, race-free).
+  // See p393_recount_helper. Replaces the old read-modify-write that
+  // double-counted any soft-removed user re-joining via this code.
+  await sb.rpc("recount_org_members", { p_org_id: invite.org_id });
 
   // Promote Clerk role only if currently low-privilege.
   if (me.role === "intern" || me.role === "public_user") {
@@ -187,10 +187,8 @@ export async function redeemEnrollmentCode(code: string): Promise<R<ResolveResul
     await sb.from("org_invites").update({ accepted_at: new Date().toISOString() }).eq("id", invite.id);
   }
 
-  // Bump member_count.
-  const { data: orgRow } = await sb.from("creative_orgs").select("member_count").eq("id", invite.org_id).maybeSingle();
-  const cur = (orgRow as { member_count: number } | null)?.member_count ?? 0;
-  await sb.from("creative_orgs").update({ member_count: cur + 1 }).eq("id", invite.org_id);
+  // Recompute member_count from org_members (drift-proof). See p393.
+  await sb.rpc("recount_org_members", { p_org_id: invite.org_id });
 
   // Promote Clerk role only for low-privilege users joining as staff.
   // Students keep their existing role (they're a student in someone's
@@ -253,9 +251,9 @@ export async function redeemReferralCode(code: string): Promise<R<ResolveResult>
       { org_id: primary.org_id, user_id: me.id, role: "student", status: "active" },
       { onConflict: "org_id,user_id", ignoreDuplicates: true },
     );
-    const { data: orgRow } = await sb.from("creative_orgs").select("member_count").eq("id", primary.org_id).maybeSingle();
-    const cur = (orgRow as { member_count: number } | null)?.member_count ?? 0;
-    await sb.from("creative_orgs").update({ member_count: cur + 1 }).eq("id", primary.org_id);
+    // Recompute (drift-proof) — see p393. Also handles ignoreDuplicates
+    // case where the upsert was a no-op for an existing active member.
+    await sb.rpc("recount_org_members", { p_org_id: primary.org_id });
 
     if (me.role !== "intern" && me.role !== "public_user" && me.role !== "creative_host") {
       // leave their role alone if they already have something privileged

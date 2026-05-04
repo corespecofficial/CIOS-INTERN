@@ -74,8 +74,21 @@ async function bustOrgCache(orgId: string, slug: string) {
   void slug;
 }
 
-async function bustMembershipCache(userId: string, slug: string) {
-  await cacheDel(orgCacheKey.membership(userId, slug));
+/**
+ * Bust the edge tenant-guard's membership cache for a user.
+ *
+ * Critical detail: the middleware writes the cache key using the user's
+ * **Clerk** ID (it only has Clerk auth at the edge). If we invalidate
+ * using the Supabase users.id we wrote into orgCacheKey.membership the
+ * key never matches and the stale role lingers for the full TTL. We
+ * therefore look up clerk_id from Supabase before busting. Caller passes
+ * the Supabase user_id (what's available in our DB context).
+ */
+async function bustMembershipCache(supabaseUserId: string, slug: string) {
+  const sb = supabaseAdmin();
+  const { data } = await sb.from("users").select("clerk_id").eq("id", supabaseUserId).maybeSingle();
+  const clerkId = (data as { clerk_id?: string | null } | null)?.clerk_id;
+  if (clerkId) await cacheDel(orgCacheKey.membership(clerkId, slug));
 }
 
 /* ───────────── Lessons ───────────── */
@@ -408,11 +421,9 @@ export async function removeMember(orgId: string, memberId: string): Promise<R> 
 
   await bustMembershipCache(t.user_id, a.data.org.slug);
   await bustOrgCache(orgId, a.data.org.slug);
-  // Decrement member_count atomically. Float-safe: integer column.
-  await sb.rpc("set_config", { setting_name: "_dummy", new_value: "_", is_local: false }).then(() => null).catch(() => null);
-  const { data: orgRow } = await sb.from("creative_orgs").select("member_count").eq("id", orgId).maybeSingle();
-  const cur = (orgRow as { member_count: number } | null)?.member_count ?? 0;
-  await sb.from("creative_orgs").update({ member_count: Math.max(0, cur - 1) }).eq("id", orgId);
+  // Atomic SQL-side recount — drift-proof against concurrent removes
+  // and against the soft-remove → rejoin double-count case. See p393.
+  await sb.rpc("recount_org_members", { p_org_id: orgId });
 
   revalidatePath(`/o/${a.data.org.slug}/members`);
   return { ok: true };
