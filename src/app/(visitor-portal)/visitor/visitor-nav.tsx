@@ -31,8 +31,10 @@ const ITEMS: NavItem[] = [
   { emoji: "🔍", label: "Explore",         href: "/explore",      section: "MAIN",     inPortal: true  },
   { emoji: "📨", label: "My applications", href: "/applications", section: "MAIN",     inPortal: true  },
   { emoji: "👤", label: "Profile",         href: "/profile",      section: "MAIN",     inPortal: true  },
-  // Root-level shared surfaces — every signed-in role can reach these
-  { emoji: "🔔", label: "Notifications",   href: "/notifications", section: "MAIN",    inPortal: false },
+  // Notifications now lives in-shell at /visitor/notifications so the
+  // visitor stays inside their own portal chrome. Settings still routes
+  // to the shared /settings page (no in-shell version yet).
+  { emoji: "🔔", label: "Notifications",   href: "/notifications", section: "MAIN",    inPortal: true  },
   { emoji: "⚙️", label: "Settings",        href: "/settings",     section: "MAIN",     inPortal: false },
   { emoji: "🛒", label: "Marketplace",     href: "/marketplace",  section: "DISCOVER", inPortal: false },
   { emoji: "🏫", label: "Creative spaces", href: "/creative-space", section: "DISCOVER", inPortal: false },
