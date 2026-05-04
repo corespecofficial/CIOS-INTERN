@@ -5,6 +5,7 @@ import { getActiveOrg } from "@/lib/active-org";
 import { supabaseAdmin } from "@/lib/db";
 import { listPendingEmailInvites } from "@/app/actions/org-invites";
 import { InvitePanel } from "./invite-panel";
+import { TransferOwnerButton } from "./transfer-owner-button";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,9 @@ export default async function MembersPage({ params, searchParams }: Props) {
   // Owners + org-admins (and super-admin) get the invite panel. Pull
   // pending invites in parallel with the members fetch below.
   const canInvite = ctx.isSuperAdmin || ctx.memberRole === "owner" || ctx.memberRole === "org_admin";
+  // Only the actual current owner gets the "Make owner" button —
+  // super_admin doesn't get the shortcut (see action's authz note).
+  const viewerIsOwner = ctx.memberRole === "owner";
   const invitesRes = canInvite ? await listPendingEmailInvites(ctx.org.id) : null;
   const pendingInvites = invitesRes?.ok ? invitesRes.data! : [];
 
@@ -186,6 +190,19 @@ export default async function MembersPage({ params, searchParams }: Props) {
               <div style={{ fontSize: 11, color: "#5A6478", whiteSpace: "nowrap" }}>
                 Joined {new Date(m.joined_at).toLocaleDateString()}
               </div>
+              {/* Transfer-ownership button: shown only to the current
+                  owner (viewerIsOwner) on rows that aren't themselves
+                  and aren't already the owner. Super-admin doesn't get
+                  this shortcut by design — see action's authz comment. */}
+              {viewerIsOwner && m.role !== "owner" && m.user && (
+                <TransferOwnerButton
+                  orgId={ctx.org.id}
+                  orgSlug={orgSlug}
+                  orgName={ctx.org.name}
+                  targetUserId={m.user.id}
+                  targetName={m.user.name ?? "this member"}
+                />
+              )}
             </div>
           ))}
         </div>

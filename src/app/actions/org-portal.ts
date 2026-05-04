@@ -432,6 +432,119 @@ export async function postMessage(orgId: string, channelId: string, body: string
 
 /* ───────────── Members ───────────── */
 
+/**
+ * Transfer org ownership to another active member.
+ *
+ * The current owner is the only caller (super_admin doesn't get a
+ * shortcut here — they can fix via Studio if needed). The target gets
+ * promoted to `owner` and the previous owner is demoted to `org_admin`
+ * so they keep elevated access. All inside a single SQL transaction
+ * via the p394 transfer_org_ownership SECURITY DEFINER function so
+ * the org never enters a zero-owner state, even mid-flight.
+ *
+ * UI calls this with `confirmSlug` matching the org's slug — defense
+ * against accidental clicks on a destructive button. The check is
+ * server-side; client UI also requires typing the slug to enable.
+ */
+export async function transferOrgOwnership(
+  orgId: string,
+  newOwnerUserId: string,
+  confirmSlug: string,
+): Promise<R> {
+  const me = await getCurrentDbUser();
+  if (!me) return { ok: false, error: "Unauthorized" };
+
+  const sb = supabaseAdmin();
+  const { data: orgRow } = await sb
+    .from("creative_orgs")
+    .select("id, slug, name, owner_user_id, status")
+    .eq("id", orgId)
+    .maybeSingle();
+  type Org = { id: string; slug: string; name: string; owner_user_id: string; status: string };
+  const org = orgRow as Org | null;
+  if (!org) return { ok: false, error: "Org not found" };
+  if (org.status !== "active") return { ok: false, error: `Org is ${org.status} — reactivate before transferring` };
+  if (org.owner_user_id !== me.id) return { ok: false, error: "Only the current owner can transfer ownership" };
+  if (confirmSlug.trim().toLowerCase() !== org.slug.toLowerCase()) return { ok: false, error: "Confirmation didn't match the org slug" };
+  if (newOwnerUserId === me.id) return { ok: false, error: "You're already the owner" };
+
+  // Look up the target's name for the audit + notification copy
+  // BEFORE the transfer so the message is well-formed even if a
+  // downstream read misbehaves.
+  const { data: targetRow } = await sb
+    .from("users")
+    .select("id, name, clerk_id")
+    .eq("id", newOwnerUserId)
+    .maybeSingle();
+  const target = targetRow as { id: string; name: string; clerk_id: string | null } | null;
+  if (!target) return { ok: false, error: "Target user not found" };
+
+  // The atomic switch lives in SQL. Errors come back as exceptions
+  // tagged with the labels we raise inside the function ('not_current_owner',
+  // 'target_not_member', etc.) — surface them with friendlier copy.
+  // @ts-expect-error supabase-js doesn't have generic types for our custom RPCs
+  const { error } = await sb.rpc("transfer_org_ownership", {
+    p_org_id: orgId,
+    p_new_owner_id: newOwnerUserId,
+    p_actor_id: me.id,
+  });
+  if (error) {
+    const msg = error.message || "";
+    if (/not_current_owner/.test(msg)) return { ok: false, error: "You're not the current owner anymore" };
+    if (/target_not_member/.test(msg)) return { ok: false, error: "Target isn't a member of this org" };
+    if (/target_not_active/.test(msg)) return { ok: false, error: "Target's membership isn't active" };
+    if (/cannot_transfer_to_self/.test(msg)) return { ok: false, error: "You're already the owner" };
+    if (/org_not_found/.test(msg)) return { ok: false, error: "Org not found" };
+    return { ok: false, error: msg || "Transfer failed" };
+  }
+
+  // Cache busts: both users' membership cache (the edge tenant guard
+  // returns the cached role; without busting they'd see stale roles
+  // for up to 60s after the transfer).
+  await bustMembershipCache(me.id, org.slug);
+  await bustMembershipCache(newOwnerUserId, org.slug);
+  await bustOrgCache(orgId, org.slug);
+
+  // Notify both the new owner (welcome) and the previous owner
+  // (confirmation receipt + sanity check that THEY initiated the
+  // transfer — if they didn't, this is the moment to call support).
+  try {
+    await sb.from("notifications").insert([
+      {
+        user_id: newOwnerUserId,
+        org_id: orgId,
+        title: `🔑 You're now the owner of ${org.name}`,
+        message: `${me.name || "The previous owner"} transferred ownership to you. You now control billing, settings, members, and can transfer ownership again if needed.`,
+        type: "success",
+        action_url: `/o/${org.slug}/settings`,
+        is_read: false,
+      },
+      {
+        user_id: me.id,
+        org_id: orgId,
+        title: `Ownership of ${org.name} transferred`,
+        message: `You handed ${org.name} to ${target.name}. You remain an org admin. If this wasn't you, contact CIOS support immediately.`,
+        type: "info",
+        action_url: `/o/${org.slug}/settings`,
+        is_read: false,
+      },
+    ]);
+  } catch (e) {
+    console.warn("[transferOrgOwnership] notification fan-out failed (non-fatal):", e);
+  }
+
+  await logOrgAudit({
+    orgId, actorId: me.id, action: "member.role_updated",
+    target: `user:${newOwnerUserId}`,
+    meta: { kind: "ownership_transfer", from_user: me.id, to_user: newOwnerUserId, previous_owner_demoted_to: "org_admin" },
+  });
+
+  revalidatePath(`/o/${org.slug}/members`);
+  revalidatePath(`/o/${org.slug}/settings`);
+  revalidatePath("/super-admin/orgs");
+  return { ok: true };
+}
+
 export async function updateMemberRole(orgId: string, memberId: string, newRole: OrgMemberRole): Promise<R> {
   const a = await assertOrgMember(orgId, { roles: STAFF_ROLES });
   if (!a.ok) return a;
