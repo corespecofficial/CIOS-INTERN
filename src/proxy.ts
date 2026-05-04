@@ -110,7 +110,24 @@ const ROLE_ACCESS: Record<Role, string[]> = {
 
 // Always-shared "in transit" routes — every signed-in user can reach the
 // onboarding gate and the invite-redemption page regardless of role.
-const ONBOARDING_ROUTES = ["/onboarding/intent", "/join", "/post-auth"];
+// Routes the onboarding gate must NOT redirect away from. The gate
+// catches signed-in users with onboarding_completed_at = NULL and
+// pushes them back to /onboarding/intent. The intern path
+// (chooseIntern → /onboarding/enrollment) deliberately doesn't mark
+// the user onboarded until they redeem a code, so without exempting
+// /onboarding/enrollment here middleware would bounce them straight
+// back to /onboarding/intent in an infinite loop.
+//
+// /onboarding/visitor-welcome is exempted for symmetry: chooseVisitor
+// DOES mark onboarded so it's not a current loop, but if a future
+// flow ever defers that mark we don't want this trap to reopen.
+const ONBOARDING_ROUTES = [
+  "/onboarding/intent",
+  "/onboarding/enrollment",
+  "/onboarding/visitor-welcome",
+  "/join",
+  "/post-auth",
+];
 
 const isProtectedRoute = createRouteMatcher([
   '/post-auth(.*)',
