@@ -1,15 +1,18 @@
 /**
- * Per-org host-portal shell. Resolves [orgSlug] → org + caller's per-org
- * role via getActiveOrg (cached per-request); 404s if the slug doesn't
- * exist or the caller isn't a member (and isn't super_admin).
+ * Per-org host-portal shell. Resolves [orgSlug] → org context.
  *
- * The middleware tenant guard already 404s unauthorized hits at the edge
- * before we get here — this layer is a defense-in-depth check that also
- * fetches the org row we need for the sidebar.
+ * Failure modes are differentiated via getOrgEntryStatus so the user
+ * sees a real explanation when their org is suspended/archived,
+ * instead of a bare 404. Strangers / non-members still get 404 for
+ * privacy (so org slugs aren't enumerable).
+ *
+ * The middleware tenant guard already 404s unauthorized hits at the
+ * edge before we get here — this layer is defense-in-depth.
  */
 
 import { notFound } from "next/navigation";
-import { getActiveOrg } from "@/lib/active-org";
+import Link from "next/link";
+import { getOrgEntryStatus } from "@/lib/active-org";
 import { HostNav } from "./host-nav";
 
 export const dynamic = "force-dynamic";
@@ -21,9 +24,14 @@ interface Props {
 
 export default async function HostOrgLayout({ children, params }: Props) {
   const { orgSlug } = await params;
-  const ctx = await getActiveOrg(orgSlug);
-  if (!ctx) notFound();
+  const status = await getOrgEntryStatus(orgSlug);
 
+  if (!status.ok) {
+    if (status.failure.kind === "not_found" || status.failure.kind === "signed_out") notFound();
+    return <OrgUnavailable failure={status.failure} />;
+  }
+
+  const ctx = status.ctx;
   // Host-side portal — only owners/admins/instructors. Students get the
   // /s/<slug> portal instead. Super-admin can preview either.
   const allowedHostRoles: ReadonlyArray<string> = ["owner", "org_admin", "instructor"];
@@ -42,5 +50,34 @@ export default async function HostOrgLayout({ children, params }: Props) {
         {children}
       </main>
     </>
+  );
+}
+
+function OrgUnavailable({ failure }: { failure: { kind: "suspended" | "archived"; org: { name: string; slug: string } } }) {
+  const isSuspended = failure.kind === "suspended";
+  const tint = isSuspended ? "#FFA726" : "#5A6478";
+  return (
+    <div style={{ minHeight: "100dvh", background: "#0A0E1A", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Nunito', system-ui, sans-serif" }}>
+      <div style={{ maxWidth: 520, background: "#111827", border: `1px solid ${tint}55`, borderRadius: 16, padding: 32, textAlign: "center", color: "#E8EDF5" }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>{isSuspended ? "⏸" : "🗄"}</div>
+        <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 6px" }}>
+          {isSuspended ? "This org is suspended" : "This org is archived"}
+        </h1>
+        <p style={{ fontSize: 13, color: "#8892A4", lineHeight: 1.6, margin: "0 0 20px" }}>
+          <strong style={{ color: "#E8EDF5" }}>{failure.org.name}</strong> is currently {failure.kind}.
+          {isSuspended
+            ? " Contact CIOS support if you believe this is in error."
+            : " Past content is preserved but no new activity is allowed."}
+        </p>
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+          <Link href="/o" style={{ padding: "10px 20px", background: "transparent", color: tint, border: `1px solid ${tint}55`, borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+            ← All my orgs
+          </Link>
+          <Link href="/dashboard" style={{ padding: "10px 20px", background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff", borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: "none" }}>
+            Back to CIOS
+          </Link>
+        </div>
+      </div>
+    </div>
   );
 }

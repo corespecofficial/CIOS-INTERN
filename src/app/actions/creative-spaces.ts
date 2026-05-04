@@ -506,11 +506,25 @@ export async function toggleSpaceLive(spaceId: string, isLive: boolean): Promise
   }
 }
 
-export async function reviewSpace(spaceId: string, decision: "approved" | "rejected"): Promise<R<{ provisionWarning?: string }>> {
+export async function reviewSpace(
+  spaceId: string,
+  decision: "approved" | "rejected",
+  reason?: string,
+): Promise<R<{ provisionWarning?: string }>> {
   try {
     const me = await getCurrentDbUser();
     if (!me || !["admin", "super_admin"].includes(me.role)) return { ok: false, error: "Admins only" };
     const sb = supabaseAdmin();
+
+    // Pull the applicant + space metadata BEFORE the status flip so the
+    // notification copy is well-formed even if a downstream read fails.
+    const { data: spaceRow } = await sb
+      .from("creative_spaces")
+      .select("owner_id, title, slug")
+      .eq("id", spaceId)
+      .maybeSingle();
+    const space = spaceRow as { owner_id: string; title: string; slug: string | null } | null;
+
     await sb.from("creative_spaces").update({ status: decision, updated_at: new Date().toISOString() }).eq("id", spaceId);
 
     let provisionWarning: string | undefined;
@@ -526,6 +540,26 @@ export async function reviewSpace(spaceId: string, decision: "approved" | "rejec
         // and the admin can re-click after fixing the underlying issue.
         console.warn("[reviewSpace] provisionOrgFromSpace failed:", r.error);
         provisionWarning = `Provisioning failed: ${r.error}. Click Approve again to retry.`;
+      }
+    } else if (decision === "rejected" && space) {
+      // Tell the applicant the news. Without this they'd watch their
+      // pending application disappear from /visitor/applications with no
+      // explanation — a worse experience than receiving "your space was
+      // not approved this time" with the reviewer's reason. The
+      // approval path already notifies via provisionOrgFromSpace.
+      try {
+        await sb.from("notifications").insert({
+          user_id: space.owner_id,
+          title: "Your Creative Space wasn't approved this time",
+          message: reason
+            ? `Reviewer note: ${reason.slice(0, 240)}`
+            : `Your application for "${space.title}" was not approved. You can refine it and submit again, or reach out for guidance.`,
+          type: "warning",
+          action_url: "/creative-space/manage",
+          is_read: false,
+        });
+      } catch (e) {
+        console.warn("[reviewSpace] reject notification failed (non-fatal):", e);
       }
     }
 

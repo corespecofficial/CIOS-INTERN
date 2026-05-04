@@ -43,8 +43,8 @@ export function AdminCreativeSpacesClient({
   const approvedCount = initialAll.filter((s) => s.status === "approved").length;
   const orgCount = initialAll.filter((s) => s.org_id).length;
 
-  const handleReview = async (spaceId: string, decision: "approved" | "rejected") => {
-    const res = await reviewSpace(spaceId, decision);
+  const handleReview = async (spaceId: string, decision: "approved" | "rejected", reason?: string) => {
+    const res = await reviewSpace(spaceId, decision, reason);
     if (!res.ok) { toast.error(res.error); return; }
 
     if (decision === "approved") {
@@ -190,14 +190,21 @@ function StatCard({ label, value, color, sub }: { label: string; value: number; 
 
 /* ───────────── Pending card with full details ───────────── */
 
-function PendingSpaceCard({ space: s, onReview }: { space: CreativeSpace; onReview: (id: string, decision: "approved" | "rejected") => Promise<void> }) {
+function PendingSpaceCard({ space: s, onReview }: { space: CreativeSpace; onReview: (id: string, decision: "approved" | "rejected", reason?: string) => Promise<void> }) {
   const [pending, start] = useTransition();
   const [expanded, setExpanded] = useState(false);
 
   const approve = () => start(() => onReview(s.id, "approved"));
   const reject = () => {
-    if (!confirm(`Reject "${s.title}"? Applicant will be notified.`)) return;
-    start(() => onReview(s.id, "rejected"));
+    // Prompt for a reason — passed straight into the in-app
+    // notification the applicant receives. Empty / cancelled = abort
+    // (avoid silent rejections). Cancelling the prompt returns null.
+    const reason = window.prompt(
+      `Reject "${s.title}"? Optional reviewer note (sent to the applicant):`,
+      "",
+    );
+    if (reason === null) return;
+    start(() => onReview(s.id, "rejected", reason || undefined));
   };
 
   return (

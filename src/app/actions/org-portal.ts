@@ -401,7 +401,12 @@ export async function updateMemberRole(orgId: string, memberId: string, newRole:
   if (!a.ok) return a;
 
   const sb = supabaseAdmin();
-  // Owner role can't be reassigned via this action — it transfers separately.
+  // INVARIANT: every active org has ≥1 active owner. The two blocks
+  // below enforce it together — owner role can't be assigned (only
+  // provision/transfer set it) and existing owners can't be demoted.
+  // If a transfer-ownership action is added later it MUST promote the
+  // new owner BEFORE demoting the old one (or do both atomically),
+  // otherwise this gate keeps an org from becoming ownerless.
   if (newRole === "owner") return { ok: false, error: "Use the transfer-owner flow" };
 
   const { data: target } = await sb

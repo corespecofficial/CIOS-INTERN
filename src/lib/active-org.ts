@@ -40,6 +40,18 @@ export interface ActiveOrgContext {
 }
 
 /**
+ * Why an attempt to enter an org failed. Returned by getOrgEntryFailure
+ * when getActiveOrg returns null, so layouts can render the right
+ * message instead of always 404'ing. We deliberately don't distinguish
+ * "no such slug" from "you're not a member" — both leak existence.
+ */
+export type OrgEntryFailure =
+  | { kind: "not_found" }      // doesn't exist OR caller isn't a member
+  | { kind: "signed_out" }     // no auth user
+  | { kind: "suspended"; org: { name: string; slug: string } }
+  | { kind: "archived"; org: { name: string; slug: string } };
+
+/**
  * Slugs that must never resolve to a tenant — they collide with platform
  * routes or expose obvious phishing targets. Compared case-insensitively
  * (slug column is CITEXT). Keep in sync with Phase 1 migration.
@@ -100,6 +112,62 @@ export const getActiveOrg = cache(async (slug: string): Promise<ActiveOrgContext
   if (!memberRole && !isSuperAdmin) return null;
 
   return { org, me, memberRole, isSuperAdmin };
+});
+
+/**
+ * Like getActiveOrg but returns the failure REASON so layouts can render
+ * explanatory pages (especially "your org is suspended"). For privacy
+ * we still return `not_found` for both "doesn't exist" and "you're not
+ * a member" — leaking which would let strangers enumerate org slugs.
+ *
+ * Suspended/archived statuses ARE returned with the org name, but only
+ * for users who are actual members of that org. Non-members of a
+ * suspended org get `not_found` like before.
+ */
+export const getOrgEntryStatus = cache(async (slug: string): Promise<
+  | { ok: true; ctx: ActiveOrgContext }
+  | { ok: false; failure: OrgEntryFailure }
+> => {
+  if (!slug || isReservedSlug(slug)) return { ok: false, failure: { kind: "not_found" } };
+  const me = await getCurrentDbUser();
+  if (!me) return { ok: false, failure: { kind: "signed_out" } };
+
+  const sb = supabaseAdmin();
+  const { data: orgRow } = await sb
+    .from("creative_orgs")
+    .select("id, space_id, slug, name, owner_user_id, status, plan, storage_prefix, member_count, settings, created_at, updated_at")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (!orgRow) return { ok: false, failure: { kind: "not_found" } };
+  const org = orgRow as CreativeOrg;
+
+  const isSuperAdmin = me.role === "super_admin";
+
+  const { data: memberRow } = await sb
+    .from("org_members")
+    .select("role")
+    .eq("org_id", org.id)
+    .eq("user_id", me.id)
+    .eq("status", "active")
+    .maybeSingle();
+  const memberRole = (memberRow as { role: OrgMemberRole } | null)?.role ?? null;
+
+  // Privacy: non-members get the same not_found regardless of status.
+  if (!memberRole && !isSuperAdmin) return { ok: false, failure: { kind: "not_found" } };
+
+  // Members of a non-active org get an explanation. Super-admins still
+  // get full access (they need it to investigate).
+  if (org.status !== "active" && !isSuperAdmin) {
+    if (org.status === "suspended") {
+      return { ok: false, failure: { kind: "suspended", org: { name: org.name, slug: org.slug } } };
+    }
+    if (org.status === "archived") {
+      return { ok: false, failure: { kind: "archived", org: { name: org.name, slug: org.slug } } };
+    }
+    return { ok: false, failure: { kind: "not_found" } };
+  }
+
+  return { ok: true, ctx: { org, me, memberRole, isSuperAdmin } };
 });
 
 /**

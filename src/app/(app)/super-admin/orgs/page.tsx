@@ -7,6 +7,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentDbUser, supabaseAdmin } from "@/lib/db";
+import { OrgStatusControls } from "./org-status-controls";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +86,7 @@ export default async function SuperAdminOrgsPage({ searchParams }: { searchParam
                 <div style={{ fontSize: 10, color: "#5A6478", textTransform: "uppercase", letterSpacing: 0.5 }}>members</div>
               </div>
               <Link href={`/o/${o.slug}`} style={{ padding: "6px 12px", background: "transparent", color: "#1E88E5", border: "1px solid #1E88E5", borderRadius: 6, fontSize: 11, fontWeight: 700, textDecoration: "none" }}>Preview →</Link>
+              <OrgStatusControls orgId={o.id} status={o.status} />
             </div>
           ))}
         </div>
