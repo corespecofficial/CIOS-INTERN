@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getActiveOrg } from "@/lib/active-org";
 import { supabaseAdmin } from "@/lib/db";
+import { listPendingEmailInvites } from "@/app/actions/org-invites";
+import { InvitePanel } from "./invite-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +42,12 @@ export default async function MembersPage({ params, searchParams }: Props) {
   const { role: roleFilter, q, page: pageStr } = await searchParams;
   const ctx = await getActiveOrg(orgSlug);
   if (!ctx) notFound();
+
+  // Owners + org-admins (and super-admin) get the invite panel. Pull
+  // pending invites in parallel with the members fetch below.
+  const canInvite = ctx.isSuperAdmin || ctx.memberRole === "owner" || ctx.memberRole === "org_admin";
+  const invitesRes = canInvite ? await listPendingEmailInvites(ctx.org.id) : null;
+  const pendingInvites = invitesRes?.ok ? invitesRes.data! : [];
 
   const page = Math.max(1, Number(pageStr) || 1);
   const from = (page - 1) * PAGE_SIZE;
@@ -93,6 +101,11 @@ export default async function MembersPage({ params, searchParams }: Props) {
       <p style={{ color: "#8892A4", fontSize: 13, margin: "0 0 18px 0" }}>
         {totalActive} active in {ctx.org.name}
       </p>
+
+      {/* Direct-invite + pending invites — owners/org-admins only */}
+      {canInvite && (
+        <InvitePanel orgId={ctx.org.id} orgSlug={orgSlug} initialPending={pendingInvites} />
+      )}
 
       {/* Role filter chips */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
