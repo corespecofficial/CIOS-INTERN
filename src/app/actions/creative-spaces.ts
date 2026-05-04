@@ -6,6 +6,8 @@ import type { CreativeSpace, SyllabusSection, SpaceReview } from "./creative-spa
 import { atomicWalletDebit, atomicWalletCredit } from "@/app/actions/payments/wallet-debit";
 import { slugifyOrgName, isReservedSlug } from "@/lib/active-org";
 import { clerkClient } from "@clerk/nextjs/server";
+import { logOrgAudit } from "@/lib/org-audit";
+import { cached, TTL } from "@/lib/cache";
 
 export type { CreativeSpace, SyllabusSection, SpaceReview } from "./creative-spaces-types";
 
@@ -18,17 +20,26 @@ type OwnerJoin =
 
 type SpaceRow = Record<string, unknown> & { owner?: OwnerJoin };
 
+/**
+ * Total count of users in the "ranked roles" — used as the denominator
+ * for owner_percentile. This is a full-table COUNT(*) on users; at any
+ * non-trivial scale (10k+ users) it dominates the cost of every list
+ * query that calls enrich(). Cached at TTL.medium (5 min) — the value
+ * drifts very slowly compared to how often spaces are listed.
+ */
 async function fetchPercentileTotal(): Promise<number> {
-  try {
-    const sb = supabaseAdmin();
-    const { count } = await sb
-      .from("users")
-      .select("id", { count: "exact", head: true })
-      .in("role", ["intern", "team_lead", "alumni", "mentor", "instructor"]);
-    return count ?? 0;
-  } catch {
-    return 0;
-  }
+  return cached("creative_spaces:percentile_total", TTL.medium, async () => {
+    try {
+      const sb = supabaseAdmin();
+      const { count } = await sb
+        .from("users")
+        .select("id", { count: "exact", head: true })
+        .in("role", ["intern", "team_lead", "alumni", "mentor", "instructor"]);
+      return count ?? 0;
+    } catch {
+      return 0;
+    }
+  });
 }
 
 async function rankFor(xp: number, total: number): Promise<number | null> {
@@ -697,6 +708,22 @@ export async function provisionOrgFromSpace(spaceId: string): Promise<R<{ orgId:
       type: "success",
       action_url: `/o/${slug}`,
       is_read: false,
+    });
+
+    // Audit: org creation is the most important event in the system —
+    // log who triggered it (the reviewing admin) along with the source
+    // space + final slug, so super-admin can trace any org back to the
+    // approval action.
+    const reviewer = await getCurrentDbUser();
+    await logOrgAudit({
+      orgId, actorId: reviewer?.id ?? null, action: "org.created",
+      target: `space:${space.id}`,
+      meta: {
+        slug, owner_user_id: space.owner_id,
+        title: space.title,
+        backfilled_enrollees: enrollees.length,
+        clerk_promotion_warning: clerkPromotionWarning,
+      },
     });
 
     return {

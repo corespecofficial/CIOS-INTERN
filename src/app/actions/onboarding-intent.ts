@@ -12,6 +12,7 @@
 import { supabaseAdmin, getCurrentDbUser, type Role } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { clerkClient } from "@clerk/nextjs/server";
+import { logOrgAudit } from "@/lib/org-audit";
 import { cacheDel } from "@/lib/cache";
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
@@ -123,6 +124,11 @@ export async function redeemOrgInvite(token: string): Promise<R<ResolveResult>> 
   // See p393_recount_helper. Replaces the old read-modify-write that
   // double-counted any soft-removed user re-joining via this code.
   await sb.rpc("recount_org_members", { p_org_id: invite.org_id });
+  await logOrgAudit({
+    orgId: invite.org_id, actorId: me.id, action: "member.joined",
+    target: `user:${me.id}`,
+    meta: { via: "org_invite", role: invite.role },
+  });
 
   // Promote Clerk role only if currently low-privilege.
   if (me.role === "intern" || me.role === "public_user") {
@@ -189,6 +195,11 @@ export async function redeemEnrollmentCode(code: string): Promise<R<ResolveResul
 
   // Recompute member_count from org_members (drift-proof). See p393.
   await sb.rpc("recount_org_members", { p_org_id: invite.org_id });
+  await logOrgAudit({
+    orgId: invite.org_id, actorId: me.id, action: "member.joined",
+    target: `user:${me.id}`,
+    meta: { via: isPublic ? "public_code" : "email_invite", role: invite.role, code: trimmed },
+  });
 
   // Promote Clerk role only for low-privilege users joining as staff.
   // Students keep their existing role (they're a student in someone's

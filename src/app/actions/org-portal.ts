@@ -14,6 +14,7 @@ import { supabaseAdmin, getCurrentDbUser, type DbUser } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { cacheDel, orgCacheKey, orgKey } from "@/lib/cache";
 import type { OrgMemberRole, CreativeOrg } from "@/lib/active-org";
+import { logOrgAudit } from "@/lib/org-audit";
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -121,6 +122,11 @@ export async function createLesson(orgId: string, input: LessonInput): Promise<R
   if (error || !data) return { ok: false, error: error?.message || "Failed to create lesson" };
 
   await bustOrgCache(orgId, a.data.org.slug);
+  await logOrgAudit({
+    orgId, actorId: a.data.me.id, action: "lesson.created",
+    target: `lesson:${(data as { id: string }).id}`,
+    meta: { title: input.title.trim() },
+  });
   revalidatePath(`/o/${a.data.org.slug}/lessons`);
   revalidatePath(`/o/${a.data.org.slug}`);
   revalidatePath(`/s/${a.data.org.slug}/lessons`);
@@ -191,6 +197,11 @@ export async function createAssignment(orgId: string, input: AssignmentInput): P
   if (error || !data) return { ok: false, error: error?.message || "Failed to create assignment" };
 
   await bustOrgCache(orgId, a.data.org.slug);
+  await logOrgAudit({
+    orgId, actorId: a.data.me.id, action: "assignment.created",
+    target: `assignment:${(data as { id: string }).id}`,
+    meta: { title: input.title.trim(), due_at: input.due_at ?? null },
+  });
   revalidatePath(`/o/${a.data.org.slug}/assignments`);
   revalidatePath(`/o/${a.data.org.slug}`);
   revalidatePath(`/s/${a.data.org.slug}/assignments`);
@@ -246,6 +257,11 @@ export async function gradeSubmission(orgId: string, submissionId: string, grade
     .eq("org_id", orgId);
   if (error) return { ok: false, error: error.message };
 
+  await logOrgAudit({
+    orgId, actorId: a.data.me.id, action: "submission.graded",
+    target: `submission:${submissionId}`,
+    meta: { grade },
+  });
   revalidatePath(`/o/${a.data.org.slug}/assignments`);
   revalidatePath(`/s/${a.data.org.slug}/assignments`);
   return { ok: true };
@@ -273,8 +289,10 @@ export async function postAnnouncement(orgId: string, title: string, body: strin
     .single();
   if (error || !data) return { ok: false, error: error?.message || "Failed to post" };
 
-  // Notify everyone in the org. At 1000 students per org we batch into one
-  // multi-row insert; 1000 is comfortably within Supabase's per-statement limits.
+  // Notify everyone in the org. Chunked to keep per-statement size sane:
+  // a single insert with 5000+ rows hits Supabase's payload limits and
+  // also blocks for the full insert duration. 500-row chunks process
+  // sequentially in milliseconds each and never block other writes.
   const { data: members } = await sb
     .from("org_members")
     .select("user_id")
@@ -282,19 +300,33 @@ export async function postAnnouncement(orgId: string, title: string, body: strin
     .eq("status", "active");
   const recipients = (members || []) as { user_id: string }[];
   if (recipients.length > 0) {
+    const CHUNK = 500;
+    const action_url = `/o/${a.data.org.slug}/announcements`;
     const rows = recipients.map((m) => ({
       user_id: m.user_id,
       org_id: orgId,
       title: `📣 ${title.trim()}`,
       message: body.trim().slice(0, 240),
       type: "info",
-      action_url: `/o/${a.data.org.slug}/announcements`,
+      action_url,
       is_read: false,
     }));
-    await sb.from("notifications").insert(rows);
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const slice = rows.slice(i, i + CHUNK);
+      const { error: insErr } = await sb.from("notifications").insert(slice);
+      if (insErr) {
+        console.warn(`[postAnnouncement] notification chunk ${i}-${i + slice.length} failed:`, insErr.message);
+        // Don't abort — partial fan-out is better than no fan-out.
+      }
+    }
   }
 
   await bustOrgCache(orgId, a.data.org.slug);
+  await logOrgAudit({
+    orgId, actorId: a.data.me.id, action: "announcement.posted",
+    target: `announcement:${(data as { id: string }).id}`,
+    meta: { title: title.trim(), pinned, fanout_count: recipients.length },
+  });
   revalidatePath(`/o/${a.data.org.slug}/announcements`);
   revalidatePath(`/s/${a.data.org.slug}/announcements`);
   return { ok: true, data: { id: (data as { id: string }).id } };
@@ -320,6 +352,11 @@ export async function createChannel(orgId: string, name: string, kind: "general"
   }
 
   await bustOrgCache(orgId, a.data.org.slug);
+  await logOrgAudit({
+    orgId, actorId: a.data.me.id, action: "channel.created",
+    target: `channel:${(data as { id: string }).id}`,
+    meta: { name: cleanName, kind },
+  });
   revalidatePath(`/o/${a.data.org.slug}/chat`);
   revalidatePath(`/s/${a.data.org.slug}/chat`);
   return { ok: true, data: { id: (data as { id: string }).id } };
@@ -385,13 +422,16 @@ export async function updateMemberRole(orgId: string, memberId: string, newRole:
   if (error) return { ok: false, error: error.message };
 
   // Bust the per-user-per-slug membership cache so the new role propagates
-  // to the edge tenant guard on the next request.
+  // to the edge tenant guard on the next request. Membership cache is
+  // keyed by Clerk ID — bustMembershipCache resolves the lookup.
   await bustMembershipCache(t.user_id, a.data.org.slug);
-  // Also bust the user's own clerk_id keyed cache; lookupOrgMembership
-  // uses clerk_id, but we don't have it here without an extra fetch — the
-  // 60s TTL absorbs the lag.
 
   await bustOrgCache(orgId, a.data.org.slug);
+  await logOrgAudit({
+    orgId, actorId: a.data.me.id, action: "member.role_updated",
+    target: `user:${t.user_id}`,
+    meta: { from: t.role, to: newRole },
+  });
   revalidatePath(`/o/${a.data.org.slug}/members`);
   return { ok: true };
 }
@@ -425,6 +465,11 @@ export async function removeMember(orgId: string, memberId: string): Promise<R> 
   // and against the soft-remove → rejoin double-count case. See p393.
   await sb.rpc("recount_org_members", { p_org_id: orgId });
 
+  await logOrgAudit({
+    orgId, actorId: a.data.me.id, action: "member.removed",
+    target: `user:${t.user_id}`,
+    meta: { previous_role: t.role },
+  });
   revalidatePath(`/o/${a.data.org.slug}/members`);
   return { ok: true };
 }

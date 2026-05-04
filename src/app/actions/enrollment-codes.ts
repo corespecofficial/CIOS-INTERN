@@ -11,6 +11,7 @@
 import { randomBytes } from "crypto";
 import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { logOrgAudit } from "@/lib/org-audit";
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -82,6 +83,11 @@ export async function createPublicEnrollmentCode(orgId: string, opts: {
       // add a column via migration. For now the prefix doubles as a tag.
     });
     if (!error) {
+      await logOrgAudit({
+        orgId, actorId: a.me.id, action: "code.created",
+        target: `code:${token}`,
+        meta: { role, expires_at: expires },
+      });
       revalidatePath(`/o/${a.org.slug}/settings`);
       return { ok: true, data: { token } };
     }
@@ -115,6 +121,10 @@ export async function revokePublicEnrollmentCode(orgId: string, codeId: string):
     .update({ expires_at: new Date().toISOString() })
     .eq("id", codeId).eq("org_id", orgId).eq("email", "*");
   if (error) return { ok: false, error: error.message };
+  await logOrgAudit({
+    orgId, actorId: a.me.id, action: "code.revoked",
+    target: `code:${codeId}`,
+  });
   revalidatePath(`/o/${a.org.slug}/settings`);
   return { ok: true };
 }
