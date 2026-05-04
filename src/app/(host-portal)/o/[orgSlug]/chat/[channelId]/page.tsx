@@ -3,10 +3,13 @@ import Link from "next/link";
 import { getActiveOrg } from "@/lib/active-org";
 import { supabaseAdmin } from "@/lib/db";
 import { ChatComposer } from "./chat-composer";
+import { ChatLive } from "./chat-live";
 
 export const dynamic = "force-dynamic";
-// Auto-refresh every 5s — cheap polling beats wiring Ably for Phase 4.
-// Phase 5 swaps this for Ably realtime.
+// 5s revalidate is the FALLBACK path for when Ably isn't configured
+// (no NEXT_PUBLIC_ABLY_API_KEY). When Ably IS configured, ChatLive
+// receives messages instantly via the realtime subscription and this
+// polling is just a safety net for missed publishes.
 export const revalidate = 5;
 
 interface Channel { id: string; name: string; kind: string; }
@@ -76,30 +79,17 @@ export default async function ChannelPage({ params }: { params: Promise<{ orgSlu
       <section style={{ flex: 1, display: "flex", flexDirection: "column", background: "#111827", border: "1px solid #1F2937", borderRadius: 10, overflow: "hidden" }}>
         <header style={{ padding: "14px 18px", borderBottom: "1px solid #1F2937" }}>
           <div style={{ fontSize: 15, fontWeight: 700 }}># {channel.name}</div>
-          <div style={{ fontSize: 11, color: "#5A6478" }}>{messages.length} recent messages · auto-refreshes every 5s</div>
+          <div style={{ fontSize: 11, color: "#5A6478" }}>
+            {messages.length} recent messages · live via Ably (5s polling fallback)
+          </div>
         </header>
 
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 10 }}>
-          {messages.length === 0 ? (
-            <div style={{ textAlign: "center", color: "#5A6478", fontSize: 13, marginTop: 40 }}>No messages yet — start the conversation.</div>
-          ) : (
-            messages.map((m) => (
-              <div key={m.id} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#1E2937", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#8892A4", overflow: "hidden", flexShrink: 0 }}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {m.author?.avatar_url ? <img src={m.author.avatar_url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (m.author?.name?.[0]?.toUpperCase() ?? "?")}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700 }}>{m.author?.name ?? "Unknown"}</span>
-                    <span style={{ fontSize: 10, color: "#5A6478" }}>{new Date(m.created_at).toLocaleTimeString()}</span>
-                  </div>
-                  <div style={{ fontSize: 13, color: "#C7CFD8", lineHeight: 1.5, whiteSpace: "pre-wrap", marginTop: 2 }}>{m.body}</div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+        <ChatLive orgId={ctx.org.id} channelId={channel.id} initialMessages={messages.map((m) => ({
+          id: m.id,
+          body: m.body,
+          created_at: m.created_at,
+          author: m.author ? { id: m.author.id, name: m.author.name, avatar_url: m.author.avatar_url } : null,
+        }))} />
 
         <ChatComposer orgId={ctx.org.id} channelId={channel.id} />
       </section>

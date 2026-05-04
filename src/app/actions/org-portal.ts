@@ -15,6 +15,15 @@ import { revalidatePath } from "next/cache";
 import { cacheDel, orgCacheKey, orgKey } from "@/lib/cache";
 import type { OrgMemberRole, CreativeOrg } from "@/lib/active-org";
 import { logOrgAudit } from "@/lib/org-audit";
+import * as Ably from "ably";
+
+let ablyRest: Ably.Rest | null = null;
+function getAblyRest(): Ably.Rest | null {
+  const key = process.env.NEXT_PUBLIC_ABLY_API_KEY;
+  if (!key) return null;
+  if (!ablyRest) ablyRest = new Ably.Rest({ key });
+  return ablyRest;
+}
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -379,13 +388,40 @@ export async function postMessage(orgId: string, channelId: string, body: string
     .maybeSingle();
   if (!ch) return { ok: false, error: "Channel not found" };
 
-  const { error } = await sb.from("org_messages").insert({
+  const { data: inserted, error } = await sb.from("org_messages").insert({
     org_id: orgId,
     channel_id: channelId,
     author_id: a.data.me.id,
     body: body.trim(),
-  });
-  if (error) return { ok: false, error: error.message };
+  })
+    .select("id, body, created_at")
+    .single();
+  if (error || !inserted) return { ok: false, error: error?.message || "Failed to post" };
+
+  // Realtime fan-out via Ably. Channel keying: `org-chat:<orgId>:<channelId>`.
+  // Org-id (not slug) keeps the channel name stable across slug renames.
+  // If Ably isn't configured this is a no-op — clients fall through to
+  // the existing `revalidate = 5` polling on the page.
+  const rest = getAblyRest();
+  if (rest) {
+    try {
+      const realtimeChannel = rest.channels.get(`org-chat:${orgId}:${channelId}`);
+      const row = inserted as { id: string; body: string; created_at: string };
+      await realtimeChannel.publish("message", {
+        id: row.id,
+        body: row.body,
+        created_at: row.created_at,
+        author: {
+          id: a.data.me.id,
+          name: a.data.me.name,
+          avatar_url: a.data.me.avatar_url,
+        },
+      });
+    } catch (e) {
+      // DB is the source of truth — Ably failures don't lose the message.
+      console.warn("[postMessage] ably publish failed (non-fatal):", e);
+    }
+  }
 
   revalidatePath(`/o/${a.data.org.slug}/chat`);
   revalidatePath(`/o/${a.data.org.slug}/chat/${channelId}`);
