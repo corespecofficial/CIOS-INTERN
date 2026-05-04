@@ -34,6 +34,7 @@ export function HostNav({ orgSlug, orgName, memberRole, isSuperAdmin }: Props) {
 
   return (
     <nav
+      data-portal-sidebar
       style={{
         width: 240,
         position: "fixed",

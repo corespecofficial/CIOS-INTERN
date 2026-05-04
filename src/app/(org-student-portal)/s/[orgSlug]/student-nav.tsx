@@ -19,7 +19,7 @@ export function StudentNav({ orgSlug, orgName }: Props) {
   const pathname = usePathname();
   const base = `/s/${orgSlug}`;
   return (
-    <nav style={{ width: 240, position: "fixed", top: 0, left: 0, bottom: 0, background: "#0F1626", borderRight: "1px solid #1F2937", display: "flex", flexDirection: "column", padding: "20px 12px" }}>
+    <nav data-portal-sidebar style={{ width: 240, position: "fixed", top: 0, left: 0, bottom: 0, background: "#0F1626", borderRight: "1px solid #1F2937", display: "flex", flexDirection: "column", padding: "20px 12px" }}>
       <div style={{ padding: "0 12px 16px", borderBottom: "1px solid #1F2937", marginBottom: 12 }}>
         <Link href="/s" style={{ fontSize: 11, color: "#5A6478", textDecoration: "none", display: "block" }}>
           ← All my spaces

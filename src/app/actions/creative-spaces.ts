@@ -4,7 +4,7 @@ import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import type { CreativeSpace, SyllabusSection, SpaceReview } from "./creative-spaces-types";
 import { atomicWalletDebit, atomicWalletCredit } from "@/app/actions/payments/wallet-debit";
-import { slugifyOrgName, isReservedSlug } from "@/lib/active-org";
+import { slugifyOrgName, isReservedSlug, invalidateMembership } from "@/lib/active-org";
 import { clerkClient } from "@clerk/nextjs/server";
 import { logOrgAudit } from "@/lib/org-audit";
 import { cached, TTL } from "@/lib/cache";
@@ -284,8 +284,33 @@ export async function applyForSpace(input: ApplySpaceInput): Promise<R<{ id: str
       slug,
     }).select("id").single();
     if (error || !data) return { ok: false, error: error?.message || "Failed to submit" };
+    const newSpaceId = (data as { id: string }).id;
+
+    // Provision the host's tenant org IMMEDIATELY on creation, not on
+    // approval. Two reasons:
+    //   1. The creator gets their host portal day-one — they can build
+    //      lessons, configure channels, set settings, draft
+    //      announcements while super-admin reviews. Without this the
+    //      space is "dormant" with nothing real attached, just a
+    //      pending row.
+    //   2. Public marketplace visibility (creative_spaces.status =
+    //      'approved') is now decoupled from org existence. Approval
+    //      just flips the storefront switch; the org has been real
+    //      since the moment the space was submitted.
+    // Failures here are non-fatal: the space row is in, the user can
+    // resubmit / the admin can re-trigger via reviewSpace which still
+    // calls this idempotently.
+    try {
+      const provision = await provisionOrgFromSpace(newSpaceId);
+      if (!provision.ok) {
+        console.warn(`[applyForSpace] provisioning deferred for space ${newSpaceId}: ${provision.error}`);
+      }
+    } catch (e) {
+      console.warn("[applyForSpace] provisionOrgFromSpace threw:", e);
+    }
+
     revalidatePath("/creative-space");
-    return { ok: true, data: { id: (data as { id: string }).id } };
+    return { ok: true, data: { id: newSpaceId } };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
@@ -305,11 +330,11 @@ export async function enrollInSpace(spaceId: string): Promise<R<{ paid: boolean;
     const sb = supabaseAdmin();
 
     const { data: space } = await sb.from("creative_spaces")
-      .select("status, capacity, enrollment_count, owner_id, price_per_student, title")
+      .select("status, capacity, enrollment_count, owner_id, price_per_student, title, org_id")
       .eq("id", spaceId)
       .maybeSingle();
     if (!space) return { ok: false, error: "Space not found" };
-    const s = space as { status: string; capacity: number; enrollment_count: number; owner_id: string; price_per_student: number; title: string };
+    const s = space as { status: string; capacity: number; enrollment_count: number; owner_id: string; price_per_student: number; title: string; org_id: string | null };
     if (s.status !== "approved") return { ok: false, error: "Space not open for enrollment" };
     if (s.owner_id === me.id) return { ok: false, error: "Cannot enroll in your own space" };
     if (s.enrollment_count >= s.capacity) return { ok: false, error: "Space is full" };
@@ -370,6 +395,38 @@ export async function enrollInSpace(spaceId: string): Promise<R<{ paid: boolean;
     await sb.from("creative_spaces")
       .update({ enrollment_count: s.enrollment_count + 1, updated_at: new Date().toISOString() })
       .eq("id", spaceId);
+
+    // Org-membership sync: marketplace enrollment ALSO makes you an
+    // active student in that space's tenant org. Without this, the
+    // /s/<slug> portal — lessons, chat, files, assignments — was
+    // unreachable to anyone who joined via the public listing
+    // (only invite/code redemption added them to org_members).
+    // The Supabase upsert is idempotent on (org_id, user_id) so a
+    // student-then-removed-then-rejoin lands cleanly.
+    if (s.org_id) {
+      try {
+        await sb.from("org_members").upsert(
+          { org_id: s.org_id, user_id: me.id, role: "student", status: "active" },
+          { onConflict: "org_id,user_id" },
+        );
+        // Drift-proof recount via the p393 helper (counts active
+        // members from the source-of-truth table, race-safe under
+        // concurrent enrolments).
+        await sb.rpc("recount_org_members", { p_org_id: s.org_id });
+        // Bust the per-user-per-slug membership cache so the edge
+        // tenant guard sees the new role on the next request.
+        const { data: orgRow } = await sb.from("creative_orgs").select("slug").eq("id", s.org_id).maybeSingle();
+        const slug = (orgRow as { slug?: string } | null)?.slug;
+        if (slug && me.clerk_id) {
+          await invalidateMembership(me.clerk_id, slug);
+        }
+      } catch (e) {
+        // Non-fatal: the creative_enrollments row is in, so the
+        // marketplace listing reflects the enrolment. Org-membership
+        // sync can be re-run via the backfill route if it ever drifts.
+        console.warn(`[enrollInSpace] org_members sync deferred for space ${spaceId}:`, e);
+      }
+    }
 
     revalidatePath("/creative-space");
     revalidatePath(`/creative-space/${spaceId}`);
@@ -622,7 +679,12 @@ export async function provisionOrgFromSpace(spaceId: string): Promise<R<{ orgId:
       .maybeSingle();
     if (!spaceRow) return { ok: false, error: "Space not found" };
     const space = spaceRow as { id: string; owner_id: string; title: string; slug: string | null; status: string };
-    if (space.status !== "approved") return { ok: false, error: "Space is not approved" };
+    // No status gate — the org is real the moment the space is
+    // submitted. creative_spaces.status governs marketplace visibility
+    // ('pending' = invisible, 'approved' = listed). Org existence is
+    // separate so creators can build their portal while reviewing.
+    // Rejected spaces still get a real (un-listed) org so reviewers
+    // can preview content and the creator can revise.
 
     // Slug — try the space's existing slug first; fall back to a fresh one
     // on collision. Two retries is enough; the random suffix in slugifyOrgName

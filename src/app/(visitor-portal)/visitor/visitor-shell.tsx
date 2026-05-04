@@ -4,6 +4,7 @@ import { useAppStore } from "@/store/use-app-store";
 import { VisitorNav } from "./visitor-nav";
 import { VisitorHeader } from "./visitor-header";
 import { CommandPalette } from "@/components/command-palette";
+import { MobileDrawer } from "@/components/portal/mobile-drawer";
 
 /**
  * Visitor portal shell. Mirrors the (app) layout structure: fixed sidebar
@@ -34,7 +35,9 @@ export function VisitorShell({ name, children }: { name: string; children: React
       }}
     >
       <VisitorNav name={name} />
+      <MobileDrawer />
       <div
+        data-portal-main
         style={{
           marginLeft: sidebarWidth,
           minHeight: "100dvh",

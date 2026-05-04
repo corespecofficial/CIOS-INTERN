@@ -92,6 +92,7 @@ export function VisitorNav({ name }: { name: string }) {
   return (
     <aside
       data-tour="visitor-sidebar"
+      data-portal-sidebar
       style={{
         width: sidebarWidth,
         minWidth: sidebarWidth,

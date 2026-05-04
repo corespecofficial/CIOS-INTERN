@@ -14,6 +14,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getOrgEntryStatus } from "@/lib/active-org";
 import { HostNav } from "./host-nav";
+import { MobileDrawer } from "@/components/portal/mobile-drawer";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,8 @@ export default async function HostOrgLayout({ children, params }: Props) {
         memberRole={ctx.memberRole}
         isSuperAdmin={ctx.isSuperAdmin}
       />
-      <main style={{ marginLeft: 240, padding: "32px 40px", minHeight: "100dvh" }}>
+      <MobileDrawer />
+      <main data-portal-main style={{ marginLeft: 240, padding: "32px 40px", minHeight: "100dvh" }}>
         {children}
       </main>
     </>

@@ -102,10 +102,30 @@ export function ApplySpaceClient() {
           >
             Application Submitted!
           </h2>
-          <p style={{ fontSize: 14, color: "var(--text-tertiary, #8892A4)", marginBottom: 24, lineHeight: 1.6 }}>
-            Your application has been submitted! We&apos;ll review it within 48 hours. You&apos;ll be notified once your space is approved and live.
+          <p style={{ fontSize: 14, color: "var(--text-tertiary, #8892A4)", marginBottom: 8, lineHeight: 1.6 }}>
+            Your space is up. <strong style={{ color: "var(--text-primary, #E8EDF5)" }}>Your host portal is already live</strong> — start
+            building lessons, channels, and announcements right now. Super-admin review just unlocks the
+            public marketplace listing (usually under 48h).
+          </p>
+          <p style={{ fontSize: 12, color: "var(--text-muted, #5A6478)", marginBottom: 24, lineHeight: 1.6 }}>
+            You&apos;ll be notified the moment your space goes live publicly.
           </p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <Link
+              href="/o"
+              style={{
+                padding: "10px 24px",
+                background: "linear-gradient(135deg, #1E88E5, #1565C0)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 10,
+                fontSize: 13,
+                fontWeight: 700,
+                textDecoration: "none",
+              }}
+            >
+              Go to my host portal →
+            </Link>
             <Link
               href="/creative-space"
               style={{
@@ -119,22 +139,7 @@ export function ApplySpaceClient() {
                 textDecoration: "none",
               }}
             >
-              Browse Spaces
-            </Link>
-            <Link
-              href="/creative-space/manage"
-              style={{
-                padding: "10px 24px",
-                background: "rgba(255,255,255,0.04)",
-                color: "var(--text-tertiary, #8892A4)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: 10,
-                fontSize: 13,
-                fontWeight: 700,
-                textDecoration: "none",
-              }}
-            >
-              My Spaces
+              Browse other spaces
             </Link>
           </div>
           {newId && (
