@@ -41,7 +41,11 @@ const NAV: NavItem[] = [
   {
     label: "Portals",
     dropdown: [
-      // ─── For individuals — live public surfaces ──────────────
+      // Live individual-facing portals only. The four organization
+      // portals (Institution / Company / Government / Partner) are
+      // surfaced on the landing page (#org-portals) instead — adding
+      // them here as well made the dropdown feel congested. The "For
+      // organizations" footer link below points people there.
       { href: "/marketplace",    label: "Marketplace",     icon: "🛍️", desc: "Digital products by vetted CIOS talent" },
       { href: "/creative-space", label: "Creative Spaces", icon: "🎨", desc: "Cohorts taught by ranked instructors" },
       { href: "/opportunities",  label: "Opportunities",   icon: "💼", desc: "Jobs, gigs, internships, scholarships" },
@@ -50,11 +54,7 @@ const NAV: NavItem[] = [
       { href: "/ai-hub",         label: "AI Hub",          icon: "✨", desc: "One workspace, every model" },
       { href: "/study-buddy",    label: "Study Buddy",     icon: "🎓", desc: "Your AI study coach" },
       { href: "/documents",      label: "Documents",       icon: "📄", desc: "CVs, decks and PDF tools" },
-      // ─── For organizations — coming soon, waitlist on the slug page ───
-      { href: "/portals/institution-portal", label: "Institution Portal · soon", icon: "🏛", desc: "Bring your university on board" },
-      { href: "/portals/company-portal",     label: "Company Portal · soon",     icon: "🏢", desc: "Hire from a vetted talent pipeline" },
-      { href: "/portals/government-portal",  label: "Government Portal · soon",  icon: "🏦", desc: "State-level skills programmes" },
-      { href: "/portals/partner-programme",  label: "Partner Programme · soon",  icon: "🤝", desc: "Co-host, white-label, revenue share" },
+      { href: "/#org-portals",   label: "For organizations →", icon: "🏛", desc: "Institution · Company · Govt · Partner" },
     ],
   },
 ];
