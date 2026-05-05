@@ -540,29 +540,31 @@ export default async function LandingPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════
-          TESTIMONIALS — only render when there are real, DB-backed
-          testimonials. Pre-launch we have none, so instead of faking
-          quotes we render a forward-looking "founding cohort voices
-          land here" panel that's honest about where we are. The
-          moment a super-admin adds a real testimonial via the landing
-          settings, this section flips to render them.
+          TESTIMONIALS / SHIP-FIRST — when there are real, DB-backed
+          testimonials we render them. Pre-launch we have none, and
+          rather than fake "founding cohort" quotes we render a
+          deliberate ship-first philosophy panel. That's investor-
+          friendly: it signals we're not goosing traction, we built
+          the product first. The moment a super-admin adds a real
+          testimonial via /super-admin/landing-settings, this section
+          flips to render them.
       ═══════════════════════════════════════════════════ */}
       <section style={{ padding: "80px 24px", borderTop: "1px solid rgba(255,255,255,0.04)", position: "relative", zIndex: 1 }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", textAlign: "center" }}>
           <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(38,198,218,0.1)", border: "1px solid rgba(38,198,218,0.2)", color: "#26C6DA", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
-            {testimonials.length > 0 ? "Voices from the cohort" : "Founding cohort"}
+            {testimonials.length > 0 ? "Voices from real users" : "Our position"}
           </div>
           <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, marginBottom: 12 }}>
             {testimonials.length > 0 ? (
               <>What our community is saying.</>
             ) : (
-              <>Be one of the first <span style={{ background: "linear-gradient(135deg, #26C6DA, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>voices</span> here.</>
+              <>Built <span style={{ background: "linear-gradient(135deg, #26C6DA, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>first</span>. Stories next.</>
             )}
           </h2>
-          <p style={{ color: "#8892A4", maxWidth: 540, margin: "0 auto 48px", fontSize: 15, lineHeight: 1.7 }}>
+          <p style={{ color: "#8892A4", maxWidth: 620, margin: "0 auto 48px", fontSize: 15, lineHeight: 1.7 }}>
             {testimonials.length > 0
               ? "Real users, real outcomes. Verified by our team."
-              : "We're onboarding the founding cohort right now. The stories that land here will be from real people in our first programs — not stock quotes. Want to be one of them?"}
+              : "We chose to ship the full platform before chasing testimonials. The site doesn't show stock quotes or fabricated traction — it shows what's actually live and ready for your first session today. The voices that will eventually live here will come from real users in real cohorts, never seeded."}
           </p>
           {testimonials.length > 0 ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20 }}>
@@ -586,13 +588,15 @@ export default async function LandingPage() {
             ))}
           </div>
           ) : (
-            // Empty state — honest about being pre-launch instead of
-            // padding the page with stock quotes.
+            // Empty state — investor-friendly ship-first panel that
+            // doesn't pretend we have users we don't have. Each card
+            // is a verifiable claim: features are live, partners can
+            // pilot today, and we report when stories arrive.
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, maxWidth: 900, margin: "0 auto" }}>
               {[
-                { icon: "🌱", title: "Founding cohort", body: "First students are onboarding now. Their stories will live here as they build." },
-                { icon: "🤝", title: "Honest about traction", body: "We'd rather show you the platform and our roadmap than fabricate numbers we haven't earned yet." },
-                { icon: "🛠", title: "Built in the open", body: "Every feature you see on this site is shipped, not promised. Try it yourself before you trust us." },
+                { icon: "🛠", title: "Every feature is shipped", body: "Click anything on this page — Marketplace, Creative Spaces, AI Hub. It's all live and runnable today, not on a roadmap slide." },
+                { icon: "🚫", title: "Zero fabricated traction", body: "We won't show invented testimonials or inflated user counts. When numbers belong here, they'll be auditable and verifiable." },
+                { icon: "🤝", title: "Pilot-ready for partners", body: "Institutions, employers, and government partners can pilot end-to-end today. We earn case studies the same way: real engagements, real outcomes." },
               ].map((card) => (
                 <div key={card.title} style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 22, textAlign: "left" }}>
                   <div style={{ fontSize: 28, marginBottom: 8 }}>{card.icon}</div>
