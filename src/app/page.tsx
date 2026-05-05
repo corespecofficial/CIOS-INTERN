@@ -87,9 +87,15 @@ export default async function LandingPage() {
           }} />
 
           {/* Live badge */}
+          {/* Truthful "early-stage" tag instead of fabricated traction
+              numbers. We're pre-launch — telling investors / partners /
+              applicants we trained 500 interns when we haven't is both
+              dishonest and easy to disprove. The pulsing dot still
+              reads as "live & active" without claiming anything we
+              can't substantiate. */}
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 20px", marginBottom: 24, borderRadius: 99, background: "rgba(102,187,106,0.1)", border: "1px solid rgba(102,187,106,0.25)", color: "#66BB6A", fontSize: 13, fontWeight: 700 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#66BB6A", animation: "pulse 1.5s ease-in-out infinite" }} />
-            500+ interns trained · 12 countries · 97% placement rate
+            Now in early access · Building the operating system for African talent
           </div>
 
           <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(38px, 6vw, 68px)", fontWeight: 800, lineHeight: 1.1, marginBottom: 20 }}>
@@ -134,17 +140,22 @@ export default async function LandingPage() {
             🏛 🏢 🏦 🤝&nbsp;&nbsp;Are you an institution, company, govt, or partner?&nbsp;&nbsp;→
           </Link>
 
-          {/* Stats */}
-          <div style={{ display: "flex", justifyContent: "center", gap: 48, flexWrap: "wrap", padding: "32px 40px", background: "rgba(255,255,255,0.02)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.06)" }}>
+          {/* Vision tiles instead of fabricated traction stats. Each
+              tile is a forward-looking commitment we can substantiate
+              today (the platform itself), not a backwards-looking
+              count of users we don't yet have. Investors and partners
+              would rather see clear ambition than inflated numbers
+              they can't verify. */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, padding: "28px 32px", background: "rgba(255,255,255,0.02)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.06)", maxWidth: 720, width: "100%" }}>
             {[
-              { v: settings.homepage_stats_interns,   l: "Interns Trained" },
-              { v: settings.homepage_stats_courses,   l: "Courses" },
-              { v: settings.homepage_stats_countries, l: "Countries" },
-              { v: settings.homepage_stats_partners,  l: "Hiring Partners" },
+              { v: "Pan-African", l: "Mission scope", desc: "Built for talent from Lagos to Nairobi" },
+              { v: "AI-native", l: "Platform DNA", desc: "Every workflow assumes AI as a teammate" },
+              { v: "Day-one", l: "Early access", desc: "Founding cohort onboarding now" },
             ].map(s => (
-              <div key={s.l} style={{ textAlign: "center" }}>
-                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 36, fontWeight: 800, background: "linear-gradient(135deg, #1E88E5, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{s.v}</div>
-                <div style={{ fontSize: 11, color: "#607D8B", textTransform: "uppercase", letterSpacing: 2, fontWeight: 700, marginTop: 4 }}>{s.l}</div>
+              <div key={s.l} style={{ textAlign: "center", padding: "8px 4px" }}>
+                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 22, fontWeight: 800, background: "linear-gradient(135deg, #1E88E5, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", lineHeight: 1.1 }}>{s.v}</div>
+                <div style={{ fontSize: 10, color: "#607D8B", textTransform: "uppercase", letterSpacing: 1.5, fontWeight: 700, marginTop: 6 }}>{s.l}</div>
+                <div style={{ fontSize: 11, color: "#8892A4", marginTop: 6, lineHeight: 1.5 }}>{s.desc}</div>
               </div>
             ))}
           </div>
@@ -299,7 +310,7 @@ export default async function LandingPage() {
           <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, marginBottom: 12 }}>
             A platform built for <span style={{ background: "linear-gradient(135deg, #AB47BC, #1E88E5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>real work</span>
           </h2>
-          <p style={{ color: "#8892A4", maxWidth: 520, margin: "0 auto 48px", fontSize: 15 }}>Every module is live and used by our interns every single day.</p>
+          <p style={{ color: "#8892A4", maxWidth: 520, margin: "0 auto 48px", fontSize: 15 }}>Every module is shipped and ready to use today — not roadmap promises. Try them yourself.</p>
 
           {/* Screenshot grid — real images when uploaded via SuperAdmin */}
           {(() => {
@@ -423,7 +434,7 @@ export default async function LandingPage() {
                   { feature: "Real client work",  cios: "✅ Every day",   boot: "Sometimes",      trad: "Maybe" },
                   { feature: "Earn while learning",cios:"✅ XP + payouts",boot: "❌ No",           trad: "❌ Rarely" },
                   { feature: "AI tools built-in", cios: "✅ 8 tools",     boot: "❌ No",           trad: "❌ No" },
-                  { feature: "Placement support", cios: "✅ 97% rate",    boot: "Not guaranteed", trad: "Not guaranteed" },
+                  { feature: "Placement support", cios: "✅ Built-in pipeline",    boot: "Not guaranteed", trad: "Not guaranteed" },
                   { feature: "Verified certificate",cios:"✅ Blockchain-ready",boot:"✅ PDF",      trad: "❌ None" },
                   { feature: "Performance score", cios: "✅ Live scoring", boot: "❌ No",          trad: "❌ No" },
                   { feature: "Mentor access",     cios: "✅ Paid mentors", boot: "Limited",        trad: "No" },
@@ -455,15 +466,31 @@ export default async function LandingPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════
-          TESTIMONIALS
+          TESTIMONIALS — only render when there are real, DB-backed
+          testimonials. Pre-launch we have none, so instead of faking
+          quotes we render a forward-looking "founding cohort voices
+          land here" panel that's honest about where we are. The
+          moment a super-admin adds a real testimonial via the landing
+          settings, this section flips to render them.
       ═══════════════════════════════════════════════════ */}
       <section style={{ padding: "80px 24px", borderTop: "1px solid rgba(255,255,255,0.04)", position: "relative", zIndex: 1 }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", textAlign: "center" }}>
-          <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(38,198,218,0.1)", border: "1px solid rgba(38,198,218,0.2)", color: "#26C6DA", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>Social Proof</div>
+          <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(38,198,218,0.1)", border: "1px solid rgba(38,198,218,0.2)", color: "#26C6DA", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>
+            {testimonials.length > 0 ? "Voices from the cohort" : "Founding cohort"}
+          </div>
           <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, marginBottom: 12 }}>
-            Real interns. <span style={{ background: "linear-gradient(135deg, #26C6DA, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Real results.</span>
+            {testimonials.length > 0 ? (
+              <>What our community is saying.</>
+            ) : (
+              <>Be one of the first <span style={{ background: "linear-gradient(135deg, #26C6DA, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>voices</span> here.</>
+            )}
           </h2>
-          <p style={{ color: "#8892A4", maxWidth: 500, margin: "0 auto 48px", fontSize: 15 }}>From zero to career-ready in 6 months. Here's what our graduates say.</p>
+          <p style={{ color: "#8892A4", maxWidth: 540, margin: "0 auto 48px", fontSize: 15, lineHeight: 1.7 }}>
+            {testimonials.length > 0
+              ? "Real users, real outcomes. Verified by our team."
+              : "We're onboarding the founding cohort right now. The stories that land here will be from real people in our first programs — not stock quotes. Want to be one of them?"}
+          </p>
+          {testimonials.length > 0 ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 20 }}>
             {testimonials.map(t => (
               <div key={t.id} style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 20, padding: 28, textAlign: "left", position: "relative" }}>
@@ -484,31 +511,49 @@ export default async function LandingPage() {
               </div>
             ))}
           </div>
+          ) : (
+            // Empty state — honest about being pre-launch instead of
+            // padding the page with stock quotes.
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, maxWidth: 900, margin: "0 auto" }}>
+              {[
+                { icon: "🌱", title: "Founding cohort", body: "First students are onboarding now. Their stories will live here as they build." },
+                { icon: "🤝", title: "Honest about traction", body: "We'd rather show you the platform and our roadmap than fabricate numbers we haven't earned yet." },
+                { icon: "🛠", title: "Built in the open", body: "Every feature you see on this site is shipped, not promised. Try it yourself before you trust us." },
+              ].map((card) => (
+                <div key={card.title} style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: 22, textAlign: "left" }}>
+                  <div style={{ fontSize: 28, marginBottom: 8 }}>{card.icon}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#E8EDF5", marginBottom: 6 }}>{card.title}</div>
+                  <p style={{ fontSize: 13, color: "#8892A4", lineHeight: 1.7, margin: 0 }}>{card.body}</p>
+                </div>
+              ))}
+            </div>
+          )}
 
-          <Link href="/success-stories" style={{ display: "inline-block", marginTop: 32, fontSize: 14, color: "#1E88E5", textDecoration: "none", fontWeight: 700 }}>
-            Read full success stories →
+          <Link href={testimonials.length > 0 ? "/success-stories" : "/sign-up"} style={{ display: "inline-block", marginTop: 32, fontSize: 14, color: "#1E88E5", textDecoration: "none", fontWeight: 700 }}>
+            {testimonials.length > 0 ? "Read full success stories →" : "Join the founding cohort →"}
           </Link>
           <Link href="/faq" style={{ display: "inline-block", marginTop: 12, marginLeft: 20, fontSize: 14, color: "#8892A4", textDecoration: "none", fontWeight: 700 }}>
             View all FAQs →
           </Link>
 
-          {/* Partners */}
+          {/* Partners — labelled as "early partners we're building with"
+              instead of "trusted by" so we don't imply commercial
+              relationships we don't have yet. The two real entities
+              (COSPRONOS, Corespec) sit alongside community brands we're
+              actively engaged with. Anyone hovering knows the score. */}
           <div style={{ marginTop: 64, paddingTop: 32, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#5A6478", textTransform: "uppercase", letterSpacing: 2, marginBottom: 22 }}>Trusted by partners & employers</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#5A6478", textTransform: "uppercase", letterSpacing: 2, marginBottom: 22 }}>Building alongside · Founding ecosystem</div>
             <div style={{ display: "flex", gap: 28, alignItems: "center", justifyContent: "center", flexWrap: "wrap", opacity: 0.6 }}>
               {[
                 { name: "COSPRONOS Media", g: "linear-gradient(135deg,#1E88E5,#AB47BC)" },
                 { name: "Corespec Engineering", g: "linear-gradient(135deg,#FFC107,#FF7043)" },
-                { name: "Lagos Tech Hub", g: "linear-gradient(135deg,#66BB6A,#1E88E5)" },
-                { name: "AfriTalent", g: "linear-gradient(135deg,#26C6DA,#1E88E5)" },
-                { name: "Naija Devs", g: "linear-gradient(135deg,#AB47BC,#EF5350)" },
-                { name: "RecruitNG", g: "linear-gradient(135deg,#FF7043,#FFC107)" },
               ].map(p => (
                 <div key={p.name} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ width: 22, height: 22, borderRadius: 6, background: p.g, display: "inline-block", flexShrink: 0 }} />
                   <span style={{ fontSize: 13, fontWeight: 700, color: "#B0BEC5", letterSpacing: 0.3 }}>{p.name}</span>
                 </div>
               ))}
+              <span style={{ fontSize: 12, color: "#5A6478", fontStyle: "italic" }}>· more partners onboarding</span>
             </div>
           </div>
         </div>
@@ -547,7 +592,7 @@ export default async function LandingPage() {
               { q: "How does the reward system work?", a: "You earn XP for completing tasks, attending classes, and community participation. XP translates to levels, badges, and real monetary rewards paid to your wallet." },
               { q: "What happens if I miss a class?", a: "Missed classes result in a fine (₦500). Pay through the platform to regain access. Attendance directly affects your performance score and promotion readiness." },
               { q: "Can I get promoted during the internship?", a: "Yes! The career ladder goes: New Intern → Active → Senior → Team Lead → Department Lead → Trainer → Manager → Admin → Executive. All based on performance." },
-              { q: "Is this available outside Nigeria?", a: "Yes — we have interns across 12 countries including Ghana, Kenya, South Africa, and more. The platform is fully remote and supports multiple languages." },
+              { q: "Is this available outside Nigeria?", a: "Yes — the platform is fully remote, English-language by default, and built to serve talent anywhere on the continent. Our roadmap explicitly targets Pan-African coverage; the founding cohort opens in Nigeria first and expands by country as we onboard institution and government partners." },
             ].map(f => (
               <details key={f.q} style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, overflow: "hidden" }}>
                 <summary style={{ padding: "18px 22px", cursor: "pointer", fontWeight: 700, fontSize: 14, display: "flex", justifyContent: "space-between", alignItems: "center", color: "#E8EDF5" }}>
