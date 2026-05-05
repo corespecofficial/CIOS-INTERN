@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getActiveOrg } from "@/lib/active-org";
 import { supabaseAdmin } from "@/lib/db";
+import { DigestTracker } from "./digest-tracker";
 
 export const dynamic = "force-dynamic";
 
@@ -61,14 +62,15 @@ export default async function StudentDashboard({ params }: { params: Promise<{ o
               const m = row.meta as Record<string, string | number | undefined>;
               const ago = relTime(row.created_at);
               if (row.action === "announcement.posted") {
-                return <Item key={row.id} title={`📣 ${m.title || "New announcement"}`} subtitle={ago} href={`/s/${orgSlug}/announcements`} />;
+                return <Item key={row.id} title={`📣 ${m.title || "New announcement"}`} subtitle={ago} href={`/s/${orgSlug}/announcements`} time={row.created_at} />;
               }
               if (row.action === "lesson.created") {
-                return <Item key={row.id} title={`📚 New lesson: ${m.title || "Untitled"}`} subtitle={ago} href={`/s/${orgSlug}/lessons`} />;
+                return <Item key={row.id} title={`📚 New lesson: ${m.title || "Untitled"}`} subtitle={ago} href={`/s/${orgSlug}/lessons`} time={row.created_at} />;
               }
-              return <Item key={row.id} title={`📝 New assignment: ${m.title || "Untitled"}`} subtitle={ago} href={`/s/${orgSlug}/assignments`} />;
+              return <Item key={row.id} title={`📝 New assignment: ${m.title || "Untitled"}`} subtitle={ago} href={`/s/${orgSlug}/assignments`} time={row.created_at} />;
             })}
       </Card>
+      <DigestTracker orgId={ctx.org.id} newest={digestRows[0]?.created_at ?? null} />
 
       <Card title="📚 Latest lessons" link={`/s/${orgSlug}/lessons`} linkLabel="All lessons →">
         {(recent.data || []).length === 0 ? <Empty text="No lessons yet." /> :
@@ -92,9 +94,9 @@ function Card({ title, link, linkLabel, children }: { title: string; link?: stri
     </section>
   );
 }
-function Item({ title, subtitle, href }: { title: string; subtitle: string; href?: string }) {
+function Item({ title, subtitle, href, time }: { title: string; subtitle: string; href?: string; time?: string }) {
   const inner = (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: "#0A0E1A", borderRadius: 6, fontSize: 13 }}>
+    <div data-digest-time={time} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", background: "#0A0E1A", borderRadius: 6, fontSize: 13 }}>
       <span style={{ color: "#E8EDF5" }}>{title}</span>
       <span style={{ color: "#5A6478", fontSize: 11 }}>{subtitle}</span>
     </div>

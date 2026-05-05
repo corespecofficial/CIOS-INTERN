@@ -1625,3 +1625,27 @@ html[data-theme="light"] [data-portal="marketing"] [style*="background: \"#fff\"
 html[data-theme="light"] .dashboard-activity-row:hover {
   background: rgba(38,166,154,0.10);
 }
+
+/* Student "what's new" digest — unread items get a left blue accent
+   bar + slight background tint. Class is added by digest-tracker.tsx
+   based on localStorage timestamp comparison. */
+.digest-unread {
+  position: relative;
+  background: rgba(30,136,229,0.08) !important;
+  box-shadow: inset 3px 0 0 #1E88E5;
+}
+.digest-unread::after {
+  content: "NEW";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 9px;
+  font-weight: 800;
+  color: #1E88E5;
+  background: rgba(30,136,229,0.15);
+  padding: 2px 6px;
+  border-radius: 999px;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+}
