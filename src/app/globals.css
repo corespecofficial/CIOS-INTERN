@@ -1617,3 +1617,11 @@ html[data-theme="light"] [data-portal="marketing"] [style*="background: \"#fff\"
     display: none !important;
   }
 }
+
+/* Host dashboard activity feed — subtle hover to signal clickability */
+.dashboard-activity-row:hover {
+  background: rgba(38,166,154,0.06);
+}
+html[data-theme="light"] .dashboard-activity-row:hover {
+  background: rgba(38,166,154,0.10);
+}

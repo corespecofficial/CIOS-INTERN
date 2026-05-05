@@ -4,6 +4,7 @@
  * can see signups, posts, and grading happening in near real-time.
  */
 
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getActiveOrg } from "@/lib/active-org";
 import { supabaseAdmin } from "@/lib/db";
@@ -90,6 +91,45 @@ function describeActivity(row: ActivityRow): { emoji: string; text: string } {
     case "file.uploaded":       return { emoji: "📎", text: `${who} uploaded ${m.name || "a file"}` };
     case "file.deleted":        return { emoji: "🗑", text: `${who} deleted ${m.name || "a file"}` };
     default:                    return { emoji: "•", text: `${who} · ${row.action}` };
+  }
+}
+
+/**
+ * Map an audit row to the most relevant page in the host portal.
+ * Returns null when no useful destination exists (e.g. org.created — the
+ * row is informational and clicking through would go nowhere new).
+ *
+ * Targets stored as "user:<id>", "lesson:<id>" etc. aren't strictly
+ * needed in the URL because each landing page surfaces the entity by
+ * id/highlight on its own; we just deep-link to the right tab.
+ */
+function linkFor(row: ActivityRow, slug: string): string | null {
+  switch (row.action) {
+    case "member.joined":
+    case "member.invited":
+    case "member.role_updated":
+    case "member.removed":
+    case "code.created":
+    case "code.revoked":
+      return `/o/${slug}/members`;
+    case "announcement.posted":
+      return `/o/${slug}/announcements`;
+    case "lesson.created":
+      return `/o/${slug}/lessons`;
+    case "assignment.created":
+    case "submission.graded":
+      return `/o/${slug}/assignments`;
+    case "channel.created":
+      return `/o/${slug}/chat`;
+    case "file.uploaded":
+    case "file.deleted":
+      return `/o/${slug}/files`;
+    case "org.suspended":
+    case "org.archived":
+    case "org.unsuspended":
+      return `/o/${slug}/settings`;
+    default:
+      return null;
   }
 }
 
@@ -193,22 +233,38 @@ export default async function OrgDashboard({ params }: Props) {
           <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column" }}>
             {activity.map((row, i) => {
               const d = describeActivity(row);
-              return (
-                <li
-                  key={row.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 12,
-                    padding: "10px 0",
-                    borderBottom: i === activity.length - 1 ? "none" : "1px solid rgba(255,255,255,0.04)",
-                  }}
-                >
+              const href = linkFor(row, ctx.org.slug);
+              const isLast = i === activity.length - 1;
+              const inner = (
+                <>
                   <span style={{ fontSize: 16, lineHeight: "20px", flexShrink: 0 }}>{d.emoji}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, color: "#E8EDF5", lineHeight: 1.5 }}>{d.text}</div>
                     <div style={{ fontSize: 11, color: "#5A6478", marginTop: 2 }}>{timeAgo(row.created_at)}</div>
                   </div>
+                  {href && <span style={{ fontSize: 11, color: "#5A6478", flexShrink: 0 }}>→</span>}
+                </>
+              );
+              const baseStyle: React.CSSProperties = {
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 12,
+                padding: "10px 6px",
+                margin: "0 -6px",
+                borderBottom: isLast ? "none" : "1px solid rgba(255,255,255,0.04)",
+                borderRadius: 6,
+                color: "#E8EDF5",
+                textDecoration: "none",
+              };
+              return (
+                <li key={row.id} style={{ listStyle: "none" }}>
+                  {href ? (
+                    <Link href={href} style={baseStyle} className="dashboard-activity-row">
+                      {inner}
+                    </Link>
+                  ) : (
+                    <div style={baseStyle}>{inner}</div>
+                  )}
                 </li>
               );
             })}
