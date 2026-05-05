@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAppStore, getRoleLabel, type Role } from "@/store/use-app-store";
 import { useCurrentUser, roleCanAccess } from "@/lib/use-current-user";
 import { getSidebarBadges, type SidebarBadges } from "@/app/actions/sidebar-badges";
+import { useSidebarSections } from "@/lib/use-sidebar-sections";
 
 const LOGO_URL =
   "https://res.cloudinary.com/detsk6uql/image/upload/v1775646964/Adobe_Express_-_file_lydnbc.png";
@@ -223,6 +224,19 @@ export function Sidebar() {
     sections[sections.length - 1].items.push(item);
   }
 
+  // Detect which section the current pathname lives in. The active
+  // section is force-opened by useSidebarSections so the user never
+  // navigates into a hidden item.
+  const activeSection = (() => {
+    for (const s of sections) {
+      for (const it of s.items) {
+        if (pathname === it.href || pathname?.startsWith(it.href + "/")) return s.label;
+      }
+    }
+    return null;
+  })();
+  const { isOpen, toggle } = useSidebarSections("cios:sidebar:main:sections", activeSection);
+
   const sidebarWidth = collapsed ? 64 : 240;
 
   // Sidebar unread badges — fetched on mount, then every 60s, plus on focus.
@@ -395,23 +409,38 @@ export function Sidebar() {
           padding: collapsed ? "8px 6px" : "8px 10px",
         }}
       >
-        {sections.map((section, sectionIdx) => (
+        {sections.map((section, sectionIdx) => {
+          const open = isOpen(section.label);
+          return (
           <div key={`${section.label}-${sectionIdx}`} style={{ marginBottom: 8 }}>
             {!collapsed && (
-              <div
+              <button
+                type="button"
+                onClick={() => toggle(section.label)}
+                aria-expanded={open ? "true" : "false"}
                 style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "100%",
                   fontSize: 10,
                   fontWeight: 600,
                   textTransform: "uppercase",
                   letterSpacing: "0.08em",
                   color: "var(--text-muted)",
                   padding: "8px 10px 4px",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  textAlign: "left",
                 }}
               >
-                {section.label}
-              </div>
+                <span>{section.label}</span>
+                <span aria-hidden style={{ fontSize: 10, transition: "transform 0.15s", transform: open ? "rotate(0deg)" : "rotate(-90deg)" }}>▾</span>
+              </button>
             )}
-            {section.items.map((item) => {
+            {open && section.items.map((item) => {
               const isActive =
                 pathname === item.href || (pathname?.startsWith(item.href + "/") ?? false);
 
@@ -475,7 +504,8 @@ export function Sidebar() {
               );
             })}
           </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* Collapse Button */}

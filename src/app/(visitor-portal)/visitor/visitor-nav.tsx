@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAppStore } from "@/store/use-app-store";
+import { useSidebarSections } from "@/lib/use-sidebar-sections";
 
 const LOGO_URL =
   "https://res.cloudinary.com/detsk6uql/image/upload/v1775646964/Adobe_Express_-_file_lydnbc.png";
@@ -88,6 +89,8 @@ export function VisitorNav({ name }: { name: string }) {
     if (it.section !== last) { sections.push({ label: it.section, items: [] }); last = it.section; }
     sections[sections.length - 1].items.push(it);
   }
+  const activeSection = sections.find((s) => s.items.some((it) => isActive(it)))?.label || null;
+  const { isOpen, toggle: toggleSection } = useSidebarSections("cios:sidebar:visitor:sections", activeSection);
 
   return (
     <aside
@@ -138,13 +141,38 @@ export function VisitorNav({ name }: { name: string }) {
 
       {/* Nav sections */}
       <nav style={{ flex: 1, overflowY: "auto", padding: "10px 8px" }} aria-label="Visitor navigation">
-        {sections.map((section) => (
+        {sections.map((section) => {
+          const open = isOpen(section.label);
+          return (
           <div key={section.label} style={{ marginBottom: 14 }}>
             {!collapsed && (
-              <div style={{ fontSize: 9, color: "var(--text-muted, #5A6478)", textTransform: "uppercase", letterSpacing: 0.6, padding: "0 10px 6px", fontWeight: 700 }}>
-                {section.label}
-              </div>
+              <button
+                type="button"
+                onClick={() => toggleSection(section.label)}
+                aria-expanded={open ? "true" : "false"}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  width: "100%",
+                  fontSize: 9,
+                  color: "var(--text-muted, #5A6478)",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.6,
+                  padding: "0 10px 6px",
+                  fontWeight: 700,
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  textAlign: "left",
+                }}
+              >
+                <span>{section.label}</span>
+                <span aria-hidden style={{ fontSize: 9, transition: "transform 0.15s", transform: open ? "rotate(0deg)" : "rotate(-90deg)" }}>▾</span>
+              </button>
             )}
+            {open && (
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 2 }}>
               {section.items.map((it) => {
                 const active = isActive(it);
@@ -175,8 +203,10 @@ export function VisitorNav({ name }: { name: string }) {
                 );
               })}
             </ul>
+            )}
           </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* Footer: switch intent + collapse */}

@@ -226,6 +226,16 @@ export default async function LandingPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════
+          ORGANIZATIONS — Institution / Company / Government / Partner
+          Placed right after the trust strip so the four org-tier
+          portals are the first thing organizational visitors see —
+          they're explicitly looking for "is there a portal for us?"
+          and shouldn't have to scroll past every consumer-facing
+          section to find out.
+      ═══════════════════════════════════════════════════ */}
+      <OrgPortalsSection />
+
+      {/* ═══════════════════════════════════════════════════
           PLATFORM FEATURES
       ═══════════════════════════════════════════════════ */}
       <section id="features" style={{ padding: "80px 24px", position: "relative", zIndex: 1, borderTop: "1px solid rgba(255,255,255,0.04)", scrollMarginTop: 70 }}>
@@ -486,9 +496,6 @@ export default async function LandingPage() {
         {/* @ts-expect-error Async Server Component — Next 16 supports this */}
         <HackathonHeroCard />
       </div>
-
-      {/* ORGANIZATIONS — institution / company / government / partner portals */}
-      <OrgPortalsSection />
 
       {/* PRICING */}
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
