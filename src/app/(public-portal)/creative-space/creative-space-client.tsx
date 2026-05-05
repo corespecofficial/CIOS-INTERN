@@ -79,11 +79,10 @@ export function CreativeSpaceBrowseClient({ spaces }: { spaces: CreativeSpace[] 
               fontFamily: "'Space Grotesk', 'Nunito', sans-serif",
             }}
           >
-            Learn from <span style={{ background: `linear-gradient(135deg, ${ACCENT}, #A855F7)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>vetted CIOS instructors</span>.
+            Learn from <span style={{ background: `linear-gradient(135deg, ${ACCENT}, #A855F7)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>independent hosts</span>.
           </h1>
           <p style={{ margin: "14px auto 0", maxWidth: 660, fontSize: 16, color: DIM, lineHeight: 1.55 }}>
-            Live and recorded cohorts across web dev, design, marketing, AI and more —
-            taught by ranked CIOS instructors, alumni and mentors. No filler courses. Every host is vetted.
+            Live and recorded cohorts across web dev, design, marketing, AI and more — each one hosted by someone who applied and was approved by our team. Every host gets their own admin portal; every learner who joins gets switched into the cohort with full access.
           </p>
           <div style={{ marginTop: 22, display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             <a
