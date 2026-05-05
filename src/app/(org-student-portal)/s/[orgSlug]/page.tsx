@@ -11,11 +11,25 @@ export default async function StudentDashboard({ params }: { params: Promise<{ o
   if (!ctx) notFound();
 
   const sb = supabaseAdmin();
-  const [pinned, upcoming, recent] = await Promise.all([
+  // 7-day window for the "What's new" digest. Filtered to actions
+  // students actually care about: announcements, new lessons, new
+  // assignments. Member churn / channel-creation noise is hidden.
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const [pinned, upcoming, recent, digest] = await Promise.all([
     sb.from("org_announcements").select("id, title, body, created_at").eq("org_id", ctx.org.id).eq("pinned", true).order("created_at", { ascending: false }).limit(3),
     sb.from("org_assignments").select("id, title, due_at").eq("org_id", ctx.org.id).gt("due_at", new Date().toISOString()).order("due_at", { ascending: true }).limit(5),
     sb.from("org_lessons").select("id, title, position").eq("org_id", ctx.org.id).order("created_at", { ascending: false }).limit(5),
+    sb.from("org_audit_log")
+      .select("id, action, meta, created_at")
+      .eq("org_id", ctx.org.id)
+      .in("action", ["announcement.posted", "lesson.created", "assignment.created"])
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(8),
   ]);
+  const digestRows = (digest.data || []) as Array<{
+    id: string; action: string; meta: Record<string, unknown>; created_at: string;
+  }>;
 
   return (
     <div style={{ maxWidth: 900 }}>
@@ -39,6 +53,22 @@ export default async function StudentDashboard({ params }: { params: Promise<{ o
           }
         </Card>
       </div>
+
+      <Card title="🆕 What's new this week" link={`/s/${orgSlug}/announcements`} linkLabel="All announcements →">
+        {digestRows.length === 0
+          ? <Empty text="No new posts in the last 7 days." />
+          : digestRows.map((row) => {
+              const m = row.meta as Record<string, string | number | undefined>;
+              const ago = relTime(row.created_at);
+              if (row.action === "announcement.posted") {
+                return <Item key={row.id} title={`📣 ${m.title || "New announcement"}`} subtitle={ago} href={`/s/${orgSlug}/announcements`} />;
+              }
+              if (row.action === "lesson.created") {
+                return <Item key={row.id} title={`📚 New lesson: ${m.title || "Untitled"}`} subtitle={ago} href={`/s/${orgSlug}/lessons`} />;
+              }
+              return <Item key={row.id} title={`📝 New assignment: ${m.title || "Untitled"}`} subtitle={ago} href={`/s/${orgSlug}/assignments`} />;
+            })}
+      </Card>
 
       <Card title="📚 Latest lessons" link={`/s/${orgSlug}/lessons`} linkLabel="All lessons →">
         {(recent.data || []).length === 0 ? <Empty text="No lessons yet." /> :
@@ -73,4 +103,15 @@ function Item({ title, subtitle, href }: { title: string; subtitle: string; href
 }
 function Empty({ text }: { text: string }) {
   return <div style={{ padding: "10px 12px", color: "#5A6478", fontSize: 12 }}>{text}</div>;
+}
+
+function relTime(iso: string): string {
+  const diff = Math.max(0, Date.now() - new Date(iso).getTime());
+  const m = Math.floor(diff / 60_000);
+  if (m < 1)  return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return d === 1 ? "yesterday" : `${d}d ago`;
 }
