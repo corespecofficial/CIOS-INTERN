@@ -4,14 +4,26 @@ import { useEffect, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { submitRecruiterRequest } from "@/app/actions/recruiter-access";
+import { submitWeb3Form } from "@/lib/web3forms";
 
-type Category = "recruiter" | "intern" | "instructor" | "partnership" | "hire-us" | "investor" | "support" | "press" | "general";
+type Category =
+  | "recruiter" | "intern" | "instructor" | "partnership" | "hire-us"
+  | "investor" | "support" | "press" | "general"
+  | "institution" | "government" | "partner" | "creator" | "mentor";
 
 const CATEGORIES: { id: Category; emoji: string; label: string; blurb: string }[] = [
+  // Org-tier inbounds — match the landing-page portal CTAs (every
+  // /portals/<slug> page sends the visitor here with ?category=<id>).
+  { id: "institution", emoji: "🏛", label: "Institution Portal",   blurb: "Bring your university or training institute on board." },
+  { id: "government",  emoji: "🏦", label: "Government Portal",    blurb: "Run state-level skills programmes." },
+  { id: "partner",     emoji: "🤝", label: "Partner Programme",    blurb: "Co-host, white-label, revenue share." },
+  { id: "creator",     emoji: "👑", label: "Creator access",       blurb: "Founding-team / platform-owner enquiry." },
+  { id: "mentor",      emoji: "🎓", label: "Apply as mentor",      blurb: "Coach and advise interns 1:1." },
+  // Original categories
   { id: "recruiter",   emoji: "🏢", label: "Become a recruiter",   blurb: "Post opportunities and hire verified talent." },
-  { id: "intern",      emoji: "🎓", label: "Join as intern",        blurb: "Apply to the COSPRONOS internship program." },
+  { id: "intern",      emoji: "🌱", label: "Join as intern",        blurb: "Apply to the founding cohort." },
   { id: "instructor",  emoji: "👨‍🏫", label: "Become an instructor", blurb: "Teach and mentor on CIOS." },
-  { id: "partnership", emoji: "🤝", label: "Partnership",           blurb: "Strategic collaboration with COSPRONOS." },
+  { id: "partnership", emoji: "🔗", label: "Strategic partnership", blurb: "Other commercial collaboration." },
   { id: "hire-us",     emoji: "💼", label: "Hire our studio",       blurb: "COSPRONOS Media can build it for you." },
   { id: "investor",    emoji: "📈", label: "Investor inquiry",      blurb: "Learn about our raise and metrics." },
   { id: "support",     emoji: "🛟", label: "Support",               blurb: "Existing user? We've got you." },
@@ -39,25 +51,59 @@ export function ContactClient() {
 
   const submit = () => start(async () => {
     if (!f.name || !f.email) return toast.error("Name and email are required");
-    if (category === "recruiter") {
-      const res = await submitRecruiterRequest({
-        fullName: f.name, companyName: f.company || "(not provided)",
-        workEmail: f.email, phone: f.phone, country: f.country, website: f.website,
-        hiringFor: f.hiringFor, expectedHires: f.expectedHires, budgetRange: f.budgetRange,
-        whyJoin: f.whyJoin, contactMethod: f.contactMethod,
-      });
-      if (!res.ok) return toast.error(res.error);
-      setSubmitted(true); setStep(2); return;
-    }
-    const res = await submitRecruiterRequest({
-      fullName: f.name, companyName: f.company || category.toUpperCase(),
-      workEmail: f.email, phone: f.phone, country: f.country, website: f.website,
-      hiringFor: f.subject || category, expectedHires: f.expectedHires, budgetRange: f.budgetRange,
-      whyJoin: `[${category.toUpperCase()}] ${f.message || f.whyJoin}\n\nSkills: ${f.skills}\nPortfolio: ${f.portfolio}\nAvailability: ${f.availability}`,
+
+    // Dual-write strategy:
+    //   1. submitRecruiterRequest writes the row into Supabase so it
+    //      shows up in the super-admin queue at
+    //      /super-admin/recruiter-requests for in-app review.
+    //   2. submitWeb3Form ALSO emails the destination inbox so the
+    //      team gets notified immediately without checking the queue.
+    // We intentionally don't fail the whole submit if Web3Forms fails
+    // — the DB row is the source of truth, the email is the alert.
+
+    const isRecruiter = category === "recruiter";
+    const dbRes = await submitRecruiterRequest({
+      fullName: f.name,
+      companyName: f.company || (isRecruiter ? "(not provided)" : (category as string).toUpperCase()),
+      workEmail: f.email,
+      phone: f.phone,
+      country: f.country,
+      website: f.website,
+      hiringFor: isRecruiter ? f.hiringFor : (f.subject || category),
+      expectedHires: f.expectedHires,
+      budgetRange: f.budgetRange,
+      whyJoin: isRecruiter
+        ? f.whyJoin
+        : `[${(category as string).toUpperCase()}] ${f.message || f.whyJoin}\n\nSkills: ${f.skills}\nPortfolio: ${f.portfolio}\nAvailability: ${f.availability}`,
       contactMethod: f.contactMethod,
     });
-    if (!res.ok) return toast.error(res.error);
-    setSubmitted(true); setStep(2);
+    if (!dbRes.ok) return toast.error(dbRes.error);
+
+    // Fire-and-forget the email side. Don't block UI on it; if it
+    // fails, the DB row still triggers the team to follow up.
+    const catLabel = CATEGORIES.find((c) => c.id === category)?.label || category;
+    void submitWeb3Form({
+      email: f.email,
+      name: f.name,
+      company: f.company || undefined,
+      phone: f.phone || undefined,
+      country: f.country || undefined,
+      website: f.website || undefined,
+      category: catLabel,
+      subject: `📥 Contact: ${catLabel} — ${f.name}`,
+      from_name: `CIOS Contact (${catLabel})`,
+      hiringFor: f.hiringFor || undefined,
+      expectedHires: f.expectedHires || undefined,
+      budgetRange: f.budgetRange || undefined,
+      skills: f.skills || undefined,
+      portfolio: f.portfolio || undefined,
+      availability: f.availability || undefined,
+      message: f.message || f.whyJoin || undefined,
+      contactMethod: f.contactMethod,
+    }).catch(() => { /* DB row already saved — don't surface */ });
+
+    setSubmitted(true);
+    setStep(2);
   });
 
   const cat = CATEGORIES.find((c) => c.id === category);
@@ -143,7 +189,7 @@ export function ContactClient() {
             <Field label="Tell us what you want to teach"><Textarea value={f.message} onChange={(v) => setF({ ...f, message: v })} /></Field>
           </>}
 
-          {(category === "partnership" || category === "hire-us" || category === "investor" || category === "press" || category === "support" || category === "general") && <>
+          {(category === "partnership" || category === "hire-us" || category === "investor" || category === "press" || category === "support" || category === "general" || category === "institution" || category === "government" || category === "partner" || category === "creator" || category === "mentor") && <>
             <Field label="Company / organization"><Input value={f.company} onChange={(v) => setF({ ...f, company: v })} /></Field>
             <Field label="Subject"><Input value={f.subject} onChange={(v) => setF({ ...f, subject: v })} /></Field>
             <Field label="Tell us more"><Textarea value={f.message} onChange={(v) => setF({ ...f, message: v })} rows={6} /></Field>
@@ -182,7 +228,7 @@ export function ContactClient() {
 
       <div style={{ marginTop: 40, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
         <InfoCard emoji="🕒" title="Response time" lines={["Business: <1 day", "Urgent: <4 hours", "Weekends: within 24h"]} />
-        <InfoCard emoji="📍" title="Office" lines={["COSPRONOS Media", "Lagos, Nigeria", "Remote-first team"]} />
+        <InfoCard emoji="🌍" title="Where we work" lines={["COSPRONOS Media", "Remote-first, worldwide", "Any timezone, English-default"]} />
         <InfoCard emoji="📧" title="Direct email" lines={["hello@cospronos.media", "support@cios.platform"]} />
         <InfoCard emoji="🔗" title="Social" lines={["@cospronos everywhere"]} />
       </div>
