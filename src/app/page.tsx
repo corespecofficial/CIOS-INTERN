@@ -100,7 +100,7 @@ export default async function LandingPage() {
             A transformative 6-month AI-powered internship experience. Build real-world skills, earn rewards, and launch your career across Africa and beyond.
           </p>
 
-          <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginBottom: 64 }}>
+          <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginBottom: 18 }}>
             <Link href="/sign-up" className="hero-cta" style={{ padding: "16px 44px", borderRadius: 14, fontSize: 16, fontWeight: 700, textDecoration: "none", background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff", boxShadow: "0 8px 30px rgba(30,136,229,0.35)" }}>
               Apply Now — It&rsquo;s Free
             </Link>
@@ -108,6 +108,31 @@ export default async function LandingPage() {
               Book a Demo →
             </Link>
           </div>
+
+          {/* Org-tier shortcut — anchor-jumps to the four portals so
+              an institution / company / government / partner visitor
+              doesn't have to scroll the consumer funnel to find their
+              entry point. */}
+          <Link
+            href="#org-portals"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 8,
+              marginBottom: 56,
+              padding: "8px 18px",
+              borderRadius: 99,
+              fontSize: 12,
+              fontWeight: 700,
+              textDecoration: "none",
+              background: "rgba(38,166,154,0.10)",
+              border: "1px solid rgba(38,166,154,0.30)",
+              color: "#26A69A",
+              letterSpacing: 0.5,
+            }}
+          >
+            🏛 🏢 🏦 🤝&nbsp;&nbsp;Are you an institution, company, govt, or partner?&nbsp;&nbsp;→
+          </Link>
 
           {/* Stats */}
           <div style={{ display: "flex", justifyContent: "center", gap: 48, flexWrap: "wrap", padding: "32px 40px", background: "rgba(255,255,255,0.02)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.06)" }}>
@@ -125,6 +150,14 @@ export default async function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ═══════════════════════════════════════════════════
+          ORGANIZATIONS — Institution / Company / Government / Partner
+          Sits IMMEDIATELY after the hero so the four org-tier portals
+          are unmissable for institutional visitors. The hero pill
+          (#org-portals anchor) jumps right here.
+      ═══════════════════════════════════════════════════ */}
+      <OrgPortalsSection />
 
       {/* ═══════════════════════════════════════════════════
           TRUST LOGOS STRIP
@@ -224,16 +257,6 @@ export default async function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* ═══════════════════════════════════════════════════
-          ORGANIZATIONS — Institution / Company / Government / Partner
-          Placed right after the trust strip so the four org-tier
-          portals are the first thing organizational visitors see —
-          they're explicitly looking for "is there a portal for us?"
-          and shouldn't have to scroll past every consumer-facing
-          section to find out.
-      ═══════════════════════════════════════════════════ */}
-      <OrgPortalsSection />
 
       {/* ═══════════════════════════════════════════════════
           PLATFORM FEATURES
