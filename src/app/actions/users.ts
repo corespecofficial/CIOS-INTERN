@@ -326,3 +326,188 @@ export async function revokeInvitation(invitationId: string): Promise<{ ok: true
     return { ok: false, error: e instanceof Error ? e.message : "Failed to revoke invitation" };
   }
 }
+
+/* ────────────────────────────────────────────────────────────────────
+   ORG MEMBERSHIP MANAGEMENT (super-admin only)
+
+   The Manage Users page lists platform-wide users; org-level
+   membership lives in `org_members` keyed by Supabase users.id (NOT
+   Clerk id). These actions resolve clerk_id → users.id internally
+   so the caller can pass the Clerk id from the user list.
+   ──────────────────────────────────────────────────────────────────── */
+
+export type OrgMemberRole = "owner" | "org_admin" | "instructor" | "student";
+
+const ORG_ROLES: OrgMemberRole[] = ["owner", "org_admin", "instructor", "student"];
+
+export interface OrgMembership {
+  org_id: string;
+  org_slug: string;
+  org_name: string;
+  org_status: string;
+  role: OrgMemberRole;
+  status: string;
+  joined_at: string;
+}
+
+export interface OrgListItem {
+  id: string;
+  slug: string;
+  name: string;
+  status: string;
+  member_count: number;
+}
+
+async function resolveSupabaseUserId(clerkId: string): Promise<string | null> {
+  const sb = supabaseAdmin();
+  const { data } = await sb.from("users").select("id").eq("clerk_id", clerkId).maybeSingle();
+  return (data as { id?: string } | null)?.id || null;
+}
+
+export async function listUserOrgs(clerkId: string): Promise<{ ok: true; memberships: OrgMembership[]; supabaseUserId: string | null } | { ok: false; error: string }> {
+  try {
+    await requireSuperAdmin();
+    const sbUserId = await resolveSupabaseUserId(clerkId);
+    if (!sbUserId) return { ok: true, memberships: [], supabaseUserId: null };
+
+    const sb = supabaseAdmin();
+    const { data, error } = await sb
+      .from("org_members")
+      .select("role, status, joined_at, creative_orgs!inner(id, slug, name, status)")
+      .eq("user_id", sbUserId)
+      .order("joined_at", { ascending: false });
+    if (error) return { ok: false, error: error.message };
+
+    type Row = { role: OrgMemberRole; status: string; joined_at: string; creative_orgs: { id: string; slug: string; name: string; status: string } };
+    const memberships: OrgMembership[] = ((data || []) as unknown as Row[]).map((r) => ({
+      org_id: r.creative_orgs.id,
+      org_slug: r.creative_orgs.slug,
+      org_name: r.creative_orgs.name,
+      org_status: r.creative_orgs.status,
+      role: r.role,
+      status: r.status,
+      joined_at: r.joined_at,
+    }));
+    return { ok: true, memberships, supabaseUserId: sbUserId };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to list user orgs" };
+  }
+}
+
+export async function listAllOrgsForAssignment(): Promise<{ ok: true; orgs: OrgListItem[] } | { ok: false; error: string }> {
+  try {
+    await requireSuperAdmin();
+    const sb = supabaseAdmin();
+    const { data, error } = await sb
+      .from("creative_orgs")
+      .select("id, slug, name, status, member_count")
+      .order("name", { ascending: true })
+      .limit(500);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true, orgs: (data || []) as OrgListItem[] };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to list orgs" };
+  }
+}
+
+/**
+ * Add or update a user's membership in an org. If the user has no
+ * Supabase row yet (Clerk-only ghost), this returns a friendly error
+ * instead of creating one — a missing Supabase row usually means the
+ * Clerk webhook hasn't synced yet, and we'd rather surface that than
+ * paper over it.
+ */
+export async function assignUserToOrg(
+  clerkId: string,
+  orgId: string,
+  role: OrgMemberRole,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireSuperAdmin();
+    if (!ORG_ROLES.includes(role)) return { ok: false, error: "Invalid org role" };
+    const sbUserId = await resolveSupabaseUserId(clerkId);
+    if (!sbUserId) return { ok: false, error: "User has no Supabase record yet — wait for Clerk webhook to sync, then retry." };
+
+    const sb = supabaseAdmin();
+    const { error } = await sb
+      .from("org_members")
+      .upsert(
+        { org_id: orgId, user_id: sbUserId, role, status: "active" },
+        { onConflict: "org_id,user_id" },
+      );
+    if (error) return { ok: false, error: error.message };
+
+    // Recount on the org so dashboard counts stay accurate.
+    await sb.rpc("recount_org_members", { p_org_id: orgId }).then(() => null, () => null);
+
+    const me = await getCurrentDbUser();
+    await logAudit({
+      actionCode: "admin.org_membership_assigned",
+      category: "admin",
+      summary: `Added user to org as ${role}`,
+      actorUserId: me?.id, actorName: me?.name, actorRole: me?.role,
+      entityType: "user", entityId: clerkId,
+      metadata: { orgId, role }, severity: "notice",
+    });
+    revalidatePath(`/super-admin/users/${clerkId}/orgs`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to assign org membership" };
+  }
+}
+
+export async function removeUserFromOrg(
+  clerkId: string,
+  orgId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireSuperAdmin();
+    const sbUserId = await resolveSupabaseUserId(clerkId);
+    if (!sbUserId) return { ok: false, error: "User has no Supabase record" };
+
+    const sb = supabaseAdmin();
+    // Refuse to delete the sole owner — would orphan the org. Use the
+    // transfer_org_ownership flow first.
+    const { data: existing } = await sb
+      .from("org_members")
+      .select("role")
+      .eq("org_id", orgId)
+      .eq("user_id", sbUserId)
+      .maybeSingle();
+    const existingRole = (existing as { role?: string } | null)?.role;
+    if (existingRole === "owner") {
+      const { count } = await sb
+        .from("org_members")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", orgId)
+        .eq("role", "owner")
+        .eq("status", "active");
+      if ((count || 0) <= 1) {
+        return { ok: false, error: "Can't remove the sole owner. Transfer ownership first." };
+      }
+    }
+
+    const { error } = await sb
+      .from("org_members")
+      .delete()
+      .eq("org_id", orgId)
+      .eq("user_id", sbUserId);
+    if (error) return { ok: false, error: error.message };
+
+    await sb.rpc("recount_org_members", { p_org_id: orgId }).then(() => null, () => null);
+
+    const me = await getCurrentDbUser();
+    await logAudit({
+      actionCode: "admin.org_membership_removed",
+      category: "admin",
+      summary: `Removed user from org`,
+      actorUserId: me?.id, actorName: me?.name, actorRole: me?.role,
+      entityType: "user", entityId: clerkId,
+      metadata: { orgId }, severity: "notice",
+    });
+    revalidatePath(`/super-admin/users/${clerkId}/orgs`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to remove org membership" };
+  }
+}
