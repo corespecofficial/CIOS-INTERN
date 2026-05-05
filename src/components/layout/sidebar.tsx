@@ -213,15 +213,23 @@ export function Sidebar() {
     ? NAV_ITEMS.filter((item) => isItemVisible(item, role))
     : [];
 
-  // Group by section
+  // Group by section. NAV_ITEMS has items with the same section label
+  // interleaved in source order (PROGRESS appears in 3 separate runs,
+  // ADMIN in 2, etc.) — we merge those into a single rendered section
+  // by label so the user sees one PROGRESS / one ADMIN / one MAIN.
+  // Otherwise toggling a "PROGRESS" header collapses one cluster but
+  // leaves the next PROGRESS cluster sitting right below it, which
+  // looks broken.
   const sections: { label: string; items: NavItem[] }[] = [];
-  let lastSection = "";
+  const sectionByLabel = new Map<string, { label: string; items: NavItem[] }>();
   for (const item of visibleItems) {
-    if (item.section !== lastSection) {
-      sections.push({ label: item.section, items: [] });
-      lastSection = item.section;
+    let s = sectionByLabel.get(item.section);
+    if (!s) {
+      s = { label: item.section, items: [] };
+      sectionByLabel.set(item.section, s);
+      sections.push(s);
     }
-    sections[sections.length - 1].items.push(item);
+    s.items.push(item);
   }
 
   // Detect which section the current pathname lives in. The active

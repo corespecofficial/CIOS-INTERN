@@ -15,16 +15,28 @@
  * open by default rather than getting silently hidden behind a stale
  * map of pre-existing keys.
  *
- * The currently-active section (one whose item matches pathname) is
- * always force-rendered open regardless of state, so navigating into
- * a closed section doesn't leave the user staring at an empty sidebar.
+ * Active-section behavior:
+ *   - If the user has NEVER explicitly toggled the section containing
+ *     the current page, we keep it open by default. (The default state
+ *     for any unknown section is "open", so this falls out naturally.)
+ *   - If the user HAS explicitly closed it, we respect that — even if
+ *     the active page lives inside. Earlier versions force-opened the
+ *     active section, which made the toggle look broken: clicking
+ *     "ADMIN" while sitting on /super-admin/users did nothing because
+ *     the force-open re-opened it on every render. The user's click
+ *     now always wins; they can re-open by clicking the header again.
+ *
+ * `activeSection` is still accepted for API symmetry / future use
+ * (e.g. if we want to highlight the header bar or auto-expand on
+ * first navigation), but it no longer overrides explicit user state.
  */
 
 import { useCallback, useEffect, useState } from "react";
 
 type CollapsedMap = Record<string, true>;
 
-export function useSidebarSections(storageKey: string, activeSection: string | null) {
+export function useSidebarSections(storageKey: string, _activeSection: string | null) {
+  void _activeSection; // see header comment — kept for API symmetry
   const [collapsed, setCollapsed] = useState<CollapsedMap>({});
   const [hydrated, setHydrated] = useState(false);
 
@@ -35,7 +47,6 @@ export function useSidebarSections(storageKey: string, activeSection: string | n
       if (raw) {
         const parsed = JSON.parse(raw);
         if (parsed && typeof parsed === "object") {
-          // Sanitize: keep only `true` values to match CollapsedMap shape.
           const next: CollapsedMap = {};
           for (const k of Object.keys(parsed)) if (parsed[k] === true) next[k] = true;
           setCollapsed(next);
@@ -58,11 +69,7 @@ export function useSidebarSections(storageKey: string, activeSection: string | n
     });
   }, [storageKey]);
 
-  // Active section is always rendered open.
-  const isOpen = useCallback((section: string) => {
-    if (section === activeSection) return true;
-    return !collapsed[section];
-  }, [collapsed, activeSection]);
+  const isOpen = useCallback((section: string) => !collapsed[section], [collapsed]);
 
   return { isOpen, toggle, hydrated };
 }
