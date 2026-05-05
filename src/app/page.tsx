@@ -95,7 +95,7 @@ export default async function LandingPage() {
               can't substantiate. */}
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 20px", marginBottom: 24, borderRadius: 99, background: "rgba(102,187,106,0.1)", border: "1px solid rgba(102,187,106,0.25)", color: "#66BB6A", fontSize: 13, fontWeight: 700 }}>
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#66BB6A", animation: "pulse 1.5s ease-in-out infinite" }} />
-            Now in early access · Building the operating system for African talent
+            Now in early access · Building the operating system for global talent
           </div>
 
           <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(38px, 6vw, 68px)", fontWeight: 800, lineHeight: 1.1, marginBottom: 20 }}>
@@ -103,7 +103,7 @@ export default async function LandingPage() {
             <span style={{ background: "linear-gradient(135deg, #1E88E5, #42A5F5, #FFC107)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Operating System</span>
           </h1>
           <p style={{ fontSize: 18, color: "#8892A4", maxWidth: 620, margin: "0 auto 40px", lineHeight: 1.8 }}>
-            A transformative 6-month AI-powered internship experience. Build real-world skills, earn rewards, and launch your career across Africa and beyond.
+            A transformative 6-month AI-powered internship experience. Build real-world skills, earn rewards, and launch your career — wherever you are in the world.
           </p>
 
           <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginBottom: 18 }}>
@@ -148,7 +148,7 @@ export default async function LandingPage() {
               they can't verify. */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, padding: "28px 32px", background: "rgba(255,255,255,0.02)", borderRadius: 20, border: "1px solid rgba(255,255,255,0.06)", maxWidth: 720, width: "100%" }}>
             {[
-              { v: "Pan-African", l: "Mission scope", desc: "Built for talent from Lagos to Nairobi" },
+              { v: "Worldwide", l: "Mission scope", desc: "Remote-first, English by default, built for any timezone" },
               { v: "AI-native", l: "Platform DNA", desc: "Every workflow assumes AI as a teammate" },
               { v: "Day-one", l: "Early access", desc: "Founding cohort onboarding now" },
             ].map(s => (
@@ -175,19 +175,19 @@ export default async function LandingPage() {
       ═══════════════════════════════════════════════════ */}
       <section style={{ padding: "32px 24px 0", position: "relative", zIndex: 1 }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", textAlign: "center" }}>
+          {/* Founding partners — only entities with real engagement.
+              Was previously a wall of fabricated logos (Lagos Tech Hub,
+              Naija Devs, RecruitNG, FlexHire Africa, Andela Alumni
+              Network) that suggested commercial relationships we don't
+              have. Replaced with the two real founding entities and an
+              honest "more partners onboarding" tag. */}
           <div style={{ fontSize: 11, fontWeight: 700, color: "#3A4256", textTransform: "uppercase", letterSpacing: 2, marginBottom: 20 }}>
-            Companies hiring from CIOS
+            Founding partners · Building together
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
             {[
               { name: "COSPRONOS Media",       g: "linear-gradient(135deg,#1E88E5,#AB47BC)", abbr: "CPM" },
               { name: "Corespec Engineering",   g: "linear-gradient(135deg,#FFC107,#FF7043)", abbr: "CSE" },
-              { name: "Lagos Tech Hub",         g: "linear-gradient(135deg,#66BB6A,#1E88E5)", abbr: "LTH" },
-              { name: "AfriTalent",             g: "linear-gradient(135deg,#26C6DA,#1E88E5)", abbr: "AFT" },
-              { name: "Naija Devs",             g: "linear-gradient(135deg,#AB47BC,#EF5350)", abbr: "NJD" },
-              { name: "RecruitNG",              g: "linear-gradient(135deg,#FF7043,#FFC107)", abbr: "RNG" },
-              { name: "Andela Alumni Network",  g: "linear-gradient(135deg,#1565C0,#26C6DA)", abbr: "AAN" },
-              { name: "FlexHire Africa",        g: "linear-gradient(135deg,#66BB6A,#FFC107)", abbr: "FHA" },
             ].map(p => (
               <div key={p.name} style={{
                 display: "flex", alignItems: "center", gap: 8,
@@ -202,6 +202,7 @@ export default async function LandingPage() {
                 <span style={{ fontSize: 12, fontWeight: 600, color: "#5A6478", whiteSpace: "nowrap" }}>{p.name}</span>
               </div>
             ))}
+            <span style={{ fontSize: 12, color: "#5A6478", fontStyle: "italic" }}>· Institution & company partners onboarding now</span>
           </div>
         </div>
       </section>
@@ -251,7 +252,7 @@ export default async function LandingPage() {
         <div style={{ maxWidth: 1100, margin: "0 auto", textAlign: "center" }}>
           <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(30,136,229,0.1)", border: "1px solid rgba(30,136,229,0.2)", color: "#42A5F5", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>Why Choose Us</div>
           <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, marginBottom: 12 }}>Why COSPRONOS?</h2>
-          <p style={{ color: "#8892A4", maxWidth: 560, margin: "0 auto 48px", fontSize: 16, lineHeight: 1.7 }}>We are not just an internship. We are a launchpad for the next generation of African tech leaders.</p>
+          <p style={{ color: "#8892A4", maxWidth: 560, margin: "0 auto 48px", fontSize: 16, lineHeight: 1.7 }}>We are not just an internship. We are a launchpad for the next generation of tech leaders — anywhere in the world.</p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
             {[
               { icon: "🎯", title: "Learn Real Skills", desc: "Master AI tools, design, development, content creation, and business strategy with hands-on projects and live mentorship.", color: "#1E88E5" },
@@ -295,6 +296,79 @@ export default async function LandingPage() {
                 <div style={{ fontSize: 28, marginBottom: 12, width: 48, height: 48, borderRadius: 12, background: `${f.color}15`, display: "flex", alignItems: "center", justifyContent: "center" }}>{f.emoji}</div>
                 <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{f.title}</h3>
                 <p style={{ fontSize: 13, color: "#8892A4", lineHeight: 1.7, margin: 0 }}>{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════
+          WHY PARTNERS NOTICE — investor-friendly differentiators
+          surfacing the platform muscle that the consumer-facing
+          features grid above doesn't expose: multi-tenant
+          architecture, realtime fabric, marketplace economy,
+          compliance trail, open ecosystem, AI-native workflows.
+      ═══════════════════════════════════════════════════ */}
+      <section style={{ padding: "80px 24px", position: "relative", zIndex: 1, borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", textAlign: "center" }}>
+          <div style={{ display: "inline-block", padding: "6px 18px", marginBottom: 16, borderRadius: 99, background: "rgba(38,166,154,0.10)", border: "1px solid rgba(38,166,154,0.30)", color: "#26A69A", fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase" }}>Built different</div>
+          <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, marginBottom: 12 }}>
+            What makes CIOS <span style={{ background: "linear-gradient(135deg, #26A69A, #1E88E5)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>unmistakable</span>
+          </h2>
+          <p style={{ color: "#8892A4", maxWidth: 620, margin: "0 auto 48px", fontSize: 15, lineHeight: 1.7 }}>
+            Most learning platforms are a video library with a chat box bolted on. CIOS is a multi-tenant operating system — a complete vertical stack that institutions, employers, and governments can plug into.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, textAlign: "left" }}>
+            {[
+              {
+                emoji: "🏛",
+                title: "Multi-tenant by design",
+                desc: "Every institution, company, government agency, and creative-space host gets their own branded portal — with their own members, their own analytics, their own audit log. Not a shared inbox. Real isolation.",
+                accent: "#26A69A",
+              },
+              {
+                emoji: "⚡",
+                title: "Realtime everywhere",
+                desc: "Chat, activity feeds, host dashboards, announcement fan-out — all powered by a unified realtime fabric. When a student joins your cohort, you see it in your dashboard the instant it happens.",
+                accent: "#1E88E5",
+              },
+              {
+                emoji: "💰",
+                title: "Built-in economy",
+                desc: "An integrated wallet, marketplace, and payouts engine means students don't just learn — they earn. Stipend disbursement, gig payments, marketplace revenue, all tracked end-to-end.",
+                accent: "#FFC107",
+              },
+              {
+                emoji: "📜",
+                title: "Compliance & audit-grade trail",
+                desc: "Every meaningful action lands in an append-only audit log scoped per org. CSV export, RLS isolation, role-applications queue. The kind of trail institutions and governments need to write a check.",
+                accent: "#9C27B0",
+              },
+              {
+                emoji: "🤖",
+                title: "AI as a native teammate",
+                desc: "Not a wrapper around ChatGPT. Eight first-class AI tools embedded in the workflow: CV generator, interview prep, lesson reviewer, copy assistant, study coach, plagiarism check, and more — all role-aware.",
+                accent: "#AB47BC",
+              },
+              {
+                emoji: "🔌",
+                title: "Open ecosystem",
+                desc: "Recruiters, mentors, investors, partner organizations, hackathon sponsors — every external stakeholder has a first-class entry point with the right access scope. Not an afterthought; a portal.",
+                accent: "#FF7043",
+              },
+            ].map((card) => (
+              <div
+                key={card.title}
+                style={{
+                  background: "rgba(15,22,38,0.6)",
+                  border: `1px solid ${card.accent}33`,
+                  borderRadius: 16,
+                  padding: 22,
+                }}
+              >
+                <div style={{ fontSize: 28, marginBottom: 10, width: 48, height: 48, borderRadius: 12, background: `${card.accent}18`, display: "flex", alignItems: "center", justifyContent: "center" }}>{card.emoji}</div>
+                <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 800, color: "#E8EDF5", margin: "0 0 8px" }}>{card.title}</h3>
+                <p style={{ fontSize: 13, color: "#8892A4", lineHeight: 1.7, margin: 0 }}>{card.desc}</p>
               </div>
             ))}
           </div>
@@ -592,7 +666,7 @@ export default async function LandingPage() {
               { q: "How does the reward system work?", a: "You earn XP for completing tasks, attending classes, and community participation. XP translates to levels, badges, and real monetary rewards paid to your wallet." },
               { q: "What happens if I miss a class?", a: "Missed classes result in a fine (₦500). Pay through the platform to regain access. Attendance directly affects your performance score and promotion readiness." },
               { q: "Can I get promoted during the internship?", a: "Yes! The career ladder goes: New Intern → Active → Senior → Team Lead → Department Lead → Trainer → Manager → Admin → Executive. All based on performance." },
-              { q: "Is this available outside Nigeria?", a: "Yes — the platform is fully remote, English-language by default, and built to serve talent anywhere on the continent. Our roadmap explicitly targets Pan-African coverage; the founding cohort opens in Nigeria first and expands by country as we onboard institution and government partners." },
+              { q: "Where is this available?", a: "Everywhere. The platform is fully remote, English-language by default, and built for any timezone. We open enrolment country-by-country as we onboard institution and government partners — apply from anywhere and we'll route you to the right cohort." },
             ].map(f => (
               <details key={f.q} style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, overflow: "hidden" }}>
                 <summary style={{ padding: "18px 22px", cursor: "pointer", fontWeight: 700, fontSize: 14, display: "flex", justifyContent: "space-between", alignItems: "center", color: "#E8EDF5" }}>
