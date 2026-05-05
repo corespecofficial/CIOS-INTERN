@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getActiveOrg } from "@/lib/active-org";
 import { supabaseAdmin } from "@/lib/db";
 import { LessonComposer } from "./lesson-composer";
+import { LessonListDraggable } from "./lesson-list-draggable";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,11 @@ export default async function LessonsPage({ params, searchParams }: {
         <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 12, padding: 32, textAlign: "center", color: "#5A6478", fontSize: 13, marginTop: 16 }}>
           No lessons yet.
         </div>
+      ) : isHost && page === 1 ? (
+        // Drag-to-reorder is host-only and only on page 1 — reordering
+        // across pagination boundaries gets confusing fast and is rarely
+        // needed (most classes have <50 lessons, the page size).
+        <LessonListDraggable orgId={ctx.org.id} orgSlug={orgSlug} initial={lessons} />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 16 }}>
           {lessons.map((l) => (

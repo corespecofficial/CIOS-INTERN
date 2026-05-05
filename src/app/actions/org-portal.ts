@@ -162,6 +162,52 @@ export async function updateLesson(orgId: string, lessonId: string, input: Parti
   return { ok: true };
 }
 
+/**
+ * Bulk-reorder lessons. Takes the desired order as an array of lesson IDs
+ * and writes position = index back to each row. Wrapped in a single
+ * postgres transaction at the SQL level wouldn't help here (Supabase JS
+ * client batches into separate statements), but contention is naturally
+ * low — only hosts touch this, and the operation is idempotent.
+ *
+ * Verifies every id belongs to the org first so a malicious client
+ * can't reposition another tenant's lessons by id-guessing.
+ */
+export async function reorderLessons(orgId: string, orderedIds: string[]): Promise<R> {
+  const a = await assertOrgMember(orgId, { roles: HOST_ROLES });
+  if (!a.ok) return a;
+  if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+    return { ok: false, error: "No lessons to reorder" };
+  }
+
+  const sb = supabaseAdmin();
+  const { data: owned } = await sb
+    .from("org_lessons")
+    .select("id")
+    .eq("org_id", orgId)
+    .in("id", orderedIds);
+  const ownedSet = new Set(((owned || []) as { id: string }[]).map((r) => r.id));
+  if (ownedSet.size !== orderedIds.length) {
+    return { ok: false, error: "Some lessons don't belong to this org" };
+  }
+
+  // Sequential per-row update is fine for typical class sizes (<200
+  // lessons). If it ever gets hot, swap to a single UPDATE … FROM unnest.
+  const now = new Date().toISOString();
+  for (let i = 0; i < orderedIds.length; i++) {
+    const { error } = await sb
+      .from("org_lessons")
+      .update({ position: i + 1, updated_at: now })
+      .eq("id", orderedIds[i])
+      .eq("org_id", orgId);
+    if (error) return { ok: false, error: error.message };
+  }
+
+  await bustOrgCache(orgId, a.data.org.slug);
+  revalidatePath(`/o/${a.data.org.slug}/lessons`);
+  revalidatePath(`/s/${a.data.org.slug}/lessons`);
+  return { ok: true };
+}
+
 export async function deleteLesson(orgId: string, lessonId: string): Promise<R> {
   const a = await assertOrgMember(orgId, { roles: HOST_ROLES });
   if (!a.ok) return a;
