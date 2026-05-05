@@ -4,11 +4,11 @@
  * can see signups, posts, and grading happening in near real-time.
  */
 
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getActiveOrg } from "@/lib/active-org";
 import { supabaseAdmin } from "@/lib/db";
 import { cached, orgCacheKey, TTL } from "@/lib/cache";
+import { ActivityFeed, type ActivityRow } from "./activity-feed";
 
 export const dynamic = "force-dynamic";
 
@@ -21,15 +21,6 @@ interface DashboardCounts {
   instructors: number;
   lessons: number;
   assignments: number;
-}
-
-interface ActivityRow {
-  id: string;
-  action: string;
-  target: string | null;
-  meta: Record<string, unknown>;
-  created_at: string;
-  actor_name: string | null;
 }
 
 /**
@@ -63,87 +54,6 @@ async function getRecentActivity(orgId: string, limit = 12): Promise<ActivityRow
     created_at: r.created_at,
     actor_name: r.users?.name ?? null,
   }));
-}
-
-/**
- * Human-readable spin per audit action. The action vocabulary is fixed
- * in src/lib/org-audit.ts — keep this in sync if new actions land.
- */
-function describeActivity(row: ActivityRow): { emoji: string; text: string } {
-  const who = row.actor_name || "Someone";
-  const m = row.meta as Record<string, string | number | boolean | undefined>;
-  switch (row.action) {
-    case "org.created":         return { emoji: "🎉", text: `Org created` };
-    case "org.suspended":       return { emoji: "⏸",  text: `Org suspended by admin` };
-    case "org.archived":        return { emoji: "🗄",  text: `Org archived` };
-    case "org.unsuspended":     return { emoji: "▶",  text: `Org reinstated` };
-    case "member.joined":       return { emoji: "👋", text: `${who} joined as ${m.role || "member"}` };
-    case "member.invited":      return { emoji: "✉️",  text: `${who} invited ${m.email || "someone"}` };
-    case "member.role_updated": return { emoji: "🔧", text: `${who} changed a member's role to ${m.new_role || "?"}` };
-    case "member.removed":      return { emoji: "👋", text: `${who} removed a member` };
-    case "code.created":        return { emoji: "🔑", text: `${who} created an enrollment code` };
-    case "code.revoked":        return { emoji: "🔒", text: `${who} revoked an enrollment code` };
-    case "channel.created":     return { emoji: "💬", text: `${who} created channel #${m.name || ""}` };
-    case "announcement.posted": return { emoji: "📣", text: `${who} posted "${m.title || "an announcement"}"${m.fanout_count ? ` · ${m.fanout_count} notified` : ""}` };
-    case "lesson.created":      return { emoji: "📚", text: `${who} added lesson "${m.title || ""}"` };
-    case "assignment.created":  return { emoji: "📝", text: `${who} created assignment "${m.title || ""}"` };
-    case "submission.graded":   return { emoji: "✅", text: `${who} graded a submission${m.score !== undefined ? ` (${m.score})` : ""}` };
-    case "file.uploaded":       return { emoji: "📎", text: `${who} uploaded ${m.name || "a file"}` };
-    case "file.deleted":        return { emoji: "🗑", text: `${who} deleted ${m.name || "a file"}` };
-    default:                    return { emoji: "•", text: `${who} · ${row.action}` };
-  }
-}
-
-/**
- * Map an audit row to the most relevant page in the host portal.
- * Returns null when no useful destination exists (e.g. org.created — the
- * row is informational and clicking through would go nowhere new).
- *
- * Targets stored as "user:<id>", "lesson:<id>" etc. aren't strictly
- * needed in the URL because each landing page surfaces the entity by
- * id/highlight on its own; we just deep-link to the right tab.
- */
-function linkFor(row: ActivityRow, slug: string): string | null {
-  switch (row.action) {
-    case "member.joined":
-    case "member.invited":
-    case "member.role_updated":
-    case "member.removed":
-    case "code.created":
-    case "code.revoked":
-      return `/o/${slug}/members`;
-    case "announcement.posted":
-      return `/o/${slug}/announcements`;
-    case "lesson.created":
-      return `/o/${slug}/lessons`;
-    case "assignment.created":
-    case "submission.graded":
-      return `/o/${slug}/assignments`;
-    case "channel.created":
-      return `/o/${slug}/chat`;
-    case "file.uploaded":
-    case "file.deleted":
-      return `/o/${slug}/files`;
-    case "org.suspended":
-    case "org.archived":
-    case "org.unsuspended":
-      return `/o/${slug}/settings`;
-    default:
-      return null;
-  }
-}
-
-function timeAgo(iso: string): string {
-  const then = new Date(iso).getTime();
-  const diff = Math.max(0, Date.now() - then);
-  const m = Math.floor(diff / 60_000);
-  if (m < 1)    return "just now";
-  if (m < 60)   return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24)   return `${h}h ago`;
-  const d = Math.floor(h / 24);
-  if (d < 7)    return `${d}d ago`;
-  return new Date(iso).toLocaleDateString();
 }
 
 /**
@@ -225,51 +135,7 @@ export default async function OrgDashboard({ params }: Props) {
           <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>Recent activity</h2>
           <a href={`/o/${ctx.org.slug}/audit`} style={{ fontSize: 11, color: "#1E88E5", textDecoration: "none" }}>Full log →</a>
         </div>
-        {activity.length === 0 ? (
-          <div style={{ padding: 16, color: "#5A6478", fontSize: 13, textAlign: "center" }}>
-            No activity yet. Post an announcement or invite a member to get started.
-          </div>
-        ) : (
-          <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column" }}>
-            {activity.map((row, i) => {
-              const d = describeActivity(row);
-              const href = linkFor(row, ctx.org.slug);
-              const isLast = i === activity.length - 1;
-              const inner = (
-                <>
-                  <span style={{ fontSize: 16, lineHeight: "20px", flexShrink: 0 }}>{d.emoji}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, color: "#E8EDF5", lineHeight: 1.5 }}>{d.text}</div>
-                    <div style={{ fontSize: 11, color: "#5A6478", marginTop: 2 }}>{timeAgo(row.created_at)}</div>
-                  </div>
-                  {href && <span style={{ fontSize: 11, color: "#5A6478", flexShrink: 0 }}>→</span>}
-                </>
-              );
-              const baseStyle: React.CSSProperties = {
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 12,
-                padding: "10px 6px",
-                margin: "0 -6px",
-                borderBottom: isLast ? "none" : "1px solid rgba(255,255,255,0.04)",
-                borderRadius: 6,
-                color: "#E8EDF5",
-                textDecoration: "none",
-              };
-              return (
-                <li key={row.id} style={{ listStyle: "none" }}>
-                  {href ? (
-                    <Link href={href} style={baseStyle} className="dashboard-activity-row">
-                      {inner}
-                    </Link>
-                  ) : (
-                    <div style={baseStyle}>{inner}</div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
+        <ActivityFeed orgId={ctx.org.id} orgSlug={ctx.org.slug} initial={activity} />
       </div>
 
       <div style={{ marginTop: 18, padding: 20, background: "#111827", border: "1px solid #1F2937", borderRadius: 12 }}>

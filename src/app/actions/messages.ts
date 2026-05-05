@@ -447,6 +447,14 @@ export async function createAblyToken(): Promise<Result<{ tokenRequest: unknown 
       capability: JSON.stringify({
         "room:*": ["*"],
         "presence:*": ["*"],
+        // Org-portal realtime channels: chat fan-out and dashboard
+        // activity feed. We grant subscribe-wide here because Ably
+        // capabilities can't reference per-user membership state at
+        // token-mint time; org-side authorization is enforced by the
+        // server actions that publish to these channels (assertOrgMember
+        // / HOST_ROLES gates) — clients can only ever LISTEN.
+        "org-chat:*": ["subscribe", "presence", "history"],
+        "org-activity:*": ["subscribe", "history"],
         [`notif:${me.clerk_id}`]: ["subscribe", "presence", "history"],
       }),
     });
