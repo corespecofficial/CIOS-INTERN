@@ -14,7 +14,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getOrgEntryStatus } from "@/lib/active-org";
 import { HostNav } from "./host-nav";
+import { HostHeader } from "./host-header";
 import { MobileDrawer } from "@/components/portal/mobile-drawer";
+import { CommandPalette } from "@/components/command-palette";
 
 export const dynamic = "force-dynamic";
 
@@ -48,9 +50,21 @@ export default async function HostOrgLayout({ children, params }: Props) {
         isSuperAdmin={ctx.isSuperAdmin}
       />
       <MobileDrawer />
-      <main data-portal-main style={{ marginLeft: 240, padding: "32px 40px", minHeight: "100dvh" }}>
-        {children}
-      </main>
+      <div data-portal-main style={{ marginLeft: 240, minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
+        <HostHeader
+          orgSlug={ctx.org.slug}
+          orgName={ctx.org.name}
+          memberRole={ctx.memberRole}
+          isSuperAdmin={ctx.isSuperAdmin}
+        />
+        <main style={{ flex: 1, padding: "32px 40px" }}>
+          {children}
+        </main>
+        {/* Cmd+K palette — wires the search input in HostHeader to the
+            shared command palette. CommandPalette filters by Clerk role
+            so the host only sees actions they can actually take. */}
+        <CommandPalette />
+      </div>
     </>
   );
 }
