@@ -3,7 +3,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import type { AdminUserRow } from "./page";
+import Link from "next/link";
+import type { AdminUserRow, ScopedOrg } from "./page";
 
 const ROLE_META: Record<string, { label: string; color: string }> = {
   intern:      { label: "Intern",      color: "#1E88E5" },
@@ -40,11 +41,16 @@ function isSuspended(u: AdminUserRow) {
   return u.status === "suspended" || u.status === "banned";
 }
 
-export default function AdminUsersClient({ users }: { users: AdminUserRow[] }) {
+export default function AdminUsersClient({ users, myOrgs }: { users: AdminUserRow[]; myOrgs: ScopedOrg[] | null }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState("all");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "suspended">("all");
+  const [filterOrg, setFilterOrg] = useState<string>("all");
+
+  // myOrgs === null means the requester is super_admin viewing platform-wide.
+  // myOrgs.length > 0 means an org owner/admin viewing only their orgs.
+  const isOrgScoped = myOrgs !== null;
 
   const filtered = users.filter((u) => {
     const q = search.toLowerCase();
@@ -52,7 +58,8 @@ export default function AdminUsersClient({ users }: { users: AdminUserRow[] }) {
     const matchRole = filterRole === "all" || u.role === filterRole;
     const suspended = isSuspended(u);
     const matchStatus = filterStatus === "all" || (filterStatus === "suspended" ? suspended : !suspended);
-    return matchSearch && matchRole && matchStatus;
+    const matchOrg = filterOrg === "all" || (u.orgs || []).some((o) => o.org_id === filterOrg);
+    return matchSearch && matchRole && matchStatus && matchOrg;
   });
 
   const totalInterns = users.filter(u => u.role === "intern").length;
@@ -78,10 +85,13 @@ export default function AdminUsersClient({ users }: { users: AdminUserRow[] }) {
           fontSize: 11, fontWeight: 700, borderRadius: 20, letterSpacing: 0.5, marginBottom: 8,
         }}>USER MANAGEMENT</span>
         <h1 style={{ fontSize: 22, fontWeight: 800, color: "#E8EDF5", margin: "0 0 4px 0" }}>
-          All Users
+          {isOrgScoped ? "Members in your orgs" : "All Users"}
         </h1>
         <p style={{ color: "#6B7280", fontSize: 13, margin: 0 }}>
           {users.length} users · {totalInterns} interns · {totalActive} active · {totalSuspended} suspended
+          {isOrgScoped && myOrgs && myOrgs.length > 0 && (
+            <> · scoped to {myOrgs.length} org{myOrgs.length === 1 ? "" : "s"}</>
+          )}
         </p>
       </div>
 
@@ -129,6 +139,13 @@ export default function AdminUsersClient({ users }: { users: AdminUserRow[] }) {
           <option value="active">Active</option>
           <option value="suspended">Suspended</option>
         </select>
+        {isOrgScoped && myOrgs && myOrgs.length > 1 && (
+          <select value={filterOrg} onChange={e => setFilterOrg(e.target.value)}
+            style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 10, padding: "9px 12px", color: "#E8EDF5", fontSize: 12, cursor: "pointer", outline: "none" }}>
+            <option value="all">All my orgs</option>
+            {myOrgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+          </select>
+        )}
       </div>
 
       {/* ── DESKTOP TABLE ── */}
@@ -138,21 +155,29 @@ export default function AdminUsersClient({ users }: { users: AdminUserRow[] }) {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                  {["User", "Role", "XP / Level", "Performance", "Last Seen", "Status"].map(h => (
+                  {[
+                    "User",
+                    "Role",
+                    ...(isOrgScoped ? ["Org membership"] : []),
+                    "XP / Level",
+                    "Performance",
+                    "Last Seen",
+                    "Status",
+                  ].map(h => (
                     <th key={h} style={{ padding: "12px 16px", textAlign: "left", color: "#6B7280", fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.6, whiteSpace: "nowrap" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={6} style={{ padding: "32px 16px", textAlign: "center", color: "#4B5563" }}>No users match</td></tr>
+                  <tr><td colSpan={isOrgScoped ? 7 : 6} style={{ padding: "32px 16px", textAlign: "center", color: "#4B5563" }}>No users match</td></tr>
                 ) : filtered.map((u) => {
                   const rm = getRoleMeta(u.role);
                   const suspended = isSuspended(u);
                   const perf = u.performance ?? 0;
                   return (
-                    <tr key={u.id} onClick={() => router.push(`/super-admin/users`)}
-                      style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", cursor: "pointer" }}
+                    <tr key={u.id}
+                      style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
                       onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
                       onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                     >
@@ -171,6 +196,46 @@ export default function AdminUsersClient({ users }: { users: AdminUserRow[] }) {
                       <td style={{ padding: "12px 16px" }}>
                         <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: `${rm.color}18`, color: rm.color }}>{rm.label}</span>
                       </td>
+                      {isOrgScoped && (
+                        <td style={{ padding: "12px 16px" }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                            {(u.orgs || []).length === 0 ? (
+                              <span style={{ fontSize: 11, color: "#5A6478", fontStyle: "italic" }}>—</span>
+                            ) : (
+                              (u.orgs || []).slice(0, 3).map((o) => (
+                                <Link
+                                  key={o.org_id}
+                                  href={`/o/${o.org_slug}/members`}
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 6,
+                                    fontSize: 11,
+                                    color: "#26A69A",
+                                    background: "rgba(38,166,154,0.10)",
+                                    border: "1px solid rgba(38,166,154,0.25)",
+                                    padding: "2px 8px",
+                                    borderRadius: 999,
+                                    textDecoration: "none",
+                                    whiteSpace: "nowrap",
+                                    maxWidth: 240,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                  }}
+                                  title={`Manage ${o.role} role in ${o.org_name}`}
+                                >
+                                  <strong style={{ color: "#E8EDF5" }}>{o.org_name}</strong>
+                                  <span style={{ opacity: 0.7 }}>· {o.role}</span>
+                                </Link>
+                              ))
+                            )}
+                            {(u.orgs || []).length > 3 && (
+                              <span style={{ fontSize: 10, color: "#5A6478" }}>+ {((u.orgs || []).length - 3)} more</span>
+                            )}
+                          </div>
+                        </td>
+                      )}
                       <td style={{ padding: "12px 16px", color: "#FFC107", fontWeight: 700, whiteSpace: "nowrap" }}>
                         {(u.xp ?? 0).toLocaleString()} XP · Lv {u.level}
                       </td>
@@ -215,10 +280,9 @@ export default function AdminUsersClient({ users }: { users: AdminUserRow[] }) {
           const perf = u.performance ?? 0;
           return (
             <div key={u.id}
-              onClick={() => router.push(`/super-admin/users`)}
               style={{
                 background: "#111827", border: "1px solid rgba(255,255,255,0.07)",
-                borderRadius: 12, padding: "14px 16px", cursor: "pointer",
+                borderRadius: 12, padding: "14px 16px",
               }}
             >
               {/* Avatar + name + role */}
