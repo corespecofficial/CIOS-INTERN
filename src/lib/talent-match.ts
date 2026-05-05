@@ -87,7 +87,7 @@ export interface RecruiterBadge { id: string; label: string; emoji: string; colo
 
 export function getRecruiterBadges(p: { hires_count?: number; rating?: number; verified?: boolean; listings_count?: number }): RecruiterBadge[] {
   const out: RecruiterBadge[] = [];
-  if (p.verified) out.push({ id: "verified", label: "Verified", emoji: "✓", color: "#1E88E5", description: "Business verified by Super Admin" });
+  if (p.verified) out.push({ id: "verified", label: "Verified", emoji: "✓", color: "#1E88E5", description: "Business verified by our team" });
   if ((p.hires_count || 0) >= 1) out.push({ id: "first_hire", label: "First Hire", emoji: "🎯", color: "#66BB6A", description: "Made their first hire on CIOS" });
   if ((p.hires_count || 0) >= 10) out.push({ id: "prolific_hirer", label: "Prolific Hirer", emoji: "🔥", color: "#FF7043", description: "10+ hires on CIOS" });
   if ((p.hires_count || 0) >= 50) out.push({ id: "top_recruiter", label: "Top Recruiter", emoji: "🏆", color: "#FFC107", description: "50+ hires on CIOS" });

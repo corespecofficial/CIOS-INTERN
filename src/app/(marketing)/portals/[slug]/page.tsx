@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 const PORTALS = {
   "creator-admin": {
     title: "Creator Admin",
-    badge: "SUPER ADMIN PORTAL",
+    badge: "PLATFORM OWNER PORTAL",
     badgeColor: "#FFC107",
     icon: "👑",
     gradient: "linear-gradient(135deg, #FFC107, #FF7043)",
@@ -33,7 +33,7 @@ const PORTALS = {
     ],
     howToAccess: [
       "Sign up and be verified as the platform owner",
-      "Your account is assigned the super_admin role",
+      "Your account is granted platform-owner privileges",
       "Access the full admin suite via the sidebar under ADMIN",
       "Set up your first cohort and invite interns",
     ],
@@ -139,7 +139,7 @@ const PORTALS = {
     howToAccess: [
       "Apply as a recruiter on the sign-up page",
       "Submit your recruiter verification (LinkedIn, agency info)",
-      "Super Admin approves your account within 24–48 hours",
+      "Our team approves your account within 24–48 hours",
       "Set your first talent alert and start browsing profiles",
     ],
     cta: { label: "Apply as a Recruiter", href: "/recruiters" },

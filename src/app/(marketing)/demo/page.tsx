@@ -15,7 +15,7 @@ const FEATURES = [
   { icon: "🤖", title: "AI Features Demo",      desc: "Live demo of AI Resume Builder, Interview Prep, Plagiarism Detection, and AI Copilot." },
   { icon: "🏆", title: "Gamification System",   desc: "See XP, streaks, challenges, leaderboards, and reward payouts in action." },
   { icon: "💼", title: "Recruiter Portal",       desc: "How companies find, filter, and hire talent directly from the platform." },
-  { icon: "📊", title: "Admin Controls",         desc: "Full tour of the admin and super-admin panels — compliance, analytics, and controls." },
+  { icon: "📊", title: "Admin Controls",         desc: "Full tour of the operator panels — compliance, analytics, and platform controls." },
   { icon: "💰", title: "Finance & Wallet",       desc: "How monetary rewards, fines, and wallet payouts work in real time." },
 ];
 

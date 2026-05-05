@@ -77,7 +77,7 @@ const browserSTT: STTProvider = {
   id: "browser",
   async transcribe() {
     return {
-      text: "[Audio transcription needs an STT provider. Use the mic button to dictate live, or have your super-admin enable Groq in settings.]",
+      text: "[Audio transcription isn't enabled yet. Use the mic button to dictate live, or contact support to enable transcription on your account.]",
     };
   },
 };
@@ -86,7 +86,7 @@ const groqSTT: STTProvider = {
   id: "groq",
   async transcribe({ fileUrl, blob, language }) {
     const key = await pickConfig("GROQ_API_KEY", "sb.stt.groq.key");
-    if (!key) throw new Error("Groq STT not configured — set sb.stt.groq.key in Super Admin");
+    if (!key) throw new Error("Audio transcription isn't enabled on this account. Please contact support.");
     const form = new FormData();
     if (blob) form.append("file", blob);
     else if (fileUrl) {
@@ -120,7 +120,7 @@ const elevenLabsTTS: TTSProvider = {
   playback: "server-audio-url",
   async synthesize({ text, voice }) {
     const key = await pickConfig("ELEVENLABS_API_KEY", "sb.tts.elevenlabs.key");
-    if (!key) throw new Error("ElevenLabs not configured — set sb.tts.elevenlabs.key in Super Admin");
+    if (!key) throw new Error("Voice synthesis isn't enabled on this account. Please contact support.");
     const defaultVoice = await getSetting("sb.tts.elevenlabs.voice");
     const voiceId = voice || defaultVoice || "21m00Tcm4TlvDq8ikWAM";
     const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
@@ -143,7 +143,7 @@ const openaiTTS: TTSProvider = {
   playback: "server-audio-url",
   async synthesize({ text, voice }) {
     const key = await pickConfig("OPENAI_API_KEY", "sb.tts.openai.key");
-    if (!key) throw new Error("OpenAI TTS not configured — set sb.tts.openai.key in Super Admin");
+    if (!key) throw new Error("Voice synthesis isn't enabled on this account. Please contact support.");
     const r = await fetch("https://api.openai.com/v1/audio/speech", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
@@ -166,10 +166,10 @@ const heygenAvatar: AvatarProvider = {
   id: "heygen",
   async generate({ script, avatar }) {
     const key = await pickConfig("HEYGEN_API_KEY", "sb.avatar.heygen.key");
-    if (!key) throw new Error("HeyGen not configured — set sb.avatar.heygen.key in Super Admin");
+    if (!key) throw new Error("AI avatar generation isn't enabled on this account. Please contact support.");
     const defaultAvatar = await getSetting("sb.avatar.heygen.avatar_id");
     const avatarId = avatar || defaultAvatar || "";
-    if (!avatarId) throw new Error("HeyGen avatar_id missing — set sb.avatar.heygen.avatar_id in Super Admin");
+    if (!avatarId) throw new Error("AI avatar generation isn't fully configured yet. Please contact support.");
 
     const r = await fetch("https://api.heygen.com/v2/video/generate", {
       method: "POST",

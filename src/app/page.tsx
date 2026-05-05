@@ -236,7 +236,7 @@ export default async function LandingPage() {
             <div style={{ borderRadius: 20, overflow: "hidden", border: "1px solid rgba(255,255,255,0.08)", aspectRatio: "16/9", background: "#111827", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
               <div style={{ width: 72, height: 72, borderRadius: "50%", background: "rgba(239,83,80,0.15)", border: "1px solid rgba(239,83,80,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>▶</div>
               <div style={{ fontSize: 16, fontWeight: 700, color: "#E8EDF5" }}>Demo Video Coming Soon</div>
-              <div style={{ fontSize: 13, color: "#5A6478" }}>Upload a YouTube link in Super Admin → Landing Settings</div>
+              <div style={{ fontSize: 13, color: "#5A6478" }}>We&apos;re recording a walkthrough — meanwhile, the platform is live to explore yourself.</div>
               <Link href="/sign-up" style={{ padding: "12px 28px", borderRadius: 12, background: "linear-gradient(135deg,#1E88E5,#1565C0)", color: "#fff", textDecoration: "none", fontWeight: 700, fontSize: 13 }}>
                 Start for free instead →
               </Link>
@@ -439,7 +439,7 @@ export default async function LandingPage() {
           })()}
 
           <p style={{ fontSize: 12, color: "#3A4256", marginTop: 16 }}>
-            Upload real screenshots in Super Admin → Landing Content
+            Live product screenshots roll in as we document each module.
           </p>
 
           <Link href="/sign-up" style={{ display: "inline-block", marginTop: 32, padding: "14px 36px", borderRadius: 14, background: "linear-gradient(135deg,#1E88E5,#1565C0)", color: "#fff", textDecoration: "none", fontWeight: 700, fontSize: 15 }}>
@@ -545,8 +545,8 @@ export default async function LandingPage() {
           rather than fake "founding cohort" quotes we render a
           deliberate ship-first philosophy panel. That's investor-
           friendly: it signals we're not goosing traction, we built
-          the product first. The moment a super-admin adds a real
-          testimonial via /super-admin/landing-settings, this section
+          the product first. The moment a real testimonial lands in
+          the landing-content store, this section
           flips to render them.
       ═══════════════════════════════════════════════════ */}
       <section style={{ padding: "80px 24px", borderTop: "1px solid rgba(255,255,255,0.04)", position: "relative", zIndex: 1 }}>

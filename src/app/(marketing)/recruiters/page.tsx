@@ -15,7 +15,7 @@ const BENEFITS = [
 
 const STEPS = [
   { icon: "memo", title: "Apply", desc: "Submit the Contact Us form with your company details." },
-  { icon: "shield", title: "Get verified", desc: "A Super Admin reviews your company within 1–2 days." },
+  { icon: "shield", title: "Get verified", desc: "Our team reviews your company within 1–2 days." },
   { icon: "briefcase", title: "Post opportunities", desc: "Share jobs, gigs, internships, or scholarships." },
   { icon: "trophy", title: "Hire the best", desc: "Review AI-ranked applicants, interview, hire." },
 ];

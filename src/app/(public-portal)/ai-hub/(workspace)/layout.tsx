@@ -46,11 +46,11 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
           </h1>
           <p style={{ color: "#8892A4", fontSize: 14, lineHeight: 1.6, margin: "10px 0 20px 0" }}>
             {decision.reason === "expired" &&
-              "Your access has expired. Please request a renewal from your Super Admin."}
+              "Your access has expired. Contact support to renew."}
             {decision.reason === "quota_exceeded" &&
               `You've used your daily quota of ${decision.dailyCap?.toLocaleString()} tokens. Try again tomorrow.`}
             {(!decision.reason || decision.reason === "not_granted") &&
-              "AI Hub access has not been granted yet. Ask your Super Admin to enable your account."}
+              "AI Hub access hasn't been enabled on your account yet. Contact support to request access."}
           </p>
           <Link
             href="/support"

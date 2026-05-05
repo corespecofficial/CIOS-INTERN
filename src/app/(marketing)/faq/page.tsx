@@ -39,7 +39,7 @@ const CATEGORIES = [
     color: "#AB47BC",
     icon: "🎯",
     faqs: [
-      { q: "How do I become a CIOS mentor?", a: "Apply via /contact?category=mentor. You'll need 3+ years of professional experience in a relevant field. After a profile and expertise review, Super Admin approves your mentor role within 3–5 days." },
+      { q: "How do I become a CIOS mentor?", a: "Apply via /contact?category=mentor. You'll need 3+ years of professional experience in a relevant field. After a profile and expertise review, our team approves your mentor role within 3–5 days." },
       { q: "Do mentors get paid?", a: "Yes. You set your own session rate. Earnings go directly to your CIOS wallet after each confirmed session. You can request payout to your bank account at any time." },
       { q: "How many mentees can I take on?", a: "You control your availability. Set a max mentee count in your mentor profile — from 1 to unlimited. You can pause accepting new mentees at any time." },
       { q: "What does a mentor session look like?", a: "Sessions are 1-on-1 video calls scheduled through the platform. You document session notes and action items after each call. Mentees rate sessions — top-rated mentors get featured on the platform." },
