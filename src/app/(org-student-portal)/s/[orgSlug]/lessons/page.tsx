@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getActiveOrg } from "@/lib/active-org";
-import { supabaseAdmin } from "@/lib/db";
+import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -23,14 +23,23 @@ export default async function StudentLessonsList({ params, searchParams }: {
   const to = from + PAGE_SIZE - 1;
 
   const sb = supabaseAdmin();
-  const { data, count } = await sb
-    .from("org_lessons")
-    .select("id, title, body, video_url, position", { count: "exact" })
-    .eq("org_id", ctx.org.id)
-    .order("position", { ascending: true })
-    .range(from, to);
-  const lessons = (data || []) as Lesson[];
-  const totalPages = Math.max(1, Math.ceil((count ?? 0) / PAGE_SIZE));
+  const me = await getCurrentDbUser();
+  const [lessonsRes, completedRes] = await Promise.all([
+    sb.from("org_lessons")
+      .select("id, title, body, video_url, position", { count: "exact" })
+      .eq("org_id", ctx.org.id)
+      .order("position", { ascending: true })
+      .range(from, to),
+    me
+      ? sb.from("org_lesson_completions")
+          .select("lesson_id")
+          .eq("user_id", me.id)
+          .eq("org_id", ctx.org.id)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const lessons = (lessonsRes.data || []) as Lesson[];
+  const totalPages = Math.max(1, Math.ceil((lessonsRes.count ?? 0) / PAGE_SIZE));
+  const completedIds = new Set(((completedRes.data || []) as Array<{ lesson_id: string }>).map((r) => r.lesson_id));
 
   return (
     <div style={{ maxWidth: 760 }}>
@@ -39,17 +48,47 @@ export default async function StudentLessonsList({ params, searchParams }: {
         <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 12, padding: 32, textAlign: "center", color: "#5A6478", fontSize: 13 }}>No lessons yet.</div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {lessons.map((l) => (
-            <Link key={l.id} href={`/s/${orgSlug}/lessons/${l.id}`} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: "#111827", border: "1px solid #1F2937", borderRadius: 10, textDecoration: "none", color: "#E8EDF5" }}>
-              <div style={{ width: 28, height: 28, borderRadius: 6, background: "#1E2937", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#5A6478", fontWeight: 700 }}>
-                {l.position || "—"}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 600 }}>{l.title}</div>
-              </div>
-              {l.video_url && <span style={{ fontSize: 11, color: "#26A69A" }}>🎬</span>}
-            </Link>
-          ))}
+          {lessons.map((l) => {
+            const done = completedIds.has(l.id);
+            return (
+              <Link
+                key={l.id}
+                href={`/s/${orgSlug}/lessons/${l.id}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "14px 16px",
+                  background: "#111827",
+                  border: `1px solid ${done ? "rgba(38,166,154,0.30)" : "#1F2937"}`,
+                  borderRadius: 10,
+                  textDecoration: "none",
+                  color: "#E8EDF5",
+                }}
+              >
+                <div
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 6,
+                    background: done ? "rgba(38,166,154,0.18)" : "#1E2937",
+                    color: done ? "#26A69A" : "#5A6478",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: done ? 14 : 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  {done ? "✓" : (l.position || "—")}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>{l.title}</div>
+                </div>
+                {l.video_url && <span style={{ fontSize: 11, color: "#26A69A" }}>🎬</span>}
+              </Link>
+            );
+          })}
         </div>
       )}
       {totalPages > 1 && (

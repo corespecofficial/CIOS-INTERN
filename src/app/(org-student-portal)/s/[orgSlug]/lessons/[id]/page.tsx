@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getActiveOrg } from "@/lib/active-org";
-import { supabaseAdmin } from "@/lib/db";
+import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
+import { CompleteToggle } from "./complete-toggle";
 
 export const dynamic = "force-dynamic";
 
@@ -13,14 +14,25 @@ export default async function StudentLessonView({ params }: { params: Promise<{ 
   if (!ctx) notFound();
 
   const sb = supabaseAdmin();
-  const { data } = await sb
-    .from("org_lessons")
-    .select("id, title, body, video_url, position")
-    .eq("id", id)
-    .eq("org_id", ctx.org.id)
-    .maybeSingle();
-  const lesson = data as Lesson | null;
+  const me = await getCurrentDbUser();
+
+  const [lessonRes, completionRes] = await Promise.all([
+    sb.from("org_lessons")
+      .select("id, title, body, video_url, position")
+      .eq("id", id)
+      .eq("org_id", ctx.org.id)
+      .maybeSingle(),
+    me
+      ? sb.from("org_lesson_completions")
+          .select("id")
+          .eq("user_id", me.id)
+          .eq("lesson_id", id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const lesson = lessonRes.data as Lesson | null;
   if (!lesson) notFound();
+  const isDone = !!completionRes.data;
 
   return (
     <div style={{ maxWidth: 760 }}>
@@ -40,6 +52,9 @@ export default async function StudentLessonView({ params }: { params: Promise<{ 
         ) : (
           <div style={{ color: "#5A6478", fontSize: 13, fontStyle: "italic" }}>(No notes provided.)</div>
         )}
+        <div style={{ marginTop: 28, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <CompleteToggle orgId={ctx.org.id} lessonId={lesson.id} initialDone={isDone} />
+        </div>
       </article>
     </div>
   );

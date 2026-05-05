@@ -208,6 +208,50 @@ export async function reorderLessons(orgId: string, orderedIds: string[]): Promi
   return { ok: true };
 }
 
+/**
+ * Mark a lesson as complete for the current user. Idempotent — calling
+ * it twice has the same effect as once thanks to the (lesson_id, user_id)
+ * UNIQUE on org_lesson_completions. Anyone in the org (including hosts
+ * previewing the student view) can mark.
+ */
+export async function markLessonComplete(orgId: string, lessonId: string): Promise<R> {
+  const a = await assertOrgMember(orgId);
+  if (!a.ok) return a;
+
+  const sb = supabaseAdmin();
+  // Verify the lesson really belongs to this org — defends against
+  // id-guessing across tenants.
+  const { data: l } = await sb.from("org_lessons").select("id").eq("id", lessonId).eq("org_id", orgId).maybeSingle();
+  if (!l) return { ok: false, error: "Lesson not found" };
+
+  const { error } = await sb
+    .from("org_lesson_completions")
+    .upsert({ org_id: orgId, lesson_id: lessonId, user_id: a.data.me.id }, { onConflict: "lesson_id,user_id" });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/s/${a.data.org.slug}`);
+  revalidatePath(`/s/${a.data.org.slug}/lessons`);
+  revalidatePath(`/s/${a.data.org.slug}/lessons/${lessonId}`);
+  return { ok: true };
+}
+
+export async function unmarkLessonComplete(orgId: string, lessonId: string): Promise<R> {
+  const a = await assertOrgMember(orgId);
+  if (!a.ok) return a;
+  const sb = supabaseAdmin();
+  const { error } = await sb
+    .from("org_lesson_completions")
+    .delete()
+    .eq("org_id", orgId)
+    .eq("lesson_id", lessonId)
+    .eq("user_id", a.data.me.id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath(`/s/${a.data.org.slug}`);
+  revalidatePath(`/s/${a.data.org.slug}/lessons`);
+  revalidatePath(`/s/${a.data.org.slug}/lessons/${lessonId}`);
+  return { ok: true };
+}
+
 export async function deleteLesson(orgId: string, lessonId: string): Promise<R> {
   const a = await assertOrgMember(orgId, { roles: HOST_ROLES });
   if (!a.ok) return a;

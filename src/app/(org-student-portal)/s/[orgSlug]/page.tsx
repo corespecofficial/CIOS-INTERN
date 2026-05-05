@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getActiveOrg } from "@/lib/active-org";
-import { supabaseAdmin } from "@/lib/db";
+import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
 import { DigestTracker } from "./digest-tracker";
 
 export const dynamic = "force-dynamic";
@@ -12,11 +12,12 @@ export default async function StudentDashboard({ params }: { params: Promise<{ o
   if (!ctx) notFound();
 
   const sb = supabaseAdmin();
+  const me = await getCurrentDbUser();
   // 7-day window for the "What's new" digest. Filtered to actions
   // students actually care about: announcements, new lessons, new
   // assignments. Member churn / channel-creation noise is hidden.
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const [pinned, upcoming, recent, digest] = await Promise.all([
+  const [pinned, upcoming, recent, digest, lessonCount, completedRes] = await Promise.all([
     sb.from("org_announcements").select("id, title, body, created_at").eq("org_id", ctx.org.id).eq("pinned", true).order("created_at", { ascending: false }).limit(3),
     sb.from("org_assignments").select("id, title, due_at").eq("org_id", ctx.org.id).gt("due_at", new Date().toISOString()).order("due_at", { ascending: true }).limit(5),
     sb.from("org_lessons").select("id, title, position").eq("org_id", ctx.org.id).order("created_at", { ascending: false }).limit(5),
@@ -27,15 +28,53 @@ export default async function StudentDashboard({ params }: { params: Promise<{ o
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(8),
+    sb.from("org_lessons").select("id", { count: "exact", head: true }).eq("org_id", ctx.org.id),
+    me
+      ? sb.from("org_lesson_completions")
+          .select("lesson_id")
+          .eq("user_id", me.id)
+          .eq("org_id", ctx.org.id)
+      : Promise.resolve({ data: [] }),
   ]);
   const digestRows = (digest.data || []) as Array<{
     id: string; action: string; meta: Record<string, unknown>; created_at: string;
   }>;
+  const totalLessons = lessonCount.count ?? 0;
+  const completedIds = new Set(((completedRes.data || []) as Array<{ lesson_id: string }>).map((r) => r.lesson_id));
+  const completedCount = completedIds.size;
+  const progressPct = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
 
   return (
     <div style={{ maxWidth: 900 }}>
       <h1 style={{ fontSize: 26, fontWeight: 800, margin: "0 0 4px 0" }}>Welcome back</h1>
-      <p style={{ color: "#8892A4", fontSize: 13, margin: "0 0 28px 0" }}>{ctx.org.name}</p>
+      <p style={{ color: "#8892A4", fontSize: 13, margin: "0 0 18px 0" }}>{ctx.org.name}</p>
+
+      {/* Course progress — visible only when there's at least one lesson.
+          Bar fills as the student marks lessons complete. */}
+      {totalLessons > 0 && (
+        <section style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, fontSize: 13 }}>
+            <span style={{ color: "#E8EDF5", fontWeight: 700 }}>📈 Course progress</span>
+            <span style={{ color: "#8892A4" }}>
+              <strong style={{ color: progressPct === 100 ? "#26A69A" : "#E8EDF5" }}>{completedCount}</strong> / {totalLessons} lessons
+              <span style={{ marginLeft: 8, color: progressPct === 100 ? "#26A69A" : "#5A6478" }}>{progressPct}%</span>
+            </span>
+          </div>
+          <div style={{ height: 8, background: "#0A0E1A", borderRadius: 999, overflow: "hidden" }}>
+            <div
+              style={{
+                width: `${progressPct}%`,
+                height: "100%",
+                background: progressPct === 100 ? "linear-gradient(90deg, #26A69A, #4DD0E1)" : "linear-gradient(90deg, #1E88E5, #26A69A)",
+                transition: "width 0.4s ease",
+              }}
+            />
+          </div>
+          {progressPct === 100 && (
+            <div style={{ marginTop: 8, fontSize: 12, color: "#26A69A", fontWeight: 700 }}>🎉 You&apos;ve completed every lesson — nice work!</div>
+          )}
+        </section>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <Card title="📌 Pinned" link={`/s/${orgSlug}/announcements`} linkLabel="All announcements →">

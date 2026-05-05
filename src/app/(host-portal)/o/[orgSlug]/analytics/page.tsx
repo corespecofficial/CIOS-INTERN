@@ -37,7 +37,7 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ orgS
   const since = new Date(Date.now() - WINDOW_DAYS * 86_400_000).toISOString();
   const lessonPathPrefix = `/s/${orgSlug}/lessons/`;
 
-  const [rosterRes, assignmentsRes, submissionsRes, lessonViewsRes] = await Promise.all([
+  const [rosterRes, assignmentsRes, submissionsRes, lessonViewsRes, lessonsRes, completionsRes] = await Promise.all([
     sb.from("org_members")
       .select("user_id, users:user_id(id, name, email)")
       .eq("org_id", ctx.org.id)
@@ -62,6 +62,14 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ orgS
       .gte("created_at", since)
       .like("meta->>path", `${lessonPathPrefix}%`)
       .limit(5000),
+    sb.from("org_lessons")
+      .select("id, title, position")
+      .eq("org_id", ctx.org.id)
+      .order("position", { ascending: true })
+      .limit(50),
+    sb.from("org_lesson_completions")
+      .select("lesson_id, user_id")
+      .eq("org_id", ctx.org.id),
   ]);
 
   const roster = ((rosterRes.data || []) as unknown as Array<{ user_id: string; users: Student | null }>)
@@ -100,6 +108,22 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ orgS
     const grades = subs.map((s) => s.grade).filter((g): g is number => g !== null);
     const avg = grades.length > 0 ? grades.reduce((a, b) => a + b, 0) / grades.length : null;
     return { ...a, submitted, rate, avg };
+  });
+
+  // ─── Per-lesson completion rate ─────────────────────────────────
+  type LessonRow = { id: string; title: string; position: number };
+  const lessons = (lessonsRes.data || []) as LessonRow[];
+  const completions = (completionsRes.data || []) as Array<{ lesson_id: string; user_id: string }>;
+  const completionsByLesson = new Map<string, Set<string>>();
+  for (const c of completions) {
+    const set = completionsByLesson.get(c.lesson_id) || new Set<string>();
+    set.add(c.user_id);
+    completionsByLesson.set(c.lesson_id, set);
+  }
+  const lessonRows = lessons.map((l) => {
+    const completedBy = completionsByLesson.get(l.id)?.size || 0;
+    const rate = studentCount > 0 ? completedBy / studentCount : 0;
+    return { ...l, completedBy, rate };
   });
 
   // ─── "Behind" list ──────────────────────────────────────────────
@@ -175,6 +199,49 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ orgS
                     </Td>
                     <Td align="right">{r.avg === null ? "—" : r.avg.toFixed(1)}</Td>
                     <Td align="right" muted>{r.due_at ? new Date(r.due_at).toLocaleDateString() : "—"}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      {/* Per-lesson completion */}
+      <section style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 12, padding: 18, marginBottom: 24 }}>
+        <h2 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 12px" }}>Per-lesson completion</h2>
+        {lessonRows.length === 0 ? (
+          <Empty text="No lessons published yet." />
+        ) : (
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr>
+                  <Th>Lesson</Th>
+                  <Th align="right">Completed by</Th>
+                  <Th align="right">Rate</Th>
+                  <Th>Progress</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {lessonRows.map((r) => (
+                  <tr key={r.id} style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+                    <Td>
+                      <Link href={`/o/${orgSlug}/lessons/${r.id}`} style={{ color: "#E8EDF5", textDecoration: "none" }}>
+                        <span style={{ color: "#5A6478", marginRight: 6 }}>#{r.position || "—"}</span>{r.title}
+                      </Link>
+                    </Td>
+                    <Td align="right">{r.completedBy} / {studentCount}</Td>
+                    <Td align="right">
+                      <span style={{ color: r.rate >= 0.7 ? "#26A69A" : r.rate >= 0.4 ? "#FFA726" : "#EF5350" }}>
+                        {Math.round(r.rate * 100)}%
+                      </span>
+                    </Td>
+                    <Td>
+                      <div style={{ height: 6, width: 120, background: "#0A0E1A", borderRadius: 999, overflow: "hidden" }}>
+                        <div style={{ width: `${Math.round(r.rate * 100)}%`, height: "100%", background: r.rate >= 0.7 ? "#26A69A" : r.rate >= 0.4 ? "#FFA726" : "#EF5350" }} />
+                      </div>
+                    </Td>
                   </tr>
                 ))}
               </tbody>
