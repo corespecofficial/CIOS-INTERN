@@ -5,6 +5,7 @@ import { MarketingHeader } from "@/components/marketing/header";
 import { MarketingFooter } from "@/components/marketing/footer";
 import { EmailCapture } from "@/components/marketing/email-capture";
 import { HackathonHeroCard } from "@/components/marketing/hackathon-hero-card";
+import { OrgPortalsSection } from "@/components/marketing/org-portals-section";
 import { getPlatformSettings, getLandingTestimonials } from "@/app/actions/landing-content";
 
 export const dynamic = "force-dynamic";
@@ -485,6 +486,9 @@ export default async function LandingPage() {
         {/* @ts-expect-error Async Server Component — Next 16 supports this */}
         <HackathonHeroCard />
       </div>
+
+      {/* ORGANIZATIONS — institution / company / government / partner portals */}
+      <OrgPortalsSection />
 
       {/* PRICING */}
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.04)" }}>

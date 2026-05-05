@@ -15,11 +15,13 @@ interface Props {
   preset: { ref?: string; invite?: string; code?: string };
 }
 
-const ROLES: { id: ApplyRoleInput["role"]; label: string; emoji: string; blurb: string }[] = [
+const ROLES: { id: ApplyRoleInput["role"]; label: string; emoji: string; blurb: string; comingSoon?: boolean }[] = [
   { id: "recruiter", label: "Recruiter", emoji: "💼", blurb: "Hiring talent from CIOS." },
   { id: "mentor", label: "Mentor", emoji: "🎓", blurb: "Coach or advise interns 1:1." },
-  { id: "company", label: "Company / Employer", emoji: "🏢", blurb: "Host CIOS interns at your org." },
-  { id: "partner_org", label: "Partner organisation", emoji: "🤝", blurb: "Institution / NGO / accelerator partnership." },
+  { id: "company", label: "Company / Employer", emoji: "🏢", blurb: "Host CIOS interns at your org.", comingSoon: true },
+  { id: "institution", label: "Institution / University", emoji: "🏛", blurb: "Bring your campus on board.", comingSoon: true },
+  { id: "government", label: "Government / Public sector", emoji: "🏦", blurb: "Run state-level skills programmes.", comingSoon: true },
+  { id: "partner_org", label: "Partner organisation", emoji: "🤝", blurb: "NGO / accelerator partnership.", comingSoon: true },
   { id: "investor", label: "Investor", emoji: "💸", blurb: "Look at CIOS-incubated startups." },
   { id: "startup_founder", label: "Startup founder", emoji: "🚀", blurb: "Build a startup with CIOS resources." },
 ];
@@ -271,7 +273,26 @@ function ApplyStep({ onBack, onSubmit, pending }: { onBack: () => void; onSubmit
         <p style={{ color: "#8892A4", fontSize: 13, margin: "0 0 16px 0" }}>Pick what you&apos;re applying as. Super-admin reviews each one.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
           {ROLES.map((r) => (
-            <button key={r.id} onClick={() => setPicked(r.id)} style={{ textAlign: "left", background: "#0A0E1A", border: "1px solid #1F2937", borderRadius: 10, padding: 14, cursor: "pointer", color: "#E8EDF5", fontFamily: "inherit" }}>
+            <button
+              key={r.id}
+              onClick={() => setPicked(r.id)}
+              style={{
+                textAlign: "left",
+                background: "#0A0E1A",
+                border: r.comingSoon ? "1px solid rgba(255,193,7,0.30)" : "1px solid #1F2937",
+                borderRadius: 10,
+                padding: 14,
+                cursor: "pointer",
+                color: "#E8EDF5",
+                fontFamily: "inherit",
+                position: "relative",
+              }}
+            >
+              {r.comingSoon && (
+                <span style={{ position: "absolute", top: 8, right: 8, fontSize: 8, fontWeight: 800, color: "#FFC107", background: "rgba(255,193,7,0.12)", padding: "2px 6px", borderRadius: 999, letterSpacing: 0.5 }}>
+                  WAITLIST
+                </span>
+              )}
               <div style={{ fontSize: 22, marginBottom: 4 }}>{r.emoji}</div>
               <div style={{ fontSize: 14, fontWeight: 700 }}>{r.label}</div>
               <div style={{ fontSize: 11, color: "#8892A4", marginTop: 2 }}>{r.blurb}</div>

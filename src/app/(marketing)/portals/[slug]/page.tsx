@@ -180,16 +180,128 @@ const PORTALS = {
     cta: { label: "Start Selling Today", href: "/sign-up" },
     otherPortals: ["creator-admin", "mentor-portal", "company-portal", "recruiter-portal"],
   },
+
+  /* ─── Coming-soon org-tier portals (Phase 2 rollout) ─────────────
+     These are surfaced on the public landing now (see
+     <OrgPortalsSection/>) but the actual portal routes are still
+     admin-gated. Each entry has comingSoon: true so the page renders
+     a "Coming soon" banner + waitlist CTA instead of a "go to portal"
+     CTA. Once a portal opens up, flip the flag and update the cta. */
+
+  "institution-portal": {
+    title: "Institution Portal",
+    badge: "FOR UNIVERSITIES",
+    badgeColor: "#26A69A",
+    icon: "🏛",
+    gradient: "linear-gradient(135deg, #26A69A, #1E88E5)",
+    tagline: "Bring your campus on board",
+    desc: "Manage entire student cohorts, track placement outcomes, and connect your institution's pipeline directly into the CIOS network of recruiters, mentors, and challenge partners.",
+    audience: "For accredited universities, polytechnics, and training institutes.",
+    comingSoon: true,
+    features: [
+      { icon: "👥", title: "Bulk Student Onboarding", desc: "Import student rosters via CSV. Assign cohort tags, track per-cohort progress and engagement at scale." },
+      { icon: "📊", title: "Placement Analytics", desc: "Real-time dashboard of who's been hired, where, and at what compensation level — broken down by program and cohort." },
+      { icon: "🤝", title: "Recruiter Pipeline", desc: "Get your students in front of pre-vetted hiring partners. White-listed access to roles posted by Company Portal members." },
+      { icon: "🎓", title: "Mentor Matching", desc: "Auto-match your students with industry mentors based on their declared track. Sessions are tracked centrally." },
+      { icon: "🏆", title: "Inter-cohort Challenges", desc: "Run private challenges between cohorts within your institution, or join cross-institution leagues." },
+      { icon: "📜", title: "Verified Credentials", desc: "Issue blockchain-anchored completion certificates that recruiters can verify on-platform with one click." },
+    ],
+    stats: [
+      { v: "Bulk", l: "onboarding" },
+      { v: "Real-time", l: "placement data" },
+      { v: "Verified", l: "credentials" },
+      { v: "Cohort", l: "leagues" },
+    ],
+    howToAccess: [
+      "Register your interest via the contact form below",
+      "We schedule a 30-min discovery call with your team",
+      "We provision your institution-tier admin account",
+      "You bulk-onboard students and go live with cohort tracking",
+    ],
+    cta: { label: "Register your institution", href: "/contact?category=institution" },
+    otherPortals: ["company-portal", "government-portal", "partner-programme", "mentor-portal"],
+  },
+
+  "government-portal": {
+    title: "Government Portal",
+    badge: "FOR PUBLIC SECTOR",
+    badgeColor: "#9C27B0",
+    icon: "🏦",
+    gradient: "linear-gradient(135deg, #9C27B0, #1E88E5)",
+    tagline: "Move the needle on youth employment",
+    desc: "Run state-level skills programs, track ROI on training spend, and tie cohort outcomes back to verified employment data — all from a single dashboard built for ministry-grade reporting.",
+    audience: "For ministries of education, labour, ICT, and youth development at federal or state level.",
+    comingSoon: true,
+    features: [
+      { icon: "📊", title: "KPI Dashboard", desc: "Cohort-level tracking of completion rates, placement rates, average salary uplift, and program ROI in one view." },
+      { icon: "📑", title: "Compliance Reports", desc: "One-click export of audit-ready reports formatted for federal or state-level evaluation cycles." },
+      { icon: "🆔", title: "Federated Identity", desc: "Optional integration with NIN / national-ID systems so cohort identity is verified and de-duplicated centrally." },
+      { icon: "💸", title: "Stipend Disbursement", desc: "Pay stipends to qualifying participants directly through the platform wallet, with full disbursement audit trail." },
+      { icon: "🌍", title: "Multi-region Cohorts", desc: "Run parallel cohorts across geopolitical zones with per-region performance benchmarks." },
+      { icon: "🤝", title: "Public-Private Bridge", desc: "Pre-built bridges into the Company Portal so private-sector partners can hire from your trained pipeline." },
+    ],
+    stats: [
+      { v: "Audit", l: "ready" },
+      { v: "Multi", l: "region" },
+      { v: "Verified", l: "identity" },
+      { v: "ROI", l: "tracked" },
+    ],
+    howToAccess: [
+      "Submit a partnership enquiry from your official ministry email",
+      "We arrange a closed-door briefing with your program team",
+      "We co-design the cohort model and reporting cadence",
+      "Your portal is provisioned with a dedicated success manager",
+    ],
+    cta: { label: "Request a briefing", href: "/contact?category=government" },
+    otherPortals: ["institution-portal", "company-portal", "partner-programme", "creator-admin"],
+  },
+
+  "partner-programme": {
+    title: "Partner Programme",
+    badge: "FOR PARTNERS",
+    badgeColor: "#FFC107",
+    icon: "🤝",
+    gradient: "linear-gradient(135deg, #FFC107, #FF7043)",
+    tagline: "Build joint programmes, share the upside",
+    desc: "Co-host cohorts and events, syndicate content, and route your audience into a fully-managed learning platform — with revenue share on every placement and white-label deployments available for select partners.",
+    audience: "For media partners, NGOs, accelerators, and tech communities.",
+    comingSoon: true,
+    features: [
+      { icon: "💰", title: "Revenue Share", desc: "Earn a percentage of every placement made through students you refer. Tracked end-to-end with monthly payouts." },
+      { icon: "🏷️", title: "White-label Option", desc: "Run CIOS under your own brand for select tiers — your domain, your colours, our engine." },
+      { icon: "🎤", title: "Joint Cohorts", desc: "Co-host cohorts with shared branding, shared mentor pools, and shared marketing reach." },
+      { icon: "📣", title: "Content Syndication", desc: "Republish CIOS lessons and challenges into your channels. Tracked attribution back to your account." },
+      { icon: "🏆", title: "Co-branded Hackathons", desc: "Sponsor or co-host hackathons with shared judging and combined prize pools." },
+      { icon: "🔌", title: "API Access", desc: "Programmatic access to enrolment, progress, and placement data for partners on the API tier." },
+    ],
+    stats: [
+      { v: "Rev", l: "share" },
+      { v: "White-label", l: "ready" },
+      { v: "API", l: "access" },
+      { v: "Co-host", l: "events" },
+    ],
+    howToAccess: [
+      "Apply to the partner programme via the form below",
+      "We review your audience fit + commercial alignment",
+      "We agree commercial terms (rev-share or white-label)",
+      "Your partner dashboard goes live with shared analytics",
+    ],
+    cta: { label: "Apply to be a partner", href: "/contact?category=partner" },
+    otherPortals: ["institution-portal", "company-portal", "government-portal", "marketplace"],
+  },
 } as const;
 
 type Slug = keyof typeof PORTALS;
 
 const PORTAL_META: Record<string, { icon: string; title: string; gradient: string }> = {
-  "creator-admin":   { icon: "👑", title: "Creator Admin",   gradient: "linear-gradient(135deg, #FFC107, #FF7043)" },
-  "mentor-portal":   { icon: "🎓", title: "Mentor Portal",   gradient: "linear-gradient(135deg, #AB47BC, #1E88E5)" },
-  "company-portal":  { icon: "🏢", title: "Company Portal",  gradient: "linear-gradient(135deg, #26C6DA, #1E88E5)" },
-  "recruiter-portal":{ icon: "🔍", title: "Recruiter Portal",gradient: "linear-gradient(135deg, #1E88E5, #26C6DA)" },
-  "marketplace":     { icon: "🛒", title: "Marketplace",     gradient: "linear-gradient(135deg, #66BB6A, #26C6DA)" },
+  "creator-admin":      { icon: "👑", title: "Creator Admin",      gradient: "linear-gradient(135deg, #FFC107, #FF7043)" },
+  "mentor-portal":      { icon: "🎓", title: "Mentor Portal",      gradient: "linear-gradient(135deg, #AB47BC, #1E88E5)" },
+  "company-portal":     { icon: "🏢", title: "Company Portal",     gradient: "linear-gradient(135deg, #26C6DA, #1E88E5)" },
+  "recruiter-portal":   { icon: "🔍", title: "Recruiter Portal",   gradient: "linear-gradient(135deg, #1E88E5, #26C6DA)" },
+  "marketplace":        { icon: "🛒", title: "Marketplace",        gradient: "linear-gradient(135deg, #66BB6A, #26C6DA)" },
+  "institution-portal": { icon: "🏛", title: "Institution Portal", gradient: "linear-gradient(135deg, #26A69A, #1E88E5)" },
+  "government-portal":  { icon: "🏦", title: "Government Portal",  gradient: "linear-gradient(135deg, #9C27B0, #1E88E5)" },
+  "partner-programme":  { icon: "🤝", title: "Partner Programme",  gradient: "linear-gradient(135deg, #FFC107, #FF7043)" },
 };
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -207,9 +319,40 @@ export default async function PortalPage({ params }: { params: Promise<{ slug: s
   const { slug } = await params;
   const portal = PORTALS[slug as Slug];
   if (!portal) notFound();
+  // `comingSoon` lives on a subset of entries; widen for safe access.
+  const comingSoon = (portal as { comingSoon?: boolean }).comingSoon === true;
 
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "60px 24px 48px" }}>
+
+      {/* Coming-soon banner — only on Phase-2 org portals. Sits above
+          the hero so it's the first thing a visitor sees. */}
+      {comingSoon && (
+        <div
+          style={{
+            maxWidth: 720,
+            margin: "0 auto 28px",
+            padding: "14px 18px",
+            background: "rgba(255,193,7,0.08)",
+            border: "1px solid rgba(255,193,7,0.32)",
+            borderRadius: 12,
+            display: "flex",
+            gap: 12,
+            alignItems: "flex-start",
+            color: "#FFC107",
+            fontSize: 13,
+            lineHeight: 1.6,
+          }}
+        >
+          <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>🚧</span>
+          <div>
+            <div style={{ fontWeight: 800, marginBottom: 2 }}>Coming soon — register your interest</div>
+            <span style={{ color: "#B0BEC5" }}>
+              The {portal.title} is rolling out in the next phase. The actual portal isn&apos;t live to the public yet, but you can use the form below to get on the early-access list and we&apos;ll reach out the moment it opens up.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* ── HERO ── */}
       <section style={{ textAlign: "center", marginBottom: 64 }}>

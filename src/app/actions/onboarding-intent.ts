@@ -338,7 +338,7 @@ export async function redeemSuperAdminCode(code: string): Promise<R<ResolveResul
 /* ───────────── Path 6: apply for a role (recruiter/mentor/company/etc.) ───────────── */
 
 export interface ApplyRoleInput {
-  role: "recruiter" | "mentor" | "company" | "partner_org" | "startup_founder" | "investor";
+  role: "recruiter" | "mentor" | "company" | "partner_org" | "startup_founder" | "investor" | "institution" | "government";
   payload: Record<string, unknown>;  // free-form form answers
 }
 
