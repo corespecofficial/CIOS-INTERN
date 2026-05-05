@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/db";
+import { pushNotification } from "@/app/actions/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -107,14 +108,9 @@ async function runDeadlineNudge() {
     minutes_before: number;
   }> = [];
 
-  const notifInserts: Array<{
-    user_id: string;
-    title: string;
-    message: string;
-    type: string;
-    action_url: string;
-    is_read: boolean;
-  }> = [];
+  // Per-recipient notification spec — handed off to pushNotification
+  // (which inserts the row, publishes Ably realtime, fires web push).
+  const notifSpecs: Array<{ userId: string; title: string; message: string }> = [];
 
   for (const task of activeTasks) {
     const minsLeft = (new Date(task.deadline as string).getTime() - now.getTime()) / 60000;
@@ -143,16 +139,13 @@ async function runDeadlineNudge() {
           minutes_before: Math.round(minsLeft),
         });
 
-        notifInserts.push({
-          user_id: userId,
+        notifSpecs.push({
+          userId,
           title: window.getTitle(taskTitle),
           message:
             window.key === "24h_nudge"
               ? window.getMessage(taskTitle, hoursLeft)
               : window.getMessage(taskTitle),
-          type: "task",
-          action_url: "/compliance",
-          is_read: false,
         });
 
         nudgesSent++;
@@ -161,10 +154,23 @@ async function runDeadlineNudge() {
   }
 
   if (reminderInserts.length > 0) {
-    await Promise.all([
-      sb.from("compliance_task_reminders").insert(reminderInserts),
-      sb.from("notifications").insert(notifInserts),
-    ]);
+    // 1) Track reminders sent (idempotency).
+    await sb.from("compliance_task_reminders").insert(reminderInserts);
+    // 2) Fan out notifications via the proper pipeline (DB row + Ably
+    //    realtime + web push). Was a raw notifications.insert(...) which
+    //    silently dropped realtime + phone-bar push. Now each nudge
+    //    actually reaches the student.
+    await Promise.allSettled(
+      notifSpecs.map((spec) =>
+        pushNotification({
+          userId: spec.userId,
+          title: spec.title,
+          message: spec.message,
+          type: "task",
+          actionUrl: "/compliance",
+        }),
+      ),
+    );
   }
 
   return { nudgesSent };

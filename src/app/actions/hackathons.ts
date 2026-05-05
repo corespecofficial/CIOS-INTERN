@@ -2,6 +2,7 @@
 
 import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { bulkPushNotifications } from "@/app/actions/notifications";
 import type { Hackathon, HackathonTeam, HackathonSubmission, HackathonMember } from "./hackathon-types";
 
 export type { Hackathon, HackathonTeam, HackathonSubmission, HackathonMember } from "./hackathon-types";
@@ -244,6 +245,35 @@ export async function adminUpdateHackathonStatus(hackathonId: string, status: st
     if (!me || !["admin","super_admin"].includes(me.role)) return { ok: false, error: "Admins only" };
     const sb = supabaseAdmin();
     await sb.from("hackathons").update({ status, updated_at: new Date().toISOString() }).eq("id", hackathonId);
+
+    // When a hackathon goes "live" (registrations open), broadcast to
+    // every active intern / team_lead / mentor / alumni so they get a
+    // realtime ping + web-push instead of having to stumble onto it.
+    // Other status flips are silent — admins can post an announcement
+    // if a status mid-flight needs attention.
+    if (status === "live" || status === "registration_open") {
+      const { data: hRow } = await sb.from("hackathons").select("title, slug").eq("id", hackathonId).maybeSingle();
+      const h = hRow as { title?: string; slug?: string } | null;
+      const url = h?.slug ? `/hackathons/${h.slug}` : `/hackathons`;
+      const { data: audience } = await sb
+        .from("users")
+        .select("id, clerk_id")
+        .in("role", ["intern", "team_lead", "mentor", "alumni"])
+        .limit(5000);
+      const recipients = ((audience || []) as { id: string; clerk_id: string | null }[])
+        .filter((u) => u.id !== me.id)
+        .map((u) => ({ userId: u.id, userClerkId: u.clerk_id }));
+      if (recipients.length > 0) {
+        await bulkPushNotifications({
+          recipients,
+          title: `🏆 ${h?.title || "A new hackathon"} is live`,
+          message: "Registrations are now open. Build, compete, win.",
+          type: "info",
+          actionUrl: url,
+        });
+      }
+    }
+
     revalidatePath("/hackathons");
     revalidatePath("/admin/hackathons");
     return { ok: true };

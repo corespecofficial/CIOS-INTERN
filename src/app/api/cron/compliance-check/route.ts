@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/db";
+import { pushNotification, type NotificationType } from "@/app/actions/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,17 +17,25 @@ type NotifPayload = {
   action_url: string | null;
 };
 
-async function pushNotifs(sb: ReturnType<typeof supabaseAdmin>, notifs: NotifPayload[]) {
+/**
+ * Fan out compliance notifications via the canonical pushNotification
+ * helper. Was previously a raw notifications.insert(...) which silently
+ * skipped Ably realtime + web push, leaving compliance nudges as
+ * "they'll see it next time they open the app" instead of an actual
+ * push to their phone.
+ */
+async function pushNotifs(_sb: ReturnType<typeof supabaseAdmin>, notifs: NotifPayload[]) {
   if (!notifs.length) return;
-  await sb.from("notifications").insert(
-    notifs.map((n) => ({
-      user_id: n.user_id,
-      title: n.title.slice(0, 200),
-      message: n.message.slice(0, 500),
-      type: n.type,
-      action_url: n.action_url,
-      is_read: false,
-    }))
+  await Promise.allSettled(
+    notifs.map((n) =>
+      pushNotification({
+        userId: n.user_id,
+        title: n.title.slice(0, 200),
+        message: n.message.slice(0, 500),
+        type: (n.type as NotificationType) || "warning",
+        actionUrl: n.action_url,
+      }),
+    ),
   );
 }
 

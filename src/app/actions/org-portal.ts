@@ -15,6 +15,7 @@ import { revalidatePath } from "next/cache";
 import { cacheDel, orgCacheKey, orgKey } from "@/lib/cache";
 import type { OrgMemberRole, CreativeOrg } from "@/lib/active-org";
 import { logOrgAudit } from "@/lib/org-audit";
+import { bulkPushNotifications } from "@/app/actions/notifications";
 import * as Ably from "ably";
 
 let ablyRest: Ably.Rest | null = null;
@@ -392,46 +393,47 @@ export async function postAnnouncement(orgId: string, title: string, body: strin
   // a single insert with 5000+ rows hits Supabase's payload limits and
   // also blocks for the full insert duration. 500-row chunks process
   // sequentially in milliseconds each and never block other writes.
+  // Fan-out via bulkPushNotifications so every recipient gets:
+  //   1. notifications row (in-app bell)
+  //   2. Ably realtime publish (live toast / sound on the open tab)
+  //   3. web-push payload (phone notification bar even if app is closed)
+  // Previously we did a raw INSERT which silently dropped 2 and 3.
+  // Filter out the author — they don't need a notification about
+  // their own post — and split routing by role.
   const { data: members } = await sb
     .from("org_members")
-    .select("user_id, role")
+    .select("user_id, role, users:user_id(clerk_id)")
     .eq("org_id", orgId)
     .eq("status", "active");
-  // Filter out the author — they don't need a notification about their
-  // own post — and split routing by role: students/instructors land on
-  // /s/<slug>/announcements (their portal); host roles open
-  // /o/<slug>/announcements where they can edit/pin.
-  const recipients = ((members || []) as { user_id: string; role: string }[])
-    .filter((m) => m.user_id !== a.data.me.id);
+  type MemberRow = { user_id: string; role: string; users: { clerk_id: string | null } | null };
+  const HOST_LINK = `/o/${a.data.org.slug}/announcements`;
+  const STUDENT_LINK = `/s/${a.data.org.slug}/announcements`;
+  const hostRoles = new Set(["owner", "org_admin", "instructor"]);
+  const recipients = ((members || []) as unknown as MemberRow[])
+    .filter((m) => m.user_id !== a.data.me.id)
+    .map((m) => ({ userId: m.user_id, userClerkId: m.users?.clerk_id ?? null, _role: m.role }));
+
+  let fanout = 0;
   if (recipients.length > 0) {
-    const CHUNK = 500;
-    const HOST_LINK = `/o/${a.data.org.slug}/announcements`;
-    const STUDENT_LINK = `/s/${a.data.org.slug}/announcements`;
-    const hostRoles = new Set(["owner", "org_admin", "instructor"]);
-    const rows = recipients.map((m) => ({
-      user_id: m.user_id,
-      org_id: orgId,
+    const result = await bulkPushNotifications({
+      recipients,
       title: `📣 ${title.trim()}`,
       message: body.trim().slice(0, 240),
       type: "info",
-      action_url: hostRoles.has(m.role) ? HOST_LINK : STUDENT_LINK,
-      is_read: false,
-    }));
-    for (let i = 0; i < rows.length; i += CHUNK) {
-      const slice = rows.slice(i, i + CHUNK);
-      const { error: insErr } = await sb.from("notifications").insert(slice);
-      if (insErr) {
-        console.warn(`[postAnnouncement] notification chunk ${i}-${i + slice.length} failed:`, insErr.message);
-        // Don't abort — partial fan-out is better than no fan-out.
-      }
-    }
+      orgId,
+      actionUrl: (r) => {
+        const role = (r as typeof r & { _role: string })._role;
+        return hostRoles.has(role) ? HOST_LINK : STUDENT_LINK;
+      },
+    });
+    fanout = result.inserted;
   }
 
   await bustOrgCache(orgId, a.data.org.slug);
   await logOrgAudit({
     orgId, actorId: a.data.me.id, action: "announcement.posted",
     target: `announcement:${(data as { id: string }).id}`,
-    meta: { title: title.trim(), pinned, fanout_count: recipients.length },
+    meta: { title: title.trim(), pinned, fanout_count: fanout },
   });
   revalidatePath(`/o/${a.data.org.slug}/announcements`);
   revalidatePath(`/s/${a.data.org.slug}/announcements`);
