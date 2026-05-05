@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { submitWeb3Form } from "@/lib/web3forms";
 
 const TRACKS = [
   "AI & Automation", "Development & Engineering", "Design & Creative",
@@ -20,13 +21,26 @@ const inputStyle: React.CSSProperties = {
 
 export function DemoForm() {
   const [form, setForm] = useState({ name: "", email: "", role: "", track: "", message: "" });
-  const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
+  const [botcheck, setBotcheck] = useState("");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus("sending");
-    await new Promise(r => setTimeout(r, 1200));
-    setStatus("sent");
+    setErrorMsg(null);
+    const r = await submitWeb3Form({
+      name: form.name.trim(),
+      email: form.email.trim(),
+      role: form.role || undefined,
+      track: form.track || undefined,
+      message: form.message.trim() || undefined,
+      botcheck,
+      subject: `🎬 Demo request — ${form.name.trim() || "anonymous"}`,
+      from_name: "CIOS Demo Form",
+    });
+    if (r.ok) setStatus("sent");
+    else { setStatus("error"); setErrorMsg(r.error); }
   }
 
   if (status === "sent") {
@@ -57,6 +71,16 @@ export function DemoForm() {
       </p>
 
       <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          name="botcheck"
+          value={botcheck}
+          onChange={(e) => setBotcheck(e.target.value)}
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }}
+        />
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
@@ -106,6 +130,12 @@ export function DemoForm() {
           }}>
             {status === "sending" ? "Sending…" : "Request Demo Call →"}
           </button>
+
+          {status === "error" && errorMsg && (
+            <div style={{ fontSize: 12, color: "#EF5350", textAlign: "center" }}>
+              Couldn&apos;t send: {errorMsg}. Please try again.
+            </div>
+          )}
 
           <p style={{ fontSize: 11, color: "#5A6478", textAlign: "center", margin: 0 }}>
             Usually responds within 24 hours · Free, no commitment

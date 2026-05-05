@@ -84,6 +84,18 @@ export default async function OrgDashboard({ params }: Props) {
   const ctx = await getActiveOrg(orgSlug);
   if (!ctx) notFound();
 
+  // Marketplace status of the underlying creative_space — drives the
+  // status pill below the org name. The org itself is always "live for
+  // the host" (provisioned on apply); this column only controls public
+  // marketplace visibility.
+  const sb = supabaseAdmin();
+  const { data: spaceRow } = await sb
+    .from("creative_spaces")
+    .select("status, review_notes")
+    .eq("org_id", ctx.org.id)
+    .maybeSingle();
+  const spaceStatus = (spaceRow as { status?: string; review_notes?: string | null } | null) || null;
+
   const [counts, activity] = await Promise.all([
     getCounts(ctx.org.id),
     getRecentActivity(ctx.org.id, 15),
@@ -101,9 +113,20 @@ export default async function OrgDashboard({ params }: Props) {
       <h1 style={{ fontSize: 26, fontWeight: 800, margin: "0 0 4px 0" }}>
         {ctx.org.name}
       </h1>
-      <p style={{ color: "#8892A4", fontSize: 13, margin: "0 0 28px 0" }}>
+      <p style={{ color: "#8892A4", fontSize: 13, margin: "0 0 14px 0" }}>
         Welcome back. This is your private host portal — nothing here is visible to other orgs.
       </p>
+
+      {/* Status pill — clarifies the difference between "your portal
+          is live for you" (always true, post-provisioning) and
+          "your space is in the public marketplace" (gated on
+          super-admin approval of creative_spaces.status). Was a
+          frequent point of host confusion before this. */}
+      {spaceStatus && (
+        <StatusPill status={spaceStatus.status} notes={spaceStatus.review_notes ?? null} />
+      )}
+
+      <div style={{ height: 14 }} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
         {cards.map((c) => (
@@ -145,6 +168,80 @@ export default async function OrgDashboard({ params }: Props) {
           <li>Invite co-instructors from <strong style={{ color: "#E8EDF5" }}>Members</strong></li>
           <li>Pin an announcement so new students see it first</li>
         </ul>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Marketplace-listing status pill. Distinct from "is this org real?"
+ * (always true for a host loading this page) — this is purely about
+ * whether the public /creative-space listing shows the space.
+ */
+function StatusPill({ status, notes }: { status: string | undefined; notes: string | null }) {
+  const cfg = (() => {
+    switch (status) {
+      case "approved":
+        return {
+          dot: "#26A69A",
+          tint: "rgba(38,166,154,0.10)",
+          border: "rgba(38,166,154,0.32)",
+          label: "Approved · listed publicly",
+          body: "Your space is live in the public marketplace. New enrolments will appear in your activity feed.",
+        };
+      case "rejected":
+        return {
+          dot: "#EF5350",
+          tint: "rgba(239,83,80,0.10)",
+          border: "rgba(239,83,80,0.32)",
+          label: "Not approved · revise & resubmit",
+          body: notes
+            ? `Reviewer notes: ${notes}`
+            : "Your application wasn't approved this round. Check notifications for the reviewer's feedback, then update your space and resubmit.",
+        };
+      case "pending":
+      default:
+        return {
+          dot: "#FFA726",
+          tint: "rgba(255,167,38,0.10)",
+          border: "rgba(255,167,38,0.32)",
+          label: "Pending review · portal is live for you",
+          body: "Your portal is fully usable now — build lessons, channels, and announcements. Public marketplace listing unlocks once super-admin approves (typically under 48h).",
+        };
+    }
+  })();
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10,
+        padding: "10px 14px",
+        borderRadius: 10,
+        background: cfg.tint,
+        border: `1px solid ${cfg.border}`,
+        marginBottom: 4,
+      }}
+    >
+      <span
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          background: cfg.dot,
+          flexShrink: 0,
+          marginTop: 6,
+          boxShadow: `0 0 0 4px ${cfg.tint}`,
+        }}
+      />
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: cfg.dot, letterSpacing: 0.4, textTransform: "uppercase" }}>
+          {cfg.label}
+        </div>
+        <div style={{ fontSize: 12, color: "#B0BEC5", lineHeight: 1.6, marginTop: 2 }}>
+          {cfg.body}
+        </div>
       </div>
     </div>
   );
