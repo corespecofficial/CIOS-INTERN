@@ -1,9 +1,11 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import toast from "react-hot-toast";
+import { updateMemberRole } from "@/app/actions/org-portal";
 import type { AdminUserRow, ScopedOrg } from "./page";
 
 const ROLE_META: Record<string, { label: string; color: string }> = {
@@ -51,6 +53,35 @@ export default function AdminUsersClient({ users, myOrgs }: { users: AdminUserRo
   const [filterRole, setFilterRole] = useState("all");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "suspended">("all");
   const [filterOrg, setFilterOrg] = useState<string>("all");
+  // Track avatars whose URL failed to load so we swap to the initial-
+  // letter fallback. Without this, the row shows a tiny broken-image
+  // icon (visible in the screenshot for HG network / idowu / Splash TV).
+  const [brokenImg, setBrokenImg] = useState<Set<string>>(() => new Set());
+  const markBroken = (id: string) => setBrokenImg((prev) => {
+    if (prev.has(id)) return prev;
+    const next = new Set(prev); next.add(id); return next;
+  });
+  const [pendingRoles, startTransition] = useTransition();
+  const handleOrgRoleChange = (orgId: string, memberId: string, newRole: string) => {
+    if (newRole === "owner") {
+      toast.error("Use the transfer-ownership flow to change owners.");
+      return;
+    }
+    if (!["org_admin", "instructor", "student"].includes(newRole)) {
+      toast.error("Invalid role.");
+      return;
+    }
+    const t = toast.loading("Updating role...");
+    startTransition(async () => {
+      const res = await updateMemberRole(orgId, memberId, newRole as "org_admin" | "instructor" | "student");
+      if (res.ok) {
+        toast.success("Role updated", { id: t });
+        router.refresh();
+      } else {
+        toast.error(res.error, { id: t });
+      }
+    });
+  };
 
   // myOrgs === null means the requester is super_admin viewing platform-wide.
   // myOrgs.length > 0 means an org owner/admin viewing only their orgs.
@@ -187,8 +218,8 @@ export default function AdminUsersClient({ users, myOrgs }: { users: AdminUserRo
                     >
                       <td style={{ padding: "12px 16px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          {u.avatar_url
-                            ? <img src={u.avatar_url} alt="" width={32} height={32} style={{ width: 32, height: 32, minWidth: 32, minHeight: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0, aspectRatio: "1 / 1" }} />
+                          {u.avatar_url && !brokenImg.has(u.id)
+                            ? <img src={u.avatar_url} alt="" width={32} height={32} onError={() => markBroken(u.id)} style={{ width: 32, height: 32, minWidth: 32, minHeight: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0, aspectRatio: "1 / 1" }} />
                             : <div style={{ width: 32, height: 32, minWidth: 32, minHeight: 32, borderRadius: "50%", flexShrink: 0, aspectRatio: "1 / 1", background: `${rm.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: rm.color }}>{(u.name || u.email || "?")[0].toUpperCase()}</div>
                           }
                           <div style={{ minWidth: 0 }}>
@@ -206,33 +237,57 @@ export default function AdminUsersClient({ users, myOrgs }: { users: AdminUserRo
                             {(u.orgs || []).length === 0 ? (
                               <span style={{ fontSize: 11, color: "#5A6478", fontStyle: "italic" }}>—</span>
                             ) : (
-                              (u.orgs || []).slice(0, 3).map((o) => (
-                                <Link
-                                  key={o.org_id}
-                                  href={`/o/${o.org_slug}/members`}
-                                  onClick={(e) => e.stopPropagation()}
-                                  style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: 6,
-                                    fontSize: 11,
-                                    color: "#26A69A",
-                                    background: "rgba(38,166,154,0.10)",
-                                    border: "1px solid rgba(38,166,154,0.25)",
-                                    padding: "2px 8px",
-                                    borderRadius: 999,
-                                    textDecoration: "none",
-                                    whiteSpace: "nowrap",
-                                    maxWidth: 240,
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                  }}
-                                  title={`Manage ${o.role} role in ${o.org_name}`}
-                                >
-                                  <strong style={{ color: "#E8EDF5" }}>{o.org_name}</strong>
-                                  <span style={{ opacity: 0.7 }}>· {o.role}</span>
-                                </Link>
-                              ))
+                              (u.orgs || []).slice(0, 3).map((o) => {
+                                const isOwner = o.role === "owner";
+                                return (
+                                  <div
+                                    key={o.org_id}
+                                    style={{
+                                      display: "inline-flex",
+                                      alignItems: "center",
+                                      gap: 6,
+                                      fontSize: 11,
+                                      background: "rgba(38,166,154,0.10)",
+                                      border: "1px solid rgba(38,166,154,0.25)",
+                                      padding: "2px 6px 2px 8px",
+                                      borderRadius: 999,
+                                      maxWidth: 280,
+                                    }}
+                                    title={`Org: ${o.org_name}`}
+                                  >
+                                    <Link href={`/o/${o.org_slug}/members`} style={{ color: "#E8EDF5", fontWeight: 700, textDecoration: "none", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 130 }}>
+                                      {o.org_name}
+                                    </Link>
+                                    <span style={{ opacity: 0.5, color: "#26A69A" }}>·</span>
+                                    {isOwner ? (
+                                      <span style={{ fontSize: 10, color: "#FFC107", fontWeight: 700, padding: "1px 6px", background: "rgba(255,193,7,0.12)", borderRadius: 999, whiteSpace: "nowrap" }}>owner</span>
+                                    ) : (
+                                      <select
+                                        value={o.role}
+                                        disabled={pendingRoles}
+                                        onChange={(e) => handleOrgRoleChange(o.org_id, o.member_id, e.target.value)}
+                                        title="Change role in this org"
+                                        style={{
+                                          background: "transparent",
+                                          border: "1px solid rgba(38,166,154,0.30)",
+                                          color: "#26A69A",
+                                          fontSize: 10,
+                                          fontWeight: 700,
+                                          padding: "1px 4px",
+                                          borderRadius: 6,
+                                          cursor: pendingRoles ? "wait" : "pointer",
+                                          outline: "none",
+                                          fontFamily: "inherit",
+                                        }}
+                                      >
+                                        <option value="org_admin">org_admin</option>
+                                        <option value="instructor">instructor</option>
+                                        <option value="student">student</option>
+                                      </select>
+                                    )}
+                                  </div>
+                                );
+                              })
                             )}
                             {(u.orgs || []).length > 3 && (
                               <span style={{ fontSize: 10, color: "#5A6478" }}>+ {((u.orgs || []).length - 3)} more</span>
@@ -291,9 +346,9 @@ export default function AdminUsersClient({ users, myOrgs }: { users: AdminUserRo
             >
               {/* Avatar + name + role */}
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                {u.avatar_url
-                  ? <img src={u.avatar_url} alt="" width={36} height={36} style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                  : <div style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0, background: `${rm.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: rm.color }}>{(u.name || u.email || "?")[0].toUpperCase()}</div>
+                {u.avatar_url && !brokenImg.has(u.id)
+                  ? <img src={u.avatar_url} alt="" width={36} height={36} onError={() => markBroken(u.id)} style={{ width: 36, height: 36, minWidth: 36, minHeight: 36, borderRadius: "50%", objectFit: "cover", flexShrink: 0, aspectRatio: "1 / 1" }} />
+                  : <div style={{ width: 36, height: 36, minWidth: 36, minHeight: 36, borderRadius: "50%", flexShrink: 0, aspectRatio: "1 / 1", background: `${rm.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 700, color: rm.color }}>{(u.name || u.email || "?")[0].toUpperCase()}</div>
                 }
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, color: "#E8EDF5", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name || "Unnamed"}</div>
