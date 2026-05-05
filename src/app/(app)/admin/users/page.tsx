@@ -87,9 +87,13 @@ export default async function AdminUsersPage() {
     }
     users = ((data || []) as AdminUserRow[]).map((u) => ({ ...u, level: levelFromXP(u.xp ?? 0) }));
   } else {
-    // Scoped to the requester's orgs. Two-step pull:
-    //   1) every (user_id, org_id, role) in those orgs, active only;
-    //   2) the users rows for that distinct user_id set.
+    // STRICT scoping: only users with an active org_members row in
+    // one of the requester's owned/admined orgs are eligible. A user
+    // who happens to be a super_admin / admin / platform intern at
+    // the platform level but isn't a member of any of these orgs is
+    // intentionally NOT visible. This is the contract: /admin/users
+    // for non-super_admin requesters never leaks any platform user
+    // outside the requester's org boundary.
     const orgIds = myOrgs.map((o) => o.id);
     const { data: memberRows } = await sb
       .from("org_members")
@@ -104,6 +108,9 @@ export default async function AdminUsersPage() {
     if (uniqueUserIds.length === 0) {
       users = [];
     } else {
+      // Fetch users by id list. The .in("id", uniqueUserIds) is the
+      // hard wall — there's no path here that returns a user not in
+      // that list, so cross-org leakage is impossible.
       const { data: userRows, error: uErr } = await sb
         .from("users")
         .select("id, name, email, role, avatar_url, xp, level, streak, performance, created_at, last_seen, status, cohort_number")
@@ -122,8 +129,14 @@ export default async function AdminUsersPage() {
         arr.push({ org_id: r.org_id, org_name: o.name, org_slug: o.slug, role: r.role });
         orgsByUser.set(r.user_id, arr);
       }
+      // Mask platform-level role for scoped viewers so we don't leak
+      // "this user is super_admin elsewhere on the platform" — they
+      // see the user as a member of THEIR org, nothing more. The
+      // user's role in *this* context is conveyed by the org-membership
+      // chips in the table (org_admin / instructor / student).
       users = ((userRows || []) as AdminUserRow[]).map((u) => ({
         ...u,
+        role: "member",
         level: levelFromXP(u.xp ?? 0),
         orgs: orgsByUser.get(u.id) || [],
       }));

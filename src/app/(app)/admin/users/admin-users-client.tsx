@@ -18,6 +18,10 @@ const ROLE_META: Record<string, { label: string; color: string }> = {
   recruiter:   { label: "Recruiter",   color: "#9C27B0" },
   mentor:      { label: "Mentor",      color: "#00BCD4" },
   alumni:      { label: "Alumni",      color: "#8D6E63" },
+  // "member" is the scoped-view fallback — see admin/users/page.tsx
+  // where non-super_admin viewers get the platform role masked so we
+  // never leak "this person is super_admin elsewhere."
+  member:      { label: "Member",      color: "#26A69A" },
 };
 
 function getRoleMeta(role: string) {
@@ -184,8 +188,8 @@ export default function AdminUsersClient({ users, myOrgs }: { users: AdminUserRo
                       <td style={{ padding: "12px 16px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           {u.avatar_url
-                            ? <img src={u.avatar_url} alt="" width={32} height={32} style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                            : <div style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0, background: `${rm.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: rm.color }}>{(u.name || u.email || "?")[0].toUpperCase()}</div>
+                            ? <img src={u.avatar_url} alt="" width={32} height={32} style={{ width: 32, height: 32, minWidth: 32, minHeight: 32, borderRadius: "50%", objectFit: "cover", flexShrink: 0, aspectRatio: "1 / 1" }} />
+                            : <div style={{ width: 32, height: 32, minWidth: 32, minHeight: 32, borderRadius: "50%", flexShrink: 0, aspectRatio: "1 / 1", background: `${rm.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700, color: rm.color }}>{(u.name || u.email || "?")[0].toUpperCase()}</div>
                           }
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontWeight: 700, color: "#E8EDF5", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>{u.name || "Unnamed"}</div>
