@@ -113,10 +113,26 @@ export default async function AnalyticsPage({ params }: { params: Promise<{ orgS
 
   return (
     <div style={{ maxWidth: 1100 }}>
-      <h1 style={{ fontSize: 24, fontWeight: 800, margin: "0 0 4px 0" }}>📈 Analytics</h1>
-      <p style={{ color: "#8892A4", fontSize: 13, margin: "0 0 24px 0" }}>
-        Last {WINDOW_DAYS} days of activity for <strong style={{ color: "#E8EDF5" }}>{ctx.org.name}</strong>.
-      </p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap", marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 800, margin: "0 0 4px 0" }}>📈 Analytics</h1>
+          <p style={{ color: "#8892A4", fontSize: 13, margin: 0 }}>
+            Last {WINDOW_DAYS} days of activity for <strong style={{ color: "#E8EDF5" }}>{ctx.org.name}</strong>.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+          <a
+            href={`/api/orgs/${ctx.org.id}/analytics.csv?kind=assignments`}
+            style={csvBtn}
+            title="Download per-assignment CSV"
+          >⬇ Assignments.csv</a>
+          <a
+            href={`/api/orgs/${ctx.org.id}/analytics.csv?kind=students`}
+            style={csvBtn}
+            title="Download per-student CSV"
+          >⬇ Students.csv</a>
+        </div>
+      </div>
 
       {/* Top-level stat cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14, marginBottom: 24 }}>
@@ -223,3 +239,18 @@ function Td({ children, align = "left", muted = false }: { children: React.React
 function Empty({ text }: { text: string }) {
   return <div style={{ padding: 20, color: "#5A6478", fontSize: 13, textAlign: "center" }}>{text}</div>;
 }
+
+const csvBtn: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 4,
+  padding: "8px 12px",
+  background: "rgba(38,166,154,0.10)",
+  color: "#26A69A",
+  border: "1px solid rgba(38,166,154,0.30)",
+  borderRadius: 8,
+  fontSize: 12,
+  fontWeight: 700,
+  textDecoration: "none",
+  whiteSpace: "nowrap",
+};
