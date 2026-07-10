@@ -62,7 +62,7 @@ export function CreatorProfileClient({
         className="cp-cover"
       />
 
-      <div style={{ maxWidth: 1080, margin: "-90px auto 0", padding: "0 20px 60px", position: "relative", zIndex: 1 }}>
+      <div style={{ maxWidth: 1080, margin: "28px auto 0", padding: "0 20px 60px", position: "relative", zIndex: 1 }}>
         <Link
           href="/marketplace"
           style={{

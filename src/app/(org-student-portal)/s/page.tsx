@@ -29,7 +29,7 @@ export default async function StudentPortalIndex() {
     <div style={{ maxWidth: 720, margin: "60px auto", padding: 24 }}>
       <h1 style={{ fontSize: 24, fontWeight: 800, margin: "0 0 6px 0" }}>Your spaces</h1>
       <p style={{ color: "#8892A4", fontSize: 13, margin: "0 0 24px 0" }}>
-        Pick a space to enter. {memberships.length === 0 && "You haven't enrolled in any creative spaces yet."}
+        Pick an organization portal to enter. {memberships.length === 0 && "You have not joined any organization spaces yet."}
       </p>
 
       {memberships.length === 0 ? (

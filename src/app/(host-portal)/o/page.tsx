@@ -22,7 +22,7 @@ export default async function HostPortalIndex() {
     .select("creative_orgs!inner(slug, name, status)")
     .eq("user_id", me.id)
     .eq("status", "active")
-    .in("role", ["owner", "org_admin", "instructor"])
+    .in("role", ["owner", "org_admin", "instructor", "moderator", "finance", "support"])
     .order("joined_at", { ascending: false })
     .limit(1);
 
@@ -34,15 +34,15 @@ export default async function HostPortalIndex() {
     <div style={{ maxWidth: 560, margin: "60px auto", padding: 24 }}>
       <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 16, padding: 40, textAlign: "center" }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>🏫</div>
-        <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 8px 0" }}>No active host orgs yet</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 8px 0" }}>No active organization spaces yet</h1>
         <p style={{ fontSize: 14, color: "#8892A4", lineHeight: 1.6, margin: "0 0 20px 0" }}>
-          Once a Creative Space you applied for is approved, your host portal will land here.
+          Create an organization space to manage interns, staff, lessons, chat, files, and operations in one private portal.
         </p>
         <Link
           href="/creative-space/apply"
           style={{ display: "inline-block", padding: "10px 22px", background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff", borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: "none" }}
         >
-          Apply to host a Creative Space →
+          Create an organization space &rarr;
         </Link>
       </div>
     </div>

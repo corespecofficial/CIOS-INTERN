@@ -77,7 +77,7 @@ export function InstructorProfileClient({
             fontSize: 12, fontWeight: 700, textDecoration: "none", marginBottom: 16,
           }}
         >
-          ← Creative Spaces
+          ← Org Spaces
         </Link>
 
         <div

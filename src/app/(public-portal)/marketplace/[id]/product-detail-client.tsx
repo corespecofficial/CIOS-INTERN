@@ -58,7 +58,7 @@ export function ProductDetailClient({ product: p, credBadge, credTier, provenanc
         className="pd-hero"
       />
 
-      <div style={{ maxWidth: 1080, margin: "-100px auto 0", padding: "0 20px 60px", position: "relative", zIndex: 1 }}>
+      <div style={{ maxWidth: 1080, margin: "28px auto 0", padding: "0 20px 60px", position: "relative", zIndex: 1 }}>
         <Link
           href="/marketplace"
           style={{

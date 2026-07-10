@@ -50,14 +50,14 @@ function generateToken(orgSlug: string): string {
 export interface PublicEnrollmentCode {
   id: string;
   token: string;
-  role: "student" | "instructor" | "org_admin";
+  role: "student" | "instructor" | "org_admin" | "moderator" | "finance" | "support" | "mentor";
   expires_at: string;
   created_at: string;
   notes: string | null;
 }
 
 export async function createPublicEnrollmentCode(orgId: string, opts: {
-  role?: "student" | "instructor" | "org_admin";
+  role?: PublicEnrollmentCode["role"];
   expiresInDays?: number;
   notes?: string;
 }): Promise<R<{ token: string }>> {

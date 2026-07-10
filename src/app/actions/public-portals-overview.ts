@@ -114,7 +114,7 @@ export async function getPublicPortalsOverview(): Promise<R<PublicPortalsOvervie
   };
 }
 
-// ── Creative Spaces tile (Phase 2) ───────────────────────────────────────
+// -- Organization Spaces tile (Creative Spaces v2) -------------------------
 // Pulled out because the revenue math needs a second query (enrollments
 // joined by time) and the inline block was getting unreadable.
 
@@ -135,13 +135,13 @@ async function buildCreativeSpacesTile(
 
   return {
     id: "creative-space",
-    label: "Creative Spaces",
+    label: "Org Spaces",
     href: "/creative-space",
     publicUsers: activeCount.count ?? 0,
     signedUpThisWeek: null,
     activeThisWeek: enrolsWeek.count ?? 0,
     revenueThisMonth: Math.round(revenue),
-    metricLabels: { primary: "Spaces", active: "Enrols/wk", signup: "—", revenue: "Rev /mo \u20a6" },
+    metricLabels: { primary: "Orgs", active: "Joins/wk", signup: "—", revenue: "Rev /mo \u20a6" },
     notes: "LIVE",
   };
 }

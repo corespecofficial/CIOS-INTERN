@@ -6,6 +6,7 @@ import { supabaseAdmin } from "@/lib/db";
 import { listPendingEmailInvites } from "@/app/actions/org-invites";
 import { InvitePanel } from "./invite-panel";
 import { TransferOwnerButton } from "./transfer-owner-button";
+import { MemberActions } from "./member-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,11 @@ const ROLE_LABELS: Record<string, string> = {
   owner: "Owner",
   org_admin: "Org admins",
   instructor: "Instructors",
-  student: "Students",
+  student: "Interns",
+  moderator: "Moderators",
+  finance: "Finance",
+  support: "Support",
+  mentor: "Mentors",
 };
 
 const ROLE_TINTS: Record<string, string> = {
@@ -36,7 +41,13 @@ const ROLE_TINTS: Record<string, string> = {
   org_admin: "#A855F7",
   instructor: "#26C6DA",
   student: "#1E88E5",
+  moderator: "#26C6DA",
+  finance: "#FFC107",
+  support: "#5C6BC0",
+  mentor: "#66BB6A",
 };
+
+const FILTER_ROLES = ["owner", "org_admin", "instructor", "student", "moderator", "finance", "support", "mentor"] as const;
 
 export default async function MembersPage({ params, searchParams }: Props) {
   const { orgSlug } = await params;
@@ -47,6 +58,7 @@ export default async function MembersPage({ params, searchParams }: Props) {
   // Owners + org-admins (and super-admin) get the invite panel. Pull
   // pending invites in parallel with the members fetch below.
   const canInvite = ctx.isSuperAdmin || ctx.memberRole === "owner" || ctx.memberRole === "org_admin";
+  const canManageMembers = canInvite;
   // Only the actual current owner gets the "Make owner" button —
   // super_admin doesn't get the shortcut (see action's authz note).
   const viewerIsOwner = ctx.memberRole === "owner";
@@ -66,7 +78,7 @@ export default async function MembersPage({ params, searchParams }: Props) {
     .select("role")
     .eq("org_id", ctx.org.id)
     .eq("status", "active");
-  const roleCounts: Record<string, number> = { owner: 0, org_admin: 0, instructor: 0, student: 0 };
+  const roleCounts: Record<string, number> = Object.fromEntries(FILTER_ROLES.map((role) => [role, 0]));
   for (const r of (roleCountsRaw || []) as { role: string }[]) {
     roleCounts[r.role] = (roleCounts[r.role] || 0) + 1;
   }
@@ -119,7 +131,7 @@ export default async function MembersPage({ params, searchParams }: Props) {
         >
           All ({totalActive})
         </Link>
-        {(["owner", "org_admin", "instructor", "student"] as const).map((r) => (
+        {FILTER_ROLES.map((r) => (
           <Link
             key={r}
             href={`/o/${orgSlug}/members?role=${r}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
@@ -182,7 +194,7 @@ export default async function MembersPage({ params, searchParams }: Props) {
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span style={{ fontSize: 13, fontWeight: 600 }}>{m.user?.name ?? "Unknown"}</span>
                   <span style={{ fontSize: 9, padding: "2px 8px", borderRadius: 999, background: `${ROLE_TINTS[m.role] || "#5A6478"}22`, color: ROLE_TINTS[m.role] || "#5A6478", textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
-                    {m.role}
+                    {ROLE_LABELS[m.role] ?? m.role.replace("_", " ")}
                   </span>
                 </div>
                 <div style={{ fontSize: 11, color: "#5A6478" }}>{m.user?.email}</div>
@@ -203,6 +215,14 @@ export default async function MembersPage({ params, searchParams }: Props) {
                   targetName={m.user.name ?? "this member"}
                 />
               )}
+              <MemberActions
+                orgId={ctx.org.id}
+                orgSlug={orgSlug}
+                memberId={m.id}
+                memberName={m.user?.name ?? "this member"}
+                currentRole={m.role}
+                canManage={canManageMembers}
+              />
             </div>
           ))}
         </div>

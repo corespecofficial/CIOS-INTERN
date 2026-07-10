@@ -16,7 +16,8 @@
 import Link from "next/link";
 
 interface PortalCard {
-  slug: string;            // matches src/app/(marketing)/portals/[slug]/page.tsx
+  slug: string;
+  orgType: string;
   title: string;
   emoji: string;
   blurb: string;
@@ -28,6 +29,7 @@ interface PortalCard {
 const PORTALS: PortalCard[] = [
   {
     slug: "institution-portal",
+    orgType: "institution",
     title: "Institution Portal",
     emoji: "🏛",
     accent: "#26A69A",
@@ -41,6 +43,7 @@ const PORTALS: PortalCard[] = [
   },
   {
     slug: "company-portal",
+    orgType: "company",
     title: "Company Portal",
     emoji: "🏢",
     accent: "#1E88E5",
@@ -54,6 +57,7 @@ const PORTALS: PortalCard[] = [
   },
   {
     slug: "government-portal",
+    orgType: "government",
     title: "Government Portal",
     emoji: "🏦",
     accent: "#9C27B0",
@@ -67,6 +71,7 @@ const PORTALS: PortalCard[] = [
   },
   {
     slug: "partner-programme",
+    orgType: "partner",
     title: "Partner Programme",
     emoji: "🤝",
     accent: "#FFC107",
@@ -109,7 +114,7 @@ export function OrgPortalsSection() {
             Bring your institution, company, or programme on board
           </h2>
           <p style={{ fontSize: 14, color: "#8892A4", margin: 0, maxWidth: 640, marginInline: "auto", lineHeight: 1.6 }}>
-            Four dedicated portals for the organizations that hire, fund, train, and partner with us. Each one is being rolled out in waves — register your interest below to get early access.
+            Dedicated organization spaces for the institutions, companies, governments, and partners that hire, fund, train, and support interns. Start the request flow and CIOS will provision the tenant under super-admin limits.
           </p>
         </div>
 
@@ -123,7 +128,7 @@ export function OrgPortalsSection() {
           {PORTALS.map((p) => (
             <Link
               key={p.slug}
-              href={`/portals/${p.slug}`}
+              href={`/creative-space/apply?type=${encodeURIComponent(p.orgType)}`}
               style={{
                 display: "flex",
                 flexDirection: "column",
@@ -152,7 +157,7 @@ export function OrgPortalsSection() {
                   letterSpacing: 0.6,
                 }}
               >
-                COMING SOON
+                CREATE SPACE
               </div>
               <div style={{ fontSize: 36, marginBottom: 10 }}>{p.emoji}</div>
               <div
@@ -199,14 +204,14 @@ export function OrgPortalsSection() {
                   color: p.accent,
                 }}
               >
-                Learn more <span aria-hidden>→</span>
+                Request org space <span aria-hidden>&rarr;</span>
               </div>
             </Link>
           ))}
         </div>
 
         <p style={{ textAlign: "center", marginTop: 28, fontSize: 12, color: "#5A6478" }}>
-          Already have an account? <Link href="/onboarding/intent" style={{ color: "#26A69A", textDecoration: "none", fontWeight: 700 }}>Switch your role →</Link>
+          Already have an account? <Link href="/creative-space/apply" style={{ color: "#26A69A", textDecoration: "none", fontWeight: 700 }}>Create an organization space &rarr;</Link>
         </p>
       </div>
     </section>

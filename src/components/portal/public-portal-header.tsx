@@ -23,7 +23,7 @@ const CIOS_LOGO_URL =
  */
 const PORTALS: { href: string; label: string; match?: string[]; emoji: string; tint: string }[] = [
   { href: "/marketplace",    label: "Marketplace",     emoji: "🛍️", tint: "#A855F7" },
-  { href: "/creative-space", label: "Creative Spaces", emoji: "🎨", tint: "#06B6D4" },
+  { href: "/creative-space", label: "Org Spaces", emoji: "🎨", tint: "#06B6D4" },
   { href: "/opportunities",  label: "Opportunities",   emoji: "💼", tint: "#FB923C" },
   { href: "/hackathons",     label: "Hackathons",      emoji: "⚡", tint: "#F59E0B" },
   { href: "/investors",      label: "Startups",        emoji: "🚀", tint: "#10B981", match: ["/startups"] },
@@ -41,13 +41,12 @@ export function PublicPortalHeader() {
   const pathname = usePathname() || "";
   const { isSignedIn, isLoaded } = useUser();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
   // Portal target is document.body — only available after mount.
-  useEffect(() => { setMounted(true); }, []);
-
   // Close on route change + lock body scroll while open + ESC to close.
-  useEffect(() => { setDrawerOpen(false); }, [pathname]);
+  useEffect(() => {
+    queueMicrotask(() => setDrawerOpen(false));
+  }, [pathname]);
   useEffect(() => {
     if (!drawerOpen) return;
     const prev = document.body.style.overflow;
@@ -225,7 +224,7 @@ export function PublicPortalHeader() {
       {/* Mobile drawer — portaled to document.body so it escapes the header's
           backdrop-filter containing block (which would otherwise anchor
           position:fixed children to the header, not the viewport). */}
-      {mounted && drawerOpen && createPortal(
+      {drawerOpen && typeof document !== "undefined" && createPortal(
         <MobileDrawer
           pathname={pathname}
           isSignedIn={!!isSignedIn}

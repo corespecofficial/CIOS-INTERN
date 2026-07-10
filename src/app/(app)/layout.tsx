@@ -125,7 +125,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Cmd+K / Ctrl+K command palette */}
       <CommandPalette />
 
-      {/* Once-per-day morning motivational popup */}
+      {/* Once-per-day daily motivational popup */}
       <DailyMotivationPopup />
 
       {/* Fires "page_view" + "session_start" events for behavior analytics */}

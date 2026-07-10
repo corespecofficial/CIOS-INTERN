@@ -12,7 +12,7 @@ import { uploadToCloudinary } from "@/lib/cloudinary-upload";
 interface ClassroomPanels {
   todaysTasks: HomeTask[];
   activity: HomeActivityItem[];
-  continueLearning: { id: string; title: string; progress: number; thumbnailUrl: string | null; category: string }[];
+  continueLearning: { id: string; title: string; progress: number; thumbnailUrl: string | null; category: string; href?: string }[];
   rewards: { xp: number; streak: number; level: number; rank: string; performance: number };
 }
 
@@ -40,11 +40,21 @@ function isLiveWindow(s: ClassSessionRow): boolean {
   return s.status === "live" || (now >= start - 5 * 60000 && now <= end + 15 * 60000);
 }
 
-export function ClassroomClient({ sessions: initial, canInstruct, panels }: { sessions: ClassSessionRow[]; canInstruct: boolean; panels: ClassroomPanels }) {
+export function ClassroomClient({
+  sessions: initial,
+  canInstruct,
+  panels,
+  basePath = "",
+}: {
+  sessions: ClassSessionRow[];
+  canInstruct: boolean;
+  panels: ClassroomPanels;
+  basePath?: string;
+}) {
   const [sessions, setSessions] = useState<ClassSessionRow[]>(initial);
   const [tab, setTab] = useState<"upcoming" | "live" | "past" | "mine">("upcoming");
+  const [now] = useState(() => Date.now());
 
-  const now = Date.now();
   const partitioned = useMemo(() => {
     const upcoming: ClassSessionRow[] = [];
     const live: ClassSessionRow[] = [];
@@ -294,7 +304,7 @@ export function ClassroomClient({ sessions: initial, canInstruct, panels }: { se
               </div>
             ))
           )}
-          <Link href="/tasks" style={miniLink}>View all tasks →</Link>
+          <Link href={basePath ? `${basePath}/tasks` : "/tasks"} style={miniLink}>View all tasks →</Link>
         </div>
 
         {/* Continue learning */}
@@ -304,7 +314,7 @@ export function ClassroomClient({ sessions: initial, canInstruct, panels }: { se
             <p style={emptyText}>No courses in progress.</p>
           ) : (
             panels.continueLearning.map((c) => (
-              <Link key={c.id} href={`/courses/${c.id}`} style={{ display: "block", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", textDecoration: "none", color: "inherit" }}>
+              <Link key={c.id} href={c.href || `/courses/${c.id}`} style={{ display: "block", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", textDecoration: "none", color: "inherit" }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: "#E8EDF5", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.title}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
                   <div style={{ flex: 1, height: 4, background: "rgba(255,255,255,0.05)", borderRadius: 2, overflow: "hidden" }}>
@@ -315,7 +325,7 @@ export function ClassroomClient({ sessions: initial, canInstruct, panels }: { se
               </Link>
             ))
           )}
-          <Link href="/courses" style={miniLink}>Browse catalog →</Link>
+          <Link href={basePath ? `${basePath}/courses` : "/courses"} style={miniLink}>Browse catalog →</Link>
         </div>
 
         {/* Recent activity */}

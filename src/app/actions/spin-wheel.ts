@@ -1,8 +1,9 @@
 "use server";
 
 import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
-import { levelFromXP } from "@/lib/gamification-shared";
+import { awardVariableXP } from "@/lib/gamification";
 import { WHEEL_PRIZES, WHEEL_WEIGHTS, type SpinPrize } from "@/lib/spin-wheel-config";
+import { revalidatePath } from "next/cache";
 
 
 function pickPrize(): SpinPrize & { index: number } {
@@ -15,14 +16,16 @@ function pickPrize(): SpinPrize & { index: number } {
   return { ...WHEEL_PRIZES[0], index: 0 };
 }
 
-function isSameDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
+function utcDayKey(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function nextUtcMidnight(from: Date) {
+  return new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate() + 1)).toISOString();
 }
 
 export type SpinResult =
-  | { ok: true; prize: SpinPrize; index: number; bonusAvailable: boolean }
+  | { ok: true; prize: SpinPrize; index: number; bonusAvailable: boolean; xpAwarded: number; walletAwarded: number }
   | { ok: false; error: string; nextSpinAt?: string };
 
 export async function canSpinToday(): Promise<{ canSpin: boolean; nextSpinAt: string | null; bonusAvailable: boolean }> {
@@ -38,26 +41,23 @@ export async function canSpinToday(): Promise<{ canSpin: boolean; nextSpinAt: st
       .order("spun_at", { ascending: false })
       .limit(5);
 
-    const today = new Date();
-    const todaySpins = (data ?? []).filter(r => isSameDay(new Date(r.spun_at), today));
-    const bonusSpins = (data ?? []).filter(r => isSameDay(new Date(r.spun_at), today) && r.prize_type === "bonus_spin");
+    const today = utcDayKey(new Date());
+    const todaySpins = (data ?? []).filter((r) => utcDayKey(new Date(r.spun_at)) === today);
+    const bonusWonToday = todaySpins.some((r) => r.prize_type === "bonus_spin");
 
     // 1 free spin + 1 bonus spin per day
-    const maxSpins = 1 + bonusSpins.length;
+    const maxSpins = bonusWonToday ? 2 : 1;
     const canSpin = todaySpins.length < maxSpins;
 
     let nextSpinAt: string | null = null;
     if (!canSpin) {
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
-      nextSpinAt = tomorrow.toISOString();
+      nextSpinAt = nextUtcMidnight(new Date());
     }
 
     return {
       canSpin,
       nextSpinAt,
-      bonusAvailable: bonusSpins.length > 0 && todaySpins.length === 1,
+      bonusAvailable: bonusWonToday && todaySpins.length === 1,
     };
   } catch {
     return { canSpin: true, nextSpinAt: null, bonusAvailable: false };
@@ -78,40 +78,41 @@ export async function spinWheel(): Promise<SpinResult> {
     const sb = supabaseAdmin();
 
     // Log the spin
-    await sb.from("spin_wheel_logs").insert({
+    const { data: spinLog, error: logError } = await sb.from("spin_wheel_logs").insert({
       user_id: me.id,
       prize_label: prize.label,
       prize_type: prize.type,
       prize_amount: prize.amount,
-    });
+    }).select("id").single();
+    if (logError || !spinLog) throw new Error(`Unable to record spin: ${logError?.message || "unknown error"}`);
 
     // Award the prize
+    let xpAwarded = 0;
+    let walletAwarded = 0;
     if (prize.type === "xp" && prize.amount > 0) {
-      await sb.from("xp_events").insert({
-        user_id: me.id,
-        event_type: "spin_wheel_win",
-        amount: prize.amount,
-        ref_type: "spin",
+      const xp = await awardVariableXP(me.id, "spin_wheel_win", prize.amount, {
+        refType: "spin_wheel",
+        refId: spinLog.id,
         metadata: { prize: prize.label },
       });
-      const { data: userRow } = await sb.from("users").select("xp").eq("id", me.id).single();
-      const oldXP = (userRow?.xp as number) || 0;
-      const newXP = oldXP + prize.amount;
-      await sb.from("users").update({
-        xp: newXP,
-        level: levelFromXP(newXP),
-        last_xp_at: new Date().toISOString(),
-      }).eq("id", me.id);
+      xpAwarded = xp.awarded;
     }
 
     if (prize.type === "wallet" && prize.amount > 0) {
-      const { data: userRow } = await sb.from("users").select("wallet_balance").eq("id", me.id).single();
+      const { data: userRow, error: readError } = await sb.from("users").select("wallet_balance").eq("id", me.id).single();
+      if (readError) throw new Error(`Unable to read wallet balance: ${readError.message}`);
       const oldBal = (userRow?.wallet_balance as number) || 0;
-      await sb.from("users").update({ wallet_balance: oldBal + prize.amount }).eq("id", me.id);
+      const { error: walletError } = await sb.from("users").update({ wallet_balance: oldBal + prize.amount }).eq("id", me.id);
+      if (walletError) throw new Error(`Unable to credit wallet: ${walletError.message}`);
+      walletAwarded = prize.amount;
     }
 
     const { bonusAvailable } = await canSpinToday();
-    return { ok: true, prize, index: prize.index, bonusAvailable };
+    revalidatePath("/gamification");
+    revalidatePath("/wallet");
+    revalidatePath("/dashboard");
+    revalidatePath("/leaderboard");
+    return { ok: true, prize, index: prize.index, bonusAvailable, xpAwarded, walletAwarded };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

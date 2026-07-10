@@ -17,6 +17,7 @@ import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { logOrgAudit } from "@/lib/org-audit";
 import { cacheDel } from "@/lib/cache";
+import { publishPlatformOrgEvent } from "@/lib/org-platform-events";
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -53,7 +54,7 @@ export async function setOrgStatus(orgId: string, status: OrgStatus, reason?: st
 
   const { error } = await sb
     .from("creative_orgs")
-    .update({ status, updated_at: new Date().toISOString() })
+    .update({ status, updated_at: new Date().toISOString(), last_activity_at: new Date().toISOString() })
     .eq("id", orgId);
   if (error) return { ok: false, error: error.message };
 
@@ -72,6 +73,12 @@ export async function setOrgStatus(orgId: string, status: OrgStatus, reason?: st
     orgId, actorId: sa.me.id, action: ACTION_FOR[status],
     target: `org:${orgId}`,
     meta: { from: org.status, to: status, reason: reason ?? null },
+  });
+  await publishPlatformOrgEvent({
+    orgId,
+    eventType: "org.status_changed",
+    actorId: sa.me.id,
+    metadata: { from: org.status, to: status, reason: reason ?? null },
   });
 
   // Notify the org owner so they don't first discover this on their

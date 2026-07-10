@@ -59,7 +59,7 @@ export function OpportunityDetailClient({ opp: o, userRole }: { opp: Opp; userRo
         }}
       />
 
-      <div style={{ maxWidth: 1080, margin: "-90px auto 0", padding: "0 20px 60px", position: "relative", zIndex: 1 }}>
+      <div style={{ maxWidth: 1080, margin: "28px auto 0", padding: "0 20px 60px", position: "relative", zIndex: 1 }}>
         <Link href="/opportunities" style={{
           display: "inline-flex", alignItems: "center", gap: 6,
           padding: "7px 14px", borderRadius: 999,

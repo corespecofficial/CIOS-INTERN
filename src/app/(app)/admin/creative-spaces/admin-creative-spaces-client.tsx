@@ -70,7 +70,7 @@ export function AdminCreativeSpacesClient({
       <div style={{ background: GOLD_DIM, border: `1px solid ${GOLD_BORDER}`, borderRadius: 16, padding: 24, marginBottom: 20 }}>
         <span style={{ fontSize: 11, color: GOLD, fontWeight: 700, letterSpacing: 0.5 }}>SUPER-ADMIN PANEL</span>
         <h1 style={{ fontSize: 24, fontWeight: 800, color: "#E8EDF5", margin: "4px 0 4px", fontFamily: "'Space Grotesk', sans-serif" }}>
-          🏫 Creative Space applications
+          Organization space applications
         </h1>
         <p style={{ fontSize: 13, color: "#8892A4", margin: 0, lineHeight: 1.5 }}>
           Each approval spawns a per-host organization at <code style={{ color: "#E8EDF5", background: "rgba(255,255,255,0.06)", padding: "2px 6px", borderRadius: 4, fontSize: 12 }}>/o/&lt;slug&gt;</code> with its own portal,

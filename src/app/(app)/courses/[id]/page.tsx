@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getCourseWithModules, getMyEnrollment, getCurrentDbUser, listCourseDiscussions, listMaterialsForCourse } from "@/lib/db";
+import { getCourseWithModulesForViewer, getMyEnrollment, getCurrentDbUser, listCourseDiscussions, listMaterialsForCourse } from "@/lib/db";
 import { PlayerClient } from "./player-client";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export default async function CourseViewerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const [{ course, modules }, enrollment, me, discussions, materials] = await Promise.all([
-    getCourseWithModules(id),
+    getCourseWithModulesForViewer(id),
     getMyEnrollment(id),
     getCurrentDbUser(),
     listCourseDiscussions(id),

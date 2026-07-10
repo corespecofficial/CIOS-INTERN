@@ -455,6 +455,7 @@ export async function createAblyToken(): Promise<Result<{ tokenRequest: unknown 
         // / HOST_ROLES gates) — clients can only ever LISTEN.
         "org-chat:*": ["subscribe", "presence", "history"],
         "org-activity:*": ["subscribe", "history"],
+        ...(me.role === "super_admin" ? { "platform-orgs": ["subscribe", "history"] } : {}),
         [`notif:${me.clerk_id}`]: ["subscribe", "presence", "history"],
       }),
     });

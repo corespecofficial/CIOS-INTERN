@@ -18,6 +18,7 @@ import { randomBytes } from "crypto";
 import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { logOrgAudit } from "@/lib/org-audit";
+import { publishPlatformOrgEvent } from "@/lib/org-platform-events";
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -51,7 +52,7 @@ function generateInviteToken(): string {
   return out;
 }
 
-const VALID_INVITE_ROLES = ["org_admin", "instructor", "student"] as const;
+const VALID_INVITE_ROLES = ["org_admin", "instructor", "student", "moderator", "finance", "support", "mentor"] as const;
 type InviteRole = (typeof VALID_INVITE_ROLES)[number];
 
 export interface PendingInvite {
@@ -127,6 +128,17 @@ export async function inviteByEmail(orgId: string, email: string, role: InviteRo
     target: targetUser ? `user:${targetUser.id}` : `email:${cleanEmail}`,
     meta: { email: cleanEmail, role, expires_at: expires, target_is_existing_user: !!targetUser },
   });
+  await publishPlatformOrgEvent({
+    orgId,
+    eventType: "org.member_invited",
+    actorId: a.me.id,
+    metadata: {
+      email: cleanEmail,
+      role,
+      target_user_id: targetUser?.id ?? null,
+      expires_at: expires,
+    },
+  });
 
   if (targetUser) {
     const link = `/onboarding/enrollment?code=${encodeURIComponent(token)}`;
@@ -146,6 +158,7 @@ export async function inviteByEmail(orgId: string, email: string, role: InviteRo
   }
 
   revalidatePath(`/o/${a.org.slug}/members`);
+  revalidatePath("/super-admin/orgs");
   return { ok: true, data: { token, alreadyMember: false, existingUser: !!targetUser } };
 }
 

@@ -10,10 +10,19 @@
 
 import "server-only";
 import { cache } from "react";
+import { notFound } from "next/navigation";
 import { supabaseAdmin, getCurrentDbUser, type DbUser } from "@/lib/db";
 import { cacheGet, cacheSet, cacheDel, orgCacheKey, TTL } from "@/lib/cache";
 
-export type OrgMemberRole = "owner" | "org_admin" | "instructor" | "student";
+export type OrgMemberRole =
+  | "owner"
+  | "org_admin"
+  | "instructor"
+  | "student"
+  | "moderator"
+  | "finance"
+  | "support"
+  | "mentor";
 
 export interface CreativeOrg {
   id: string;
@@ -25,6 +34,14 @@ export interface CreativeOrg {
   plan: string;
   storage_prefix: string;
   member_count: number;
+  org_type?: string;
+  brand_logo_url?: string | null;
+  brand_color?: string | null;
+  active_intern_count?: number;
+  staff_count?: number;
+  intern_limit?: number;
+  module_flags?: Record<string, unknown>;
+  last_activity_at?: string | null;
   settings: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -83,7 +100,7 @@ export const getActiveOrg = cache(async (slug: string): Promise<ActiveOrgContext
   const sb = supabaseAdmin();
   const { data: orgRow } = await sb
     .from("creative_orgs")
-    .select("id, space_id, slug, name, owner_user_id, status, plan, storage_prefix, member_count, settings, created_at, updated_at")
+    .select("id, space_id, slug, name, owner_user_id, status, plan, storage_prefix, member_count, org_type, brand_logo_url, brand_color, active_intern_count, staff_count, intern_limit, module_flags, last_activity_at, settings, created_at, updated_at")
     .eq("slug", slug)
     .maybeSingle();
   if (!orgRow) return null;
@@ -135,7 +152,7 @@ export const getOrgEntryStatus = cache(async (slug: string): Promise<
   const sb = supabaseAdmin();
   const { data: orgRow } = await sb
     .from("creative_orgs")
-    .select("id, space_id, slug, name, owner_user_id, status, plan, storage_prefix, member_count, settings, created_at, updated_at")
+    .select("id, space_id, slug, name, owner_user_id, status, plan, storage_prefix, member_count, org_type, brand_logo_url, brand_color, active_intern_count, staff_count, intern_limit, module_flags, last_activity_at, settings, created_at, updated_at")
     .eq("slug", slug)
     .maybeSingle();
   if (!orgRow) return { ok: false, failure: { kind: "not_found" } };
@@ -243,6 +260,40 @@ export async function withOrg<T>(orgId: string, fn: () => Promise<T>): Promise<T
       await sb.rpc("set_config", { setting_name: "request.org_id", new_value: "", is_local: false });
     } catch {/* ignore */}
   }
+}
+
+export async function getOrgContextOr404(slug: string): Promise<ActiveOrgContext> {
+  const ctx = await getActiveOrg(slug);
+  if (!ctx) notFound();
+  return ctx;
+}
+
+export function hasOrgRole(
+  ctx: ActiveOrgContext,
+  allowedRoles: ReadonlyArray<OrgMemberRole>,
+): boolean {
+  return ctx.isSuperAdmin || Boolean(ctx.memberRole && allowedRoles.includes(ctx.memberRole));
+}
+
+export function requireOrgRole(
+  ctx: ActiveOrgContext,
+  allowedRoles: ReadonlyArray<OrgMemberRole>,
+): void {
+  if (!hasOrgRole(ctx, allowedRoles)) notFound();
+}
+
+export async function getOrgMembershipForUser(
+  orgId: string,
+  userId: string,
+): Promise<OrgMemberRole | null> {
+  const { data } = await supabaseAdmin()
+    .from("org_members")
+    .select("role")
+    .eq("org_id", orgId)
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+  return (data as { role?: OrgMemberRole } | null)?.role ?? null;
 }
 
 /* ───────────── Slug helpers ───────────── */

@@ -71,6 +71,18 @@ export interface DbUser {
   cohort_number: number | null;
 }
 
+function roleFromUnknown(source: unknown): Role | null {
+  if (!source || typeof source !== "object") return null;
+  const raw = (source as Record<string, unknown>).role;
+  return typeof raw === "string" ? raw as Role : null;
+}
+
+export async function getCurrentAuthRole(): Promise<Role | null> {
+  const { sessionClaims } = await auth();
+  const claims = sessionClaims as Record<string, unknown> | null;
+  return roleFromUnknown(claims?.publicMetadata) || roleFromUnknown(claims?.metadata);
+}
+
 /* ───────────── User helpers ───────────── */
 
 /** Get current signed-in Clerk user's Supabase row. */
@@ -1004,6 +1016,7 @@ export async function listClassSessions(opts: { upcomingOnly?: boolean; limit?: 
 
 export interface CourseFull {
   id: string;
+  org_id: string | null;
   title: string;
   subtitle: string | null;
   description: string;
@@ -1023,6 +1036,14 @@ export interface CourseFull {
   tags: string[];
   created_at: string;
   published_at: string | null;
+}
+
+const COURSE_SELECT_WITH_ORG = "id, org_id, title, subtitle, description, instructor_id, category, difficulty, language, duration_hours, total_modules, total_enrolled, price_naira, discount_naira, thumbnail_url, promo_video_url, status, tags, created_at, published_at, instructor:users!courses_instructor_id_fkey(name)";
+const COURSE_SELECT_LEGACY = "id, title, subtitle, description, instructor_id, category, difficulty, language, duration_hours, total_modules, total_enrolled, price_naira, discount_naira, thumbnail_url, promo_video_url, status, tags, created_at, published_at, instructor:users!courses_instructor_id_fkey(name)";
+
+function isMissingOrgIdColumn(error: unknown): boolean {
+  const err = error as { code?: string; message?: string } | null | undefined;
+  return err?.code === "42703" || Boolean(err?.message?.includes("org_id"));
 }
 
 export interface QuizQuestion {
@@ -1155,22 +1176,39 @@ export async function getPendingSubmissionsForInstructor(): Promise<InstructorSu
 }
 
 export async function getAllPublishedCourses(): Promise<CourseFull[]> {
-  const { data } = await supabase()
+  const primary = await supabase()
     .from("courses")
-    .select("id, title, subtitle, description, instructor_id, category, difficulty, language, duration_hours, total_modules, total_enrolled, price_naira, discount_naira, thumbnail_url, promo_video_url, status, tags, created_at, published_at, instructor:users!courses_instructor_id_fkey(name)")
+    .select(COURSE_SELECT_WITH_ORG)
+    .is("org_id", null)
     .eq("status", "published")
     .order("created_at", { ascending: false });
-  return mapCourses(data);
+
+  if (!primary.error) return mapCourses(primary.data);
+  if (!isMissingOrgIdColumn(primary.error)) return [];
+
+  const fallback = await supabase()
+    .from("courses")
+    .select(COURSE_SELECT_LEGACY)
+    .eq("status", "published")
+    .order("created_at", { ascending: false });
+  return mapCourses(fallback.data);
 }
 
 export async function getMyEnrolledCourses(): Promise<(CourseFull & { progress: number; status_enrollment: string; completed_modules: string[] })[]> {
   const me = await getCurrentDbUser();
   if (!me) return [];
-  const { data } = await supabase()
+  const primary = await supabase()
     .from("course_enrollments")
-    .select("progress, status, completed_modules, course:courses(id, title, subtitle, description, instructor_id, category, difficulty, language, duration_hours, total_modules, total_enrolled, price_naira, discount_naira, thumbnail_url, promo_video_url, status, tags, created_at, published_at, instructor:users!courses_instructor_id_fkey(name))")
+    .select(`progress, status, completed_modules, course:courses(${COURSE_SELECT_WITH_ORG})`)
     .eq("user_id", me.id)
     .order("enrolled_at", { ascending: false });
+  const data = primary.error && isMissingOrgIdColumn(primary.error)
+    ? (await supabase()
+      .from("course_enrollments")
+      .select(`progress, status, completed_modules, course:courses(${COURSE_SELECT_LEGACY})`)
+      .eq("user_id", me.id)
+      .order("enrolled_at", { ascending: false })).data
+    : primary.data;
   if (!data) return [];
   return (data as unknown as Array<{ progress: number; status: string; completed_modules: string[]; course: unknown }>).map((r) => {
     const course = mapCourses([r.course])[0];
@@ -1181,21 +1219,130 @@ export async function getMyEnrolledCourses(): Promise<(CourseFull & { progress: 
 export async function getMyCoursesAsInstructor(): Promise<CourseFull[]> {
   const me = await getCurrentDbUser();
   if (!me) return [];
-  const { data } = await supabase()
+  const primary = await supabase()
     .from("courses")
-    .select("id, title, subtitle, description, instructor_id, category, difficulty, language, duration_hours, total_modules, total_enrolled, price_naira, discount_naira, thumbnail_url, promo_video_url, status, tags, created_at, published_at, instructor:users!courses_instructor_id_fkey(name)")
+    .select(COURSE_SELECT_WITH_ORG)
     .eq("instructor_id", me.id)
+    .is("org_id", null)
+    .order("created_at", { ascending: false });
+
+  if (!primary.error) return mapCourses(primary.data);
+  if (!isMissingOrgIdColumn(primary.error)) return [];
+
+  const fallback = await supabase()
+    .from("courses")
+    .select(COURSE_SELECT_LEGACY)
+    .eq("instructor_id", me.id)
+    .order("created_at", { ascending: false });
+  return mapCourses(fallback.data);
+}
+
+export async function getOrgCoursesForInstructor(orgId: string): Promise<CourseFull[]> {
+  const me = await getCurrentDbUser();
+  if (!me) return [];
+  const sb = supabaseAdmin();
+
+  const isPlatformAdmin = me.role === "admin" || me.role === "super_admin";
+  if (!isPlatformAdmin) {
+    const { data: membership } = await sb
+      .from("org_members")
+      .select("role")
+      .eq("org_id", orgId)
+      .eq("user_id", me.id)
+      .eq("status", "active")
+      .maybeSingle();
+    const role = (membership as { role?: string } | null)?.role;
+    if (!role || !["owner", "org_admin", "instructor"].includes(role)) return [];
+  }
+
+  const { data } = await sb
+    .from("courses")
+    .select(COURSE_SELECT_WITH_ORG)
+    .eq("org_id", orgId)
     .order("created_at", { ascending: false });
   return mapCourses(data);
 }
 
 export async function getCourseWithModules(courseId: string): Promise<{ course: CourseFull | null; modules: CourseModuleRow[] }> {
-  const [cRes, mRes] = await Promise.all([
-    supabase().from("courses").select("id, title, subtitle, description, instructor_id, category, difficulty, language, duration_hours, total_modules, total_enrolled, price_naira, discount_naira, thumbnail_url, promo_video_url, status, tags, created_at, published_at, instructor:users!courses_instructor_id_fkey(name)").eq("id", courseId).maybeSingle(),
-    supabase().from("course_modules").select("*").eq("course_id", courseId).order("order_index", { ascending: true }),
-  ]);
+  let cRes = await supabase().from("courses").select(COURSE_SELECT_WITH_ORG).eq("id", courseId).maybeSingle();
+  const modulesRes = await supabase().from("course_modules").select("*").eq("course_id", courseId).order("order_index", { ascending: true });
+  if (cRes.error && isMissingOrgIdColumn(cRes.error)) {
+    cRes = await supabase().from("courses").select(COURSE_SELECT_LEGACY).eq("id", courseId).maybeSingle();
+  }
   const course = cRes.data ? mapCourses([cRes.data])[0] : null;
-  return { course, modules: (mRes.data || []) as CourseModuleRow[] };
+  return { course, modules: (modulesRes.data || []) as CourseModuleRow[] };
+}
+
+export async function getCourseWithModulesForEditor(courseId: string): Promise<{ course: CourseFull | null; modules: CourseModuleRow[] }> {
+  const me = await getCurrentDbUser();
+  if (!me) return { course: null, modules: [] };
+  const authRole = await getCurrentAuthRole();
+  const isPlatformAdmin = me.role === "admin" || me.role === "super_admin" || authRole === "admin" || authRole === "super_admin";
+
+  const sb = supabaseAdmin();
+  let cRes = await sb.from("courses")
+    .select(COURSE_SELECT_WITH_ORG)
+    .eq("id", courseId)
+    .maybeSingle();
+  const modulesRes = await sb.from("course_modules")
+    .select("*")
+    .eq("course_id", courseId)
+    .order("order_index", { ascending: true });
+  if (cRes.error && isMissingOrgIdColumn(cRes.error)) {
+    cRes = await sb.from("courses").select(COURSE_SELECT_LEGACY).eq("id", courseId).maybeSingle();
+  }
+
+  const course = cRes.data ? mapCourses([cRes.data])[0] : null;
+  let canEdit = Boolean(course && (
+    course.instructor_id === me.id ||
+    isPlatformAdmin
+  ));
+
+  if (course?.org_id && !canEdit) {
+    const { data: membership } = await sb
+      .from("org_members")
+      .select("role")
+      .eq("org_id", course.org_id)
+      .eq("user_id", me.id)
+      .eq("status", "active")
+      .maybeSingle();
+    const role = (membership as { role?: string } | null)?.role;
+    canEdit = Boolean(role && ["owner", "org_admin", "instructor"].includes(role));
+  }
+
+  if (!canEdit) return { course: null, modules: [] };
+  return { course, modules: (modulesRes.data || []) as CourseModuleRow[] };
+}
+
+export async function getCourseWithModulesForViewer(courseId: string): Promise<{ course: CourseFull | null; modules: CourseModuleRow[] }> {
+  const me = await getCurrentDbUser();
+  const authRole = await getCurrentAuthRole();
+  const sb = supabaseAdmin();
+  let cRes = await sb.from("courses")
+    .select(COURSE_SELECT_WITH_ORG)
+    .eq("id", courseId)
+    .maybeSingle();
+  const modulesRes = await sb.from("course_modules")
+    .select("*")
+    .eq("course_id", courseId)
+    .order("order_index", { ascending: true });
+  if (cRes.error && isMissingOrgIdColumn(cRes.error)) {
+    cRes = await sb.from("courses").select(COURSE_SELECT_LEGACY).eq("id", courseId).maybeSingle();
+  }
+
+  const course = cRes.data ? mapCourses([cRes.data])[0] : null;
+  if (!course) return { course: null, modules: [] };
+
+  const canViewDraft = !!me && (
+    course.instructor_id === me.id ||
+    me.role === "admin" ||
+    me.role === "super_admin" ||
+    authRole === "admin" ||
+    authRole === "super_admin"
+  );
+
+  if (course.status !== "published" && !canViewDraft) return { course: null, modules: [] };
+  return { course, modules: (modulesRes.data || []) as CourseModuleRow[] };
 }
 
 export async function getMyEnrollment(courseId: string): Promise<{ enrolled: boolean; progress: number; completedModules: string[]; status: string } | null> {
@@ -1257,7 +1404,7 @@ export async function getMyCertificates(): Promise<{ id: string; certificateNumb
 function mapCourses(rows: unknown): CourseFull[] {
   if (!Array.isArray(rows)) return [];
   return (rows as Array<{
-    id: string; title: string; subtitle: string | null; description: string;
+    id: string; org_id?: string | null; title: string; subtitle: string | null; description: string;
     instructor_id: string; category: string; difficulty: string; language: string;
     duration_hours: number; total_modules: number; total_enrolled: number;
     price_naira: number; discount_naira: number | null;
@@ -1267,7 +1414,7 @@ function mapCourses(rows: unknown): CourseFull[] {
   }>).filter(Boolean).map((r) => {
     const instr = Array.isArray(r.instructor) ? r.instructor[0] : r.instructor;
     return {
-      id: r.id, title: r.title, subtitle: r.subtitle, description: r.description,
+      id: r.id, org_id: r.org_id ?? null, title: r.title, subtitle: r.subtitle, description: r.description,
       instructor_id: r.instructor_id, instructor_name: instr?.name || null,
       category: r.category, difficulty: r.difficulty as CourseFull["difficulty"],
       language: r.language, duration_hours: r.duration_hours,

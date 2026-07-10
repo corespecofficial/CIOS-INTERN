@@ -65,7 +65,7 @@ export function CreativeSpaceBrowseClient({ spaces }: { spaces: CreativeSpace[] 
               marginBottom: 18,
             }}
           >
-            Cohort-based learning
+            Organization spaces
           </div>
           <h1
             className="cs-hero-h1"
@@ -79,10 +79,10 @@ export function CreativeSpaceBrowseClient({ spaces }: { spaces: CreativeSpace[] 
               fontFamily: "'Space Grotesk', 'Nunito', sans-serif",
             }}
           >
-            Learn from <span style={{ background: `linear-gradient(135deg, ${ACCENT}, #A855F7)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>independent hosts</span>.
+            Create or join <span style={{ background: `linear-gradient(135deg, ${ACCENT}, #A855F7)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>private org portals</span>.
           </h1>
           <p style={{ margin: "14px auto 0", maxWidth: 660, fontSize: 16, color: DIM, lineHeight: 1.55 }}>
-            Live and recorded cohorts across web dev, design, marketing, AI and more — each one hosted by someone who applied and was approved by our team. Every host gets their own admin portal; every learner who joins gets switched into the cohort with full access.
+            Creative Spaces now power organization tenants on CIOS: each approved space gets its own staff portal, intern portal, lessons, assignments, chat, files, announcements, and super-admin governance.
           </p>
           <div style={{ marginTop: 22, display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
             <a
@@ -98,7 +98,7 @@ export function CreativeSpaceBrowseClient({ spaces }: { spaces: CreativeSpace[] 
                 boxShadow: `0 12px 28px -10px rgba(38,198,218,0.7)`,
               }}
             >
-              Browse {spaces.length} course{spaces.length === 1 ? "" : "s"}
+              Browse {spaces.length} space{spaces.length === 1 ? "" : "s"}
             </a>
             <Link
               href="/creative-space/apply"
@@ -113,7 +113,7 @@ export function CreativeSpaceBrowseClient({ spaces }: { spaces: CreativeSpace[] 
                 border: "1px solid rgba(255,255,255,0.1)",
               }}
             >
-              Teach on CIOS →
+              Create organization space &rarr;
             </Link>
           </div>
         </div>
@@ -127,7 +127,7 @@ export function CreativeSpaceBrowseClient({ spaces }: { spaces: CreativeSpace[] 
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search topics, instructors, tags…"
+              placeholder="Search orgs, programs, hosts, tags..."
               style={{
                 width: "100%",
                 padding: "12px 16px 12px 40px",
@@ -284,7 +284,7 @@ function SpaceCard({ space: s }: { space: CreativeSpace }) {
           {s.description}
         </p>
 
-        {/* Instructor row */}
+        {/* Host row */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
           {s.owner_avatar ? (
             <img src={s.owner_avatar} alt="" style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover", border: `1.5px solid ${tierStyle.border}` }} />
@@ -295,7 +295,7 @@ function SpaceCard({ space: s }: { space: CreativeSpace }) {
           )}
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: INK, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {s.owner_name || "Instructor"}
+              {s.owner_name || "Organization host"}
             </div>
             <div style={{ fontSize: 10, fontWeight: 700, color: tierStyle.fg, letterSpacing: 0.3, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {cred.badge}
@@ -333,14 +333,14 @@ function EmptyState({ hasAny }: { hasAny: boolean }) {
     <div style={{ padding: "60px 24px", textAlign: "center", background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.1)", borderRadius: 16, marginBottom: 60 }}>
       <div style={{ fontSize: 44, marginBottom: 10 }}>🎓</div>
       <h3 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 800, color: INK }}>
-        {hasAny ? "No spaces match your filters." : "The classroom is warming up."}
+        {hasAny ? "No spaces match your filters." : "Organization spaces are opening soon."}
       </h3>
       <p style={{ margin: 0, fontSize: 13, color: DIM, lineHeight: 1.6 }}>
         {hasAny ? "Clear search or switch category." : (
           <>
-            Be the first instructor —{" "}
+            Create the first organization space{" "}
             <Link href="/creative-space/apply" style={{ color: ACCENT, fontWeight: 700, textDecoration: "none" }}>
-              teach on CIOS →
+              start here &rarr;
             </Link>
           </>
         )}

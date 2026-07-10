@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import toast from "react-hot-toast";
 import { formatXP, type Rank } from "@/lib/gamification-shared";
@@ -14,7 +15,7 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 
 interface UserSummary {
   id: string; name: string; avatarUrl: string | null; role: string;
-  xp: number; level: number; streak: number; bestStreak: number; reputation: number; coins: number;
+  xp: number; level: number; streak: number; bestStreak: number; reputation: number; walletCredits: number; coins: number;
 }
 interface Progress {
   level: number; nextLevel: number; progressPct: number; xpInLevel: number; xpToNext: number;
@@ -78,11 +79,11 @@ export function GamificationHub({
           <XPBar pct={progress.progressPct} color={rank.color} />
           {/* Stats — horizontal scroll on mobile */}
           <div style={{ display: "flex", gap: 8, marginTop: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+            <Stat label="Wallet"     value={`₦${user.walletCredits.toLocaleString()}`} emoji="💳" compact={isMobile} />
             <Stat label="Streak"     value={`${user.streak}d`}     emoji="🔥" compact={isMobile} />
             <Stat label="Best"       value={`${user.bestStreak}d`} emoji="🏅" compact={isMobile} />
             <Stat label="Badges"     value={badges.length}          emoji="🎖️" compact={isMobile} />
             <Stat label="Rep"        value={user.reputation}        emoji="⭐" compact={isMobile} />
-            <Stat label="Coins"      value={user.coins}             emoji="🪙" compact={isMobile} />
           </div>
         </div>
       </div>
@@ -294,6 +295,7 @@ function XPBar({ pct, color }: { pct: number; color: string }) {
 }
 
 function Stat({ label, value, emoji, compact }: { label: string; value: string | number; emoji: string; compact?: boolean }) {
+  if (label === "Coins") return null;
   return (
     <div style={{ background: "#0A0E1A", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: compact ? "5px 10px" : "6px 12px", display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
       <span style={{ fontSize: compact ? 13 : 14 }}>{emoji}</span>
@@ -306,6 +308,7 @@ function Stat({ label, value, emoji, compact }: { label: string; value: string |
 }
 
 function MissionRow({ m, isMobile }: { m: Mission; isMobile: boolean }) {
+  const router = useRouter();
   const [pending, start] = useTransition();
   const [claimed, setClaimed] = useState(m.claimed);
   const pct = Math.min(100, Math.round((m.progress / m.target) * 100));
@@ -315,6 +318,7 @@ function MissionRow({ m, isMobile }: { m: Mission; isMobile: boolean }) {
       setClaimed(true);
       toast.success(`+${res.data?.xp || 0} XP${res.data?.coins ? ` · +${res.data.coins} coins` : ""}`);
       fireConfetti?.();
+      router.refresh();
     } else toast.error(res.error);
   });
   return (

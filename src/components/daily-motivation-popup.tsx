@@ -6,7 +6,7 @@ const QUOTES = [
   { theme: "Consistency", emoji: "🔥", quote: "Show up daily. The compound effect of small wins is unbeatable.", color: "#FF7043" },
   { theme: "Honesty", emoji: "🤝", quote: "Speak truth even when it's uncomfortable. Trust is the rarest currency.", color: "#26C6DA" },
   { theme: "Transparency", emoji: "🪟", quote: "Operate in the open. Hidden work creates hidden problems.", color: "#1E88E5" },
-  { theme: "Accountability", emoji: "🎯", quote: "Own the outcome — wins and misses both. Excuses don't ship.", color: "#AB47BC" },
+  { theme: "Accountability", emoji: "🎯", quote: "Own the outcome - wins and misses both. Excuses don't ship.", color: "#AB47BC" },
   { theme: "Integrity", emoji: "💎", quote: "Do the right thing when no one is watching. That IS the work.", color: "#66BB6A" },
   { theme: "Perfection", emoji: "✨", quote: "Done > perfect, but never settle for sloppy. Refine, then ship.", color: "#FFC107" },
   { theme: "Growth", emoji: "🌱", quote: "Yesterday's best becomes today's baseline. Keep climbing.", color: "#43A047" },
@@ -15,25 +15,66 @@ const QUOTES = [
 
 const STORAGE_KEY = "cios-daily-motivation";
 
+function localDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function greetingForHour(hour: number) {
+  if (hour >= 5 && hour < 12) return "GOOD MORNING";
+  if (hour >= 12 && hour < 17) return "GOOD AFTERNOON";
+  if (hour >= 17 && hour < 21) return "GOOD EVENING";
+  return "GOOD NIGHT";
+}
+
 export function DailyMotivationPopup() {
   const [quote, setQuote] = useState<typeof QUOTES[0] | null>(null);
+  const [greeting, setGreeting] = useState("GOOD MORNING");
   const [closing, setClosing] = useState(false);
 
   useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const now = new Date();
+      const today = localDateKey(now);
       const last = localStorage.getItem(STORAGE_KEY);
       if (last === today) return;
-      // pick deterministic-ish quote so user sees something different each day
-      const dayIndex = Math.floor(new Date().getTime() / 86400000) % QUOTES.length;
-      setQuote(QUOTES[dayIndex]);
+
       localStorage.setItem(STORAGE_KEY, today);
-    } catch { /* ignore */ }
+      const dayIndex = Math.floor(now.getTime() / 86400000) % QUOTES.length;
+
+      timeout = setTimeout(() => {
+        setGreeting(greetingForHour(new Date().getHours()));
+        setQuote(QUOTES[dayIndex]);
+      }, 0);
+    } catch {
+      /* ignore private mode / storage failures */
+    }
+
+    return () => {
+      if (timeout) clearTimeout(timeout);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!quote) return;
+
+    const id = setInterval(() => {
+      setGreeting(greetingForHour(new Date().getHours()));
+    }, 60_000);
+
+    return () => clearInterval(id);
+  }, [quote]);
 
   if (!quote) return null;
 
-  const dismiss = () => { setClosing(true); setTimeout(() => setQuote(null), 250); };
+  const dismiss = () => {
+    setClosing(true);
+    setTimeout(() => setQuote(null), 250);
+  };
 
   return (
     <div onClick={dismiss} style={{
@@ -51,19 +92,19 @@ export function DailyMotivationPopup() {
         transition: "transform 0.25s",
       }}>
         <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 3, color: quote.color, marginBottom: 16 }}>
-          GOOD MORNING · {quote.theme.toUpperCase()}
+          {greeting} · {quote.theme.toUpperCase()}
         </div>
         <div style={{ fontSize: 64, lineHeight: 1, marginBottom: 14 }}>{quote.emoji}</div>
         <div style={{ fontSize: 17, fontWeight: 700, color: "#E8EDF5", lineHeight: 1.5, marginBottom: 18, fontFamily: "'Space Grotesk', sans-serif" }}>
           {quote.quote}
         </div>
-        <div style={{ fontSize: 11, color: "#5A6478", marginBottom: 18 }}>— Your CIOS daily reminder</div>
+        <div style={{ fontSize: 11, color: "#5A6478", marginBottom: 18 }}>- Your CIOS daily reminder</div>
         <button onClick={dismiss} style={{
           padding: "12px 32px", background: `linear-gradient(135deg, ${quote.color}, ${quote.color}dd)`,
           color: "#fff", border: "none", borderRadius: 12, fontSize: 14, fontWeight: 800, cursor: "pointer",
           boxShadow: `0 6px 20px ${quote.color}55`,
         }}>
-          Let's go →
+          {"Let's go ->"}
         </button>
       </div>
     </div>

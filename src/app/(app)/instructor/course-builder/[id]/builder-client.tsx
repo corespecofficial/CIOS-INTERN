@@ -15,7 +15,17 @@ import { parseVideoEmbed, embedIframeProps } from "@/lib/video-embed";
 
 type ContentType = "video" | "article" | "quiz" | "assignment";
 
-export function BuilderClient({ course, initialModules }: { course: CourseFull; initialModules: CourseModuleRow[] }) {
+export function BuilderClient({
+  course,
+  initialModules,
+  basePath = "/instructor",
+  previewHref,
+}: {
+  course: CourseFull;
+  initialModules: CourseModuleRow[];
+  basePath?: string;
+  previewHref?: string;
+}) {
   const router = useRouter();
   const [modules, setModules] = useState<CourseModuleRow[]>(initialModules);
   const [editing, setEditing] = useState<CourseModuleRow | null>(null);
@@ -40,7 +50,7 @@ export function BuilderClient({ course, initialModules }: { course: CourseFull; 
     const r = await deleteCourse(course.id);
     if (!r.ok) { toast.error(r.error); return; }
     toast.success("Course deleted");
-    router.push("/instructor");
+    router.push(basePath);
   }
 
   async function onDrop(targetId: string) {
@@ -89,7 +99,7 @@ export function BuilderClient({ course, initialModules }: { course: CourseFull; 
           </p>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Link href={`/courses/${course.id}`} style={btnGhost} target="_blank">👁 Preview</Link>
+          <Link href={previewHref || `/courses/${course.id}`} style={btnGhost} target="_blank">👁 Preview</Link>
           <button onClick={togglePublish} style={{ ...btnPrimary, background: status === "published" ? "#8892A4" : "linear-gradient(135deg, #66BB6A, #2E7D32)" }}>
             {status === "published" ? "Unpublish" : "🚀 Publish"}
           </button>

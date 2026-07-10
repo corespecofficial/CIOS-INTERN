@@ -8,7 +8,6 @@ import {
 } from "@/app/actions/onboarding-intent";
 
 type Step = "pick" | "code" | "apply";
-type Intent = "visitor" | "intern" | "code" | "apply" | "invite";
 
 interface Props {
   me: { id: string; name: string; email: string };
@@ -83,6 +82,11 @@ export function IntentClient({ me, preset }: Props) {
     });
   }
 
+  function handleCreateOrgSpace() {
+    setErr(null);
+    router.replace("/onboarding/organization-space");
+  }
+
   return (
     <div style={{ maxWidth: 720, margin: "60px auto", padding: 24, fontFamily: "'Nunito', sans-serif" }}>
       <h1 style={{ fontSize: 30, fontWeight: 800, color: "#E8EDF5", margin: "0 0 8px 0" }}>
@@ -136,8 +140,17 @@ export function IntentClient({ me, preset }: Props) {
 
           <Card
             emoji="🏢"
-            title="I'm joining as a company / mentor / recruiter / etc."
-            blurb="Apply for a role on CIOS. Super-admin reviews and approves."
+            title="I want to create an organization space"
+            blurb="Provision a private staff portal and intern portal for a company, school, government program, partner, or cohort."
+            cta="Create org space â†’"
+            onClick={handleCreateOrgSpace}
+            disabled={pending}
+          />
+
+          <Card
+            emoji="ðŸ¢"
+            title="I want an individual portal role"
+            blurb="Apply as a mentor, recruiter, investor, founder, or partner contact. This does not create an organization space."
             cta="See role applications →"
             onClick={() => { setErr(null); setStep("apply"); }}
             disabled={pending}
@@ -189,8 +202,38 @@ export function IntentClient({ me, preset }: Props) {
   );
 }
 
+function cardEmoji(title: string, fallback: string) {
+  if (title.includes("organization space")) return "\u{1F3E2}";
+  if (title.includes("individual portal role")) return "\u{1F9ED}";
+  return fallback;
+}
+
+function cleanCta(label: string) {
+  if (label.startsWith("Create org space")) return "Create org space ->";
+  if (label.startsWith("See role applications")) return "Apply for role ->";
+  if (label.startsWith("Enter staff code")) return "Enter staff code ->";
+  return label;
+}
+
+function roleEmoji(role: ApplyRoleInput["role"], fallback: string) {
+  const emojis: Record<ApplyRoleInput["role"], string> = {
+    recruiter: "\u{1F4BC}",
+    mentor: "\u{1F393}",
+    company: "\u{1F3E2}",
+    institution: "\u{1F3DB}",
+    government: "\u{1F3E6}",
+    partner_org: "\u{1F91D}",
+    investor: "\u{1F4B8}",
+    startup_founder: "\u{1F680}",
+  };
+
+  return emojis[role] ?? fallback;
+}
+
 function Card({ emoji, title, blurb, cta, onClick, disabled, recommended, subdued }: { emoji: string; title: string; blurb: string; cta: string; onClick: () => void; disabled?: boolean; recommended?: boolean; subdued?: boolean }) {
   const accent = recommended ? "#1E88E5" : subdued ? "#5A6478" : "#26A69A";
+  const displayEmoji = cardEmoji(title, emoji);
+  const displayCta = cleanCta(cta);
   return (
     <button
       onClick={onClick}
@@ -210,7 +253,7 @@ function Card({ emoji, title, blurb, cta, onClick, disabled, recommended, subdue
         fontFamily: "inherit",
       }}
     >
-      <span style={{ fontSize: 28, lineHeight: 1, flexShrink: 0 }}>{emoji}</span>
+      <span style={{ fontSize: 28, lineHeight: 1, flexShrink: 0 }}>{displayEmoji}</span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 15, fontWeight: 700, display: "block" }}>{title}</span>
@@ -218,7 +261,7 @@ function Card({ emoji, title, blurb, cta, onClick, disabled, recommended, subdue
         </span>
         <span style={{ fontSize: 12, color: "#8892A4", display: "block", marginTop: 2 }}>{blurb}</span>
       </span>
-      <span style={{ fontSize: 12, color: accent, fontWeight: 700, flexShrink: 0 }}>{cta}</span>
+      <span style={{ fontSize: 12, color: accent, fontWeight: 700, flexShrink: 0 }}>{displayCta}</span>
     </button>
   );
 }
@@ -293,7 +336,7 @@ function ApplyStep({ onBack, onSubmit, pending }: { onBack: () => void; onSubmit
                   WAITLIST
                 </span>
               )}
-              <div style={{ fontSize: 22, marginBottom: 4 }}>{r.emoji}</div>
+              <div style={{ fontSize: 22, marginBottom: 4 }}>{roleEmoji(r.id, r.emoji)}</div>
               <div style={{ fontSize: 14, fontWeight: 700 }}>{r.label}</div>
               <div style={{ fontSize: 11, color: "#8892A4", marginTop: 2 }}>{r.blurb}</div>
             </button>

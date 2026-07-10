@@ -17,6 +17,7 @@ import type { OrgMemberRole, CreativeOrg } from "@/lib/active-org";
 import { logOrgAudit } from "@/lib/org-audit";
 import { bulkPushNotifications } from "@/app/actions/notifications";
 import * as Ably from "ably";
+import { publishPlatformOrgEvent } from "@/lib/org-platform-events";
 
 let ablyRest: Ably.Rest | null = null;
 function getAblyRest(): Ably.Rest | null {
@@ -28,7 +29,7 @@ function getAblyRest(): Ably.Rest | null {
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
-const HOST_ROLES: OrgMemberRole[] = ["owner", "org_admin", "instructor"];
+const HOST_ROLES: OrgMemberRole[] = ["owner", "org_admin", "instructor", "moderator", "finance", "support"];
 const STAFF_ROLES: OrgMemberRole[] = ["owner", "org_admin"];
 
 /* ───────────── Authz helpers ───────────── */
@@ -685,7 +686,14 @@ export async function updateMemberRole(orgId: string, memberId: string, newRole:
     target: `user:${t.user_id}`,
     meta: { from: t.role, to: newRole },
   });
+  await publishPlatformOrgEvent({
+    orgId,
+    eventType: "org.member_role_changed",
+    actorId: a.data.me.id,
+    metadata: { user_id: t.user_id, from: t.role, to: newRole, org_slug: a.data.org.slug, org_name: a.data.org.name },
+  });
   revalidatePath(`/o/${a.data.org.slug}/members`);
+  revalidatePath("/super-admin/orgs");
   return { ok: true };
 }
 
@@ -723,6 +731,13 @@ export async function removeMember(orgId: string, memberId: string): Promise<R> 
     target: `user:${t.user_id}`,
     meta: { previous_role: t.role },
   });
+  await publishPlatformOrgEvent({
+    orgId,
+    eventType: "org.member_removed",
+    actorId: a.data.me.id,
+    metadata: { user_id: t.user_id, previous_role: t.role, org_slug: a.data.org.slug, org_name: a.data.org.name },
+  });
   revalidatePath(`/o/${a.data.org.slug}/members`);
+  revalidatePath("/super-admin/orgs");
   return { ok: true };
 }

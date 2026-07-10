@@ -1,10 +1,11 @@
 "use server";
 
-import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
+import { supabaseAdmin, getCurrentDbUser, getCurrentAuthRole } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { pushNotification } from "@/app/actions/notifications";
 import { sendEmail, wrapEmail } from "@/lib/email";
 import { awardXP } from "@/lib/gamification";
+import { getActiveOrg, getOrgMembershipForUser, type ActiveOrgContext } from "@/lib/active-org";
 
 type Result<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -14,18 +15,62 @@ async function requireMe() {
   return me;
 }
 
+const ORG_COURSE_STAFF = ["owner", "org_admin", "instructor"] as const;
+
+async function requireOrgCourseContext(orgSlug?: string): Promise<ActiveOrgContext | null> {
+  if (!orgSlug) return null;
+  const ctx = await getActiveOrg(orgSlug);
+  if (!ctx) throw new Error("Organization not found");
+  if (!ctx.isSuperAdmin && (!ctx.memberRole || !ORG_COURSE_STAFF.includes(ctx.memberRole as typeof ORG_COURSE_STAFF[number]))) {
+    throw new Error("Org instructor privileges required");
+  }
+  return ctx;
+}
+
 async function requireInstructorOrSuperAdmin(courseId?: string) {
   const me = await requireMe();
-  const can = me.role === "instructor" || me.role === "admin" || me.role === "super_admin";
-  if (!can) throw new Error("Instructor privileges required");
+  const authRole = await getCurrentAuthRole();
+  const isPlatformAdmin = me.role === "admin" || me.role === "super_admin" || authRole === "admin" || authRole === "super_admin";
+  const can = me.role === "instructor" || isPlatformAdmin || authRole === "instructor";
   if (courseId) {
-    const { data } = await supabaseAdmin().from("courses").select("instructor_id").eq("id", courseId).single();
+    const sb = supabaseAdmin();
+    let { data, error } = await sb.from("courses").select("instructor_id, org_id").eq("id", courseId).single();
+    if (error && (error.code === "42703" || error.message.includes("org_id"))) {
+      const legacy = await sb.from("courses").select("instructor_id").eq("id", courseId).single();
+      data = legacy.data ? { ...legacy.data, org_id: null } : null;
+      error = legacy.error;
+    }
     if (!data) throw new Error("Course not found");
-    if (data.instructor_id !== me.id && me.role !== "admin" && me.role !== "super_admin") {
+    const orgId = (data as { org_id?: string | null }).org_id ?? null;
+    if (orgId && !isPlatformAdmin) {
+      const orgRole = await getOrgMembershipForUser(orgId, me.id);
+      if (!orgRole || !ORG_COURSE_STAFF.includes(orgRole as typeof ORG_COURSE_STAFF[number])) {
+        throw new Error("You can only edit courses in your org");
+      }
+    } else if (data.instructor_id !== me.id && !isPlatformAdmin) {
       throw new Error("You can only edit your own courses");
     }
+    return me;
   }
+  if (!can) throw new Error("Instructor privileges required");
   return me;
+}
+
+async function getCourseOrgId(courseId: string): Promise<string | null> {
+  const { data, error } = await supabaseAdmin().from("courses").select("org_id").eq("id", courseId).maybeSingle();
+  if (error && (error.code === "42703" || error.message.includes("org_id"))) return null;
+  return (data as { org_id?: string | null } | null)?.org_id ?? null;
+}
+
+function revalidateCoursePaths(courseId: string, orgSlug?: string | null) {
+  revalidatePath("/instructor");
+  revalidatePath(`/instructor/course-builder/${courseId}`);
+  revalidatePath(`/courses/${courseId}`);
+  if (orgSlug) {
+    revalidatePath(`/o/${orgSlug}/instructor`);
+    revalidatePath(`/o/${orgSlug}/instructor/course-builder/${courseId}`);
+    revalidatePath(`/s/${orgSlug}/courses`);
+  }
 }
 
 export interface CreateCourseInput {
@@ -41,14 +86,16 @@ export interface CreateCourseInput {
   thumbnailUrl?: string | null;
   promoVideoUrl?: string | null;
   tags?: string[];
+  orgSlug?: string;
 }
 
 export async function createCourse(input: CreateCourseInput): Promise<Result<{ id: string }>> {
   try {
-    const me = await requireInstructorOrSuperAdmin();
+    const orgCtx = await requireOrgCourseContext(input.orgSlug);
+    const me = orgCtx?.me ?? await requireInstructorOrSuperAdmin();
     if (!input.title.trim()) return { ok: false, error: "Title required" };
     const sb = supabaseAdmin();
-    const { data, error } = await sb.from("courses").insert({
+    const coursePayload: Record<string, unknown> = {
       title: input.title.trim(),
       subtitle: input.subtitle?.trim() || null,
       description: input.description || "",
@@ -63,9 +110,12 @@ export async function createCourse(input: CreateCourseInput): Promise<Result<{ i
       promo_video_url: input.promoVideoUrl || null,
       tags: input.tags || [],
       status: "draft",
-    }).select("id").single();
+    };
+    if (orgCtx) coursePayload.org_id = orgCtx.org.id;
+
+    const { data, error } = await sb.from("courses").insert(coursePayload).select("id").single();
     if (error || !data) return { ok: false, error: error?.message || "Insert failed" };
-    revalidatePath("/instructor");
+    revalidateCoursePaths(data.id, orgCtx?.org.slug);
     return { ok: true, data: { id: data.id } };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -96,8 +146,7 @@ export async function updateCourse(courseId: string, patch: Partial<CreateCourse
     dbPatch.updated_at = new Date().toISOString();
     const { error } = await sb.from("courses").update(dbPatch).eq("id", courseId);
     if (error) return { ok: false, error: error.message };
-    revalidatePath("/instructor");
-    revalidatePath(`/courses/${courseId}`);
+    revalidateCoursePaths(courseId, null);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -109,7 +158,7 @@ export async function deleteCourse(courseId: string): Promise<Result> {
     await requireInstructorOrSuperAdmin(courseId);
     const sb = supabaseAdmin();
     await sb.from("courses").delete().eq("id", courseId);
-    revalidatePath("/instructor");
+    revalidateCoursePaths(courseId, null);
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -173,7 +222,8 @@ export async function addModule(input: CreateModuleInput): Promise<Result<{ id: 
       .order("order_index", { ascending: false }).limit(1).maybeSingle();
     const nextOrder = (maxRow?.order_index ?? -1) + 1;
 
-    const { data, error } = await sb.from("course_modules").insert({
+    const courseOrgId = await getCourseOrgId(input.courseId);
+    const modulePayload: Record<string, unknown> = {
       course_id: input.courseId,
       title: input.title.trim() || "Untitled lesson",
       description: input.description || "",
@@ -184,7 +234,10 @@ export async function addModule(input: CreateModuleInput): Promise<Result<{ id: 
       duration_minutes: input.durationMinutes || 0,
       order_index: nextOrder,
       is_free_preview: !!input.isFreePreview,
-    }).select("id").single();
+    };
+    if (courseOrgId) modulePayload.org_id = courseOrgId;
+
+    const { data, error } = await sb.from("course_modules").insert(modulePayload).select("id").single();
     if (error || !data) return { ok: false, error: error?.message || "Insert failed" };
 
     // Update total_modules count
@@ -269,10 +322,13 @@ export async function submitQuizAttempt(moduleId: string, answers: { questionId:
     const percent = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
     const passed = percent >= (mod.pass_score || 60);
 
-    await sb.from("quiz_attempts").insert({
+    const courseOrgId = await getCourseOrgId(mod.course_id);
+    const attemptPayload: Record<string, unknown> = {
       user_id: me.id, module_id: moduleId,
       answers, score: percent, max_score: 100, passed,
-    });
+    };
+    if (courseOrgId) attemptPayload.org_id = courseOrgId;
+    await sb.from("quiz_attempts").insert(attemptPayload);
 
     // Auto-complete the module if passed
     if (passed) {
@@ -306,8 +362,20 @@ export async function submitAssignment(moduleId: string, content: string, fileUr
     const me = await requireMe();
     const sb = supabaseAdmin();
     if (!content.trim() && !fileUrl) return { ok: false, error: "Write something or attach a file" };
+    const { data: mod } = await sb.from("course_modules").select("course_id").eq("id", moduleId).single();
+    if (!mod) return { ok: false, error: "Module not found" };
+    const courseOrgId = await getCourseOrgId(mod.course_id);
+    const submissionPayload: Record<string, unknown> = {
+      user_id: me.id,
+      module_id: moduleId,
+      content,
+      file_url: fileUrl,
+      status: "submitted",
+      submitted_at: new Date().toISOString(),
+    };
+    if (courseOrgId) submissionPayload.org_id = courseOrgId;
     const { data, error } = await sb.from("module_submissions").upsert(
-      { user_id: me.id, module_id: moduleId, content, file_url: fileUrl, status: "submitted", submitted_at: new Date().toISOString() },
+      submissionPayload,
       { onConflict: "user_id,module_id" }
     ).select("id").single();
     if (error || !data) return { ok: false, error: error?.message || "Submit failed" };
@@ -495,8 +563,11 @@ export async function enrollInCourse(courseId: string): Promise<Result> {
   try {
     const me = await requireMe();
     const sb = supabaseAdmin();
+    const courseOrgId = await getCourseOrgId(courseId);
+    const enrollmentPayload: Record<string, unknown> = { user_id: me.id, course_id: courseId, status: "active", progress: 0 };
+    if (courseOrgId) enrollmentPayload.org_id = courseOrgId;
     const { error } = await sb.from("course_enrollments").upsert(
-      { user_id: me.id, course_id: courseId, status: "active", progress: 0 },
+      enrollmentPayload,
       { onConflict: "user_id,course_id" }
     );
     if (error) return { ok: false, error: error.message };
@@ -596,9 +667,15 @@ export async function issueCertificate(courseId: string): Promise<Result<{ certi
 
     const certificateNumber = generateCertNumber();
     const shareSlug = Math.random().toString(36).slice(2, 12);
-    const { error } = await sb.from("certificates").insert({
-      user_id: me.id, course_id: courseId, certificate_number: certificateNumber, share_slug: shareSlug,
-    });
+    const courseOrgId = await getCourseOrgId(courseId);
+    const certificatePayload: Record<string, unknown> = {
+      user_id: me.id,
+      course_id: courseId,
+      certificate_number: certificateNumber,
+      share_slug: shareSlug,
+    };
+    if (courseOrgId) certificatePayload.org_id = courseOrgId;
+    const { error } = await sb.from("certificates").insert(certificatePayload);
     if (error) return { ok: false, error: error.message };
     await pushNotification({
       userId: me.id, title: "🏆 Certificate ready!",

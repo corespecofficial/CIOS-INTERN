@@ -14,10 +14,14 @@ import { revalidatePath } from "next/cache";
 import { clerkClient } from "@clerk/nextjs/server";
 import { logOrgAudit } from "@/lib/org-audit";
 import { cacheDel } from "@/lib/cache";
+import { publishOrgQuotaWarnings, publishPlatformOrgEvent } from "@/lib/org-platform-events";
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
 interface ResolveResult { redirectTo: string }
+
+type OrgMemberRole = "owner" | "org_admin" | "instructor" | "student" | "moderator" | "finance" | "support" | "mentor";
+type OrgInviteRole = Exclude<OrgMemberRole, "owner">;
 
 /* ───────────── Helpers ───────────── */
 
@@ -46,6 +50,34 @@ async function setClerkRole(clerkId: string | null, newRole: Role) {
   }
 }
 
+async function joinOrgWithQuota(input: {
+  orgId: string;
+  userId: string;
+  role: OrgMemberRole;
+  actorId?: string | null;
+  via: string;
+  metadata?: Record<string, unknown>;
+}) {
+  const sb = supabaseAdmin();
+  const { error } = await sb.rpc("upsert_org_member_with_quota", {
+    p_org_id: input.orgId,
+    p_user_id: input.userId,
+    p_role: input.role,
+    p_status: "active",
+    p_invited_by: input.actorId ?? null,
+  });
+  if (error) throw new Error(error.message);
+
+  await publishPlatformOrgEvent({
+    orgId: input.orgId,
+    eventType: "org.member_joined",
+    actorId: input.actorId ?? input.userId,
+    metadata: { user_id: input.userId, role: input.role, via: input.via, ...(input.metadata ?? {}) },
+  });
+  await publishOrgQuotaWarnings(input.orgId, input.actorId ?? input.userId);
+  revalidatePath("/super-admin/orgs");
+}
+
 /* ───────────── Path 1: continue as visitor ───────────── */
 
 export async function chooseVisitor(): Promise<R<ResolveResult>> {
@@ -65,6 +97,14 @@ export async function chooseVisitor(): Promise<R<ResolveResult>> {
   // circuits to /visitor if completed (localStorage key
   // `cios-visitor-welcome`), so re-runs don't replay it.
   return { ok: true, data: { redirectTo: "/onboarding/visitor-welcome" } };
+}
+
+export async function chooseOrgCreator(): Promise<R<ResolveResult>> {
+  const me = await getCurrentDbUser();
+  if (!me) return { ok: false, error: "Unauthorized" };
+
+  await markOnboarded(me.id, "organization_space", me.clerk_id);
+  return { ok: true, data: { redirectTo: "/creative-space/apply" } };
 }
 
 /* ───────────── Path 2: intern joining a class via enrollment code ─────
@@ -103,7 +143,7 @@ export async function redeemOrgInvite(token: string): Promise<R<ResolveResult>> 
     .select("id, org_id, role, email, expires_at, accepted_at, creative_orgs!inner(slug, status)")
     .eq("token", token)
     .maybeSingle();
-  type Row = { id: string; org_id: string; role: "org_admin" | "instructor" | "student"; email: string; expires_at: string; accepted_at: string | null; creative_orgs: { slug: string; status: string } };
+  type Row = { id: string; org_id: string; role: OrgInviteRole; email: string; expires_at: string; accepted_at: string | null; creative_orgs: { slug: string; status: string } };
   const invite = inviteRow as unknown as Row | null;
   if (!invite) return { ok: false, error: "Invite not found" };
   if (invite.accepted_at) return { ok: false, error: "Invite already used" };
@@ -113,17 +153,14 @@ export async function redeemOrgInvite(token: string): Promise<R<ResolveResult>> 
     return { ok: false, error: "This invite was sent to a different email address" };
   }
 
-  // Idempotent membership upsert.
-  await sb.from("org_members").upsert(
-    { org_id: invite.org_id, user_id: me.id, role: invite.role, status: "active" },
-    { onConflict: "org_id,user_id", ignoreDuplicates: false },
-  );
+  await joinOrgWithQuota({
+    orgId: invite.org_id,
+    userId: me.id,
+    role: invite.role,
+    actorId: me.id,
+    via: "org_invite",
+  });
   await sb.from("org_invites").update({ accepted_at: new Date().toISOString() }).eq("id", invite.id);
-
-  // Recompute member_count from org_members (drift-proof, race-free).
-  // See p393_recount_helper. Replaces the old read-modify-write that
-  // double-counted any soft-removed user re-joining via this code.
-  await sb.rpc("recount_org_members", { p_org_id: invite.org_id });
   await logOrgAudit({
     orgId: invite.org_id, actorId: me.id, action: "member.joined",
     target: `user:${me.id}`,
@@ -140,7 +177,7 @@ export async function redeemOrgInvite(token: string): Promise<R<ResolveResult>> 
   }
 
   await markOnboarded(me.id, invite.role === "student" ? "visitor" : "mentor", me.clerk_id);
-  // Students go to /s/<slug>; staff (instructor/org_admin) go to /o/<slug>.
+  // Interns go to /s/<slug>; staff go to /o/<slug>.
   const target = invite.role === "student" ? `/s/${invite.creative_orgs.slug}` : `/o/${invite.creative_orgs.slug}`;
   return { ok: true, data: { redirectTo: target } };
 }
@@ -166,7 +203,7 @@ export async function redeemEnrollmentCode(code: string): Promise<R<ResolveResul
     .select("id, org_id, role, email, expires_at, accepted_at, creative_orgs!inner(slug, status, name)")
     .eq("token", trimmed)
     .maybeSingle();
-  type Row = { id: string; org_id: string; role: "org_admin" | "instructor" | "student"; email: string; expires_at: string; accepted_at: string | null; creative_orgs: { slug: string; status: string; name: string } };
+  type Row = { id: string; org_id: string; role: OrgInviteRole; email: string; expires_at: string; accepted_at: string | null; creative_orgs: { slug: string; status: string; name: string } };
   const invite = inviteRow as unknown as Row | null;
   if (!invite) return { ok: false, error: "Code not recognised. Check with the person who shared it." };
   if (new Date(invite.expires_at) < new Date()) return { ok: false, error: "This code has expired." };
@@ -184,17 +221,17 @@ export async function redeemEnrollmentCode(code: string): Promise<R<ResolveResul
     }
   }
 
-  // Idempotent membership upsert.
-  await sb.from("org_members").upsert(
-    { org_id: invite.org_id, user_id: me.id, role: invite.role, status: "active" },
-    { onConflict: "org_id,user_id", ignoreDuplicates: false },
-  );
+  await joinOrgWithQuota({
+    orgId: invite.org_id,
+    userId: me.id,
+    role: invite.role,
+    actorId: me.id,
+    via: isPublic ? "public_code" : "email_invite",
+    metadata: { code: trimmed },
+  });
   if (!isPublic) {
     await sb.from("org_invites").update({ accepted_at: new Date().toISOString() }).eq("id", invite.id);
   }
-
-  // Recompute member_count from org_members (drift-proof). See p393.
-  await sb.rpc("recount_org_members", { p_org_id: invite.org_id });
   await logOrgAudit({
     orgId: invite.org_id, actorId: me.id, action: "member.joined",
     target: `user:${me.id}`,
@@ -258,14 +295,16 @@ export async function redeemReferralCode(code: string): Promise<R<ResolveResult>
 
   if (primary && primary.creative_orgs.status === "active") {
     // Auto-enrol as student in the referrer's org.
-    await sb.from("org_members").upsert(
-      { org_id: primary.org_id, user_id: me.id, role: "student", status: "active" },
-      { onConflict: "org_id,user_id", ignoreDuplicates: true },
-    );
+    await joinOrgWithQuota({
+      orgId: primary.org_id,
+      userId: me.id,
+      role: "student",
+      actorId: referrer.id,
+      via: "referral",
+      metadata: { referrer_id: referrer.id, code },
+    });
     // Recompute (drift-proof) — see p393. Also handles ignoreDuplicates
     // case where the upsert was a no-op for an existing active member.
-    await sb.rpc("recount_org_members", { p_org_id: primary.org_id });
-
     if (me.role !== "intern" && me.role !== "public_user" && me.role !== "creative_host") {
       // leave their role alone if they already have something privileged
     } else if (me.role !== "public_user") {
@@ -311,13 +350,16 @@ export async function redeemSuperAdminCode(code: string): Promise<R<ResolveResul
 
   // Optional: auto-membership in a creative_org if the code was bound.
   if (row.org_id) {
-    const orgRole = row.role === "creative_host" ? "owner"
-                  : row.role === "instructor"   ? "instructor"
-                  : "student";
-    await sb.from("org_members").upsert(
-      { org_id: row.org_id, user_id: me.id, role: orgRole, status: "active" },
-      { onConflict: "org_id,user_id", ignoreDuplicates: true },
-    );
+    const orgRole: OrgMemberRole = row.role === "creative_host" ? "owner"
+                            : row.role === "instructor" ? "instructor"
+                            : "student";
+    await joinOrgWithQuota({
+      orgId: row.org_id,
+      userId: me.id,
+      role: orgRole,
+      actorId: me.id,
+      via: "super_admin_code",
+    });
   }
 
   await markOnboarded(me.id, "staff_code", me.clerk_id);

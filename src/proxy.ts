@@ -124,6 +124,7 @@ const ROLE_ACCESS: Record<Role, string[]> = {
 const ONBOARDING_ROUTES = [
   "/onboarding/intent",
   "/onboarding/enrollment",
+  "/onboarding/organization-space",
   "/onboarding/visitor-welcome",
   "/join",
   "/post-auth",
@@ -182,9 +183,17 @@ const isProtectedRoute = createRouteMatcher([
 ]);
 
 const ORG_PATH_RE = /^\/(o|s)\/([^\/]+)/;
-type OrgMemberRole = "owner" | "org_admin" | "instructor" | "student";
-const HOST_ROLES: OrgMemberRole[] = ["owner", "org_admin", "instructor"];
-const STUDENT_ROLES: OrgMemberRole[] = ["student", "owner", "org_admin", "instructor"];
+type OrgMemberRole =
+  | "owner"
+  | "org_admin"
+  | "instructor"
+  | "student"
+  | "moderator"
+  | "finance"
+  | "support"
+  | "mentor";
+const HOST_ROLES: OrgMemberRole[] = ["owner", "org_admin", "instructor", "moderator", "finance", "support", "mentor"];
+const STUDENT_ROLES: OrgMemberRole[] = ["student", "owner", "org_admin", "instructor", "moderator", "finance", "support", "mentor"];
 
 let edgeSb: ReturnType<typeof createClient> | null = null;
 function getEdgeSupabase() {
@@ -344,23 +353,19 @@ export default clerkMiddleware(async (auth, request) => {
     }
   }
 
-  if (!canAccess(role, pathname)) {
-    const home = ROLE_HOME[role] || "/dashboard";
-    const url = request.nextUrl.clone();
-    url.pathname = home;
-    url.searchParams.set("denied", pathname);
-    return NextResponse.redirect(url);
-  }
-
   // Per-tenant guard: /o/<slug>/... and /s/<slug>/... — verify org
   // membership and the right per-org role for the portal kind. Super
   // admin bypasses entirely (they preview every org). The membership
   // lookup is Upstash-cached at 60s; see lookupOrgMembership above.
+  let tenantAccessGranted = false;
+  const tenantMatch = pathname.match(ORG_PATH_RE);
+  if (tenantMatch && role === "super_admin") {
+    tenantAccessGranted = true;
+  }
   if (role !== "super_admin") {
-    const m = pathname.match(ORG_PATH_RE);
-    if (m) {
-      const portalKind = m[1] as "o" | "s";
-      const slug = m[2];
+    if (tenantMatch) {
+      const portalKind = tenantMatch[1] as "o" | "s";
+      const slug = tenantMatch[2];
       const membership = await lookupOrgMembership(userId, slug);
       const allowedRoles = portalKind === "o" ? HOST_ROLES : STUDENT_ROLES;
       if (!membership || !allowedRoles.includes(membership.role)) {
@@ -370,7 +375,16 @@ export default clerkMiddleware(async (auth, request) => {
         url.pathname = "/not-found";
         return NextResponse.rewrite(url);
       }
+      tenantAccessGranted = true;
     }
+  }
+
+  if (!tenantAccessGranted && !canAccess(role, pathname)) {
+    const home = ROLE_HOME[role] || "/dashboard";
+    const url = request.nextUrl.clone();
+    url.pathname = home;
+    url.searchParams.set("denied", pathname);
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();

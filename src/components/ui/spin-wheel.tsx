@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { spinWheel, canSpinToday } from "@/app/actions/spin-wheel";
 import { WHEEL_PRIZES, type SpinPrize } from "@/lib/spin-wheel-config";
@@ -27,6 +28,7 @@ function getLabelPos(index: number, radius: number) {
 }
 
 export function SpinWheel({ onWin, size: sizeProp }: { onWin?: (prize: SpinPrize) => void; size?: number }) {
+  const router = useRouter();
   const [spinning, setSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [canSpin, setCanSpin] = useState(true);
@@ -81,8 +83,9 @@ export function SpinWheel({ onWin, size: sizeProp }: { onWin?: (prize: SpinPrize
       } else {
         toast(`${result.prize.emoji} ${result.prize.label} — better luck next time!`, { duration: 3000 });
       }
-      if (result.prize.type !== "bonus_spin") setCanSpin(result.bonusAvailable);
+      setCanSpin(result.bonusAvailable);
       onWin?.(result.prize);
+      router.refresh();
     }, 4200);
   }
 
@@ -90,6 +93,7 @@ export function SpinWheel({ onWin, size: sizeProp }: { onWin?: (prize: SpinPrize
   const r = size / 2;
 
   const timeUntilNext = nextSpinAt ? (() => {
+    // eslint-disable-next-line react-hooks/purity -- countdown label is intentionally time-relative
     const diff = new Date(nextSpinAt).getTime() - Date.now();
     const h = Math.floor(diff / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);

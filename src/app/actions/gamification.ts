@@ -4,6 +4,7 @@ import { getCurrentDbUser } from "@/lib/db";
 import { awardXP, claimMission as claimMissionSvc, touchLoginStreak, rankFromLevel, type AwardOptions } from "@/lib/gamification";
 import type { XPEventType } from "@/lib/gamification-shared";
 import { pushNotification } from "@/app/actions/notifications";
+import { revalidatePath } from "next/cache";
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -12,6 +13,9 @@ export async function awardXPAction(event: XPEventType, opts: AwardOptions = {})
     const me = await getCurrentDbUser();
     if (!me) return { ok: false, error: "unauthorized" };
     const res = await awardXP(me.id, event, opts);
+    revalidatePath("/gamification");
+    revalidatePath("/dashboard");
+    revalidatePath("/leaderboard");
 
     // Level-up notification — fire and forget
     if (res.leveledUp && res.newLevel) {
@@ -50,6 +54,10 @@ export async function claimMissionAction(missionId: string): Promise<R<{ xp?: nu
     if (!me) return { ok: false, error: "unauthorized" };
     const res = await claimMissionSvc(me.id, missionId);
     if (!res.ok) return { ok: false, error: res.error || "failed" };
+    revalidatePath("/gamification");
+    revalidatePath("/missions");
+    revalidatePath("/dashboard");
+    revalidatePath("/leaderboard");
     return { ok: true, data: { xp: res.xp, coins: res.coins } };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -61,6 +69,9 @@ export async function pingLoginStreak(): Promise<R<{ streak: number; awarded: nu
     const me = await getCurrentDbUser();
     if (!me) return { ok: false, error: "unauthorized" };
     const r = await touchLoginStreak(me.id);
+    revalidatePath("/gamification");
+    revalidatePath("/streaks");
+    revalidatePath("/dashboard");
     return { ok: true, data: { streak: r.streak, awarded: r.awarded } };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };

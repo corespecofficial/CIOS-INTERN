@@ -1,4 +1,4 @@
-import { supabase, supabaseAdmin } from "@/lib/db";
+import { supabaseAdmin } from "@/lib/db";
 import {
   XP_RULES, XP_COOLDOWNS_MS, XP_DAILY_CAPS, levelFromXP,
   type XPEventType,
@@ -29,6 +29,26 @@ export interface AwardResult {
   newLevel?: number;
   leveledUp?: boolean;
   newBadges?: Badge[];
+}
+
+async function applyXPToUser(userId: string, amount: number): Promise<{ oldLevel: number; newLevel: number }> {
+  const admin = supabaseAdmin();
+  const { data: userRow, error: readError } = await admin.from("users").select("xp, level").eq("id", userId).single();
+  if (readError) throw new Error(`Unable to read user XP: ${readError.message}`);
+
+  const oldXP = (userRow?.xp as number) || 0;
+  const oldLevel = (userRow?.level as number) || 1;
+  const newXP = Math.max(0, oldXP + amount);
+  const newLevel = levelFromXP(newXP);
+
+  const { error: updateError } = await admin.from("users").update({
+    xp: newXP,
+    level: newLevel,
+    last_xp_at: new Date().toISOString(),
+  }).eq("id", userId);
+  if (updateError) throw new Error(`Unable to update user XP: ${updateError.message}`);
+
+  return { oldLevel, newLevel };
 }
 
 /** Award XP for an event. Handles dedupe (via ref), cooldowns, daily caps, level-up, badge unlocks. */
@@ -91,15 +111,7 @@ export async function awardXP(userId: string, event: XPEventType, opts: AwardOpt
   if (!insertRes.data) return { awarded: 0, reason: "duplicate" };
 
   // 5. Update user xp + level
-  const { data: userRow } = await admin.from("users").select("xp, level").eq("id", userId).single();
-  const oldXP = (userRow?.xp as number) || 0;
-  const oldLevel = (userRow?.level as number) || 1;
-  const newXP = Math.max(0, oldXP + baseAmount);
-  const newLevel = levelFromXP(newXP);
-
-  await safe(admin.from("users").update({
-    xp: newXP, level: newLevel, last_xp_at: new Date().toISOString(),
-  }).eq("id", userId), null);
+  const { oldLevel, newLevel } = await applyXPToUser(userId, baseAmount);
 
   // 6. Advance mission progress if any mission maps to this event
   try {
@@ -139,6 +151,44 @@ export async function awardXP(userId: string, event: XPEventType, opts: AwardOpt
 
   return {
     awarded: baseAmount,
+    reason: "ok",
+    newLevel,
+    leveledUp: newLevel > oldLevel,
+    newBadges,
+  };
+}
+
+export async function awardVariableXP(userId: string, event: string, amount: number, opts: AwardOptions = {}): Promise<AwardResult> {
+  const admin = supabaseAdmin();
+  if (amount === 0) return { awarded: 0, reason: "ok" };
+
+  if (opts.refId && !opts.force) {
+    const dup = await safe(
+      admin.from("xp_events").select("id").eq("user_id", userId).eq("event_type", event).eq("ref_type", opts.refType ?? "").eq("ref_id", opts.refId).maybeSingle(),
+      { data: null } as { data: { id: string } | null },
+    );
+    if (dup.data) return { awarded: 0, reason: "duplicate" };
+  }
+
+  const { data: inserted, error: insertError } = await admin.from("xp_events").insert({
+    user_id: userId,
+    event_type: event,
+    amount,
+    ref_type: opts.refType ?? null,
+    ref_id: opts.refId ?? null,
+    metadata: opts.metadata ?? {},
+  }).select("id").single();
+
+  if (insertError || !inserted) {
+    if (insertError?.code === "23505") return { awarded: 0, reason: "duplicate" };
+    throw new Error(`Unable to record XP event: ${insertError?.message || "unknown error"}`);
+  }
+
+  const { oldLevel, newLevel } = await applyXPToUser(userId, amount);
+  const newBadges = await evaluateBadges(userId);
+
+  return {
+    awarded: amount,
     reason: "ok",
     newLevel,
     leveledUp: newLevel > oldLevel,
@@ -258,7 +308,7 @@ export interface LeaderboardRow {
 export type LeaderboardMode = "xp" | "weekly" | "monthly" | "learners" | "contributors" | "attendance" | "improved";
 
 export async function getLeaderboard(mode: LeaderboardMode, limit = 50): Promise<LeaderboardRow[]> {
-  const sb = supabase();
+  const sb = supabaseAdmin();
   if (mode === "weekly" || mode === "monthly") {
     const since = new Date(); since.setDate(since.getDate() - (mode === "weekly" ? 7 : 30));
     const ev = await safe(
@@ -292,9 +342,16 @@ export async function getLeaderboard(mode: LeaderboardMode, limit = 50): Promise
 
 export async function getUserGamificationSnapshot(userId: string) {
   const admin = supabaseAdmin();
-  const [userRes, badgesRes, eventsRes, streaksRes, missionsRes] = await Promise.all([
-    safe(admin.from("users").select("id, name, avatar_url, role, xp, level, streak, best_streak, reputation, coins").eq("id", userId).single(),
-      { data: null } as { data: { id: string; name: string; avatar_url: string | null; role: string; xp: number; level: number; streak: number; best_streak: number; reputation: number; coins: number } | null }),
+  type SnapshotUser = {
+    id: string; name: string; avatar_url: string | null; role: string;
+    xp: number; level: number; streak: number; best_streak: number;
+    reputation: number; coins: number; wallet_balance: number;
+  };
+  const [baseUserRes, extraUserRes, badgesRes, eventsRes, streaksRes, missionsRes] = await Promise.all([
+    safe(admin.from("users").select("id, name, avatar_url, role, xp, level, streak, reputation, wallet_balance").eq("id", userId).single(),
+      { data: null } as { data: (Omit<SnapshotUser, "best_streak" | "coins">) | null }),
+    safe(admin.from("users").select("best_streak, coins").eq("id", userId).single(),
+      { data: null } as { data: { best_streak: number; coins: number } | null }),
     safe(admin.from("user_badges").select("earned_at, badges(id, name, description, icon_url, category)").eq("user_id", userId).order("earned_at", { ascending: false }),
       { data: [] } as { data: Array<{ earned_at: string; badges: { id: string; name: string; description: string; icon_url: string; category: string } }> }),
     safe(admin.from("xp_events").select("event_type, amount, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(50),
@@ -304,6 +361,14 @@ export async function getUserGamificationSnapshot(userId: string) {
     safe(admin.from("user_missions").select("mission_id, progress, claimed_at, cycle_start, missions(id, key, title, description, cadence, target, xp_reward, coin_reward)").eq("user_id", userId).order("cycle_start", { ascending: false }).limit(20),
       { data: [] } as { data: Array<{ mission_id: string; progress: number; claimed_at: string | null; cycle_start: string; missions: { id: string; key: string; title: string; description: string; cadence: string; target: number; xp_reward: number; coin_reward: number } }> }),
   ]);
+  const userRes: { data: SnapshotUser | null } = {
+    data: baseUserRes.data ? {
+      ...baseUserRes.data,
+      best_streak: extraUserRes.data?.best_streak ?? baseUserRes.data.streak ?? 0,
+      coins: extraUserRes.data?.coins ?? 0,
+      wallet_balance: Number(baseUserRes.data.wallet_balance ?? 0),
+    } : null,
+  };
   // Heal stale users.level if it drifted from actual XP (e.g. after formula change)
   const u = userRes.data;
   if (u && levelFromXP(u.xp) !== u.level) {

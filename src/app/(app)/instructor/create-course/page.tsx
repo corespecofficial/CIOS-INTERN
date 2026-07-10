@@ -11,7 +11,13 @@ const CATEGORIES = ["Design", "Development", "AI", "Marketing", "Business", "Fin
 const DIFFICULTIES: Array<"beginner" | "intermediate" | "advanced"> = ["beginner", "intermediate", "advanced"];
 const LANGUAGES = ["English", "French", "Yoruba", "Igbo", "Hausa", "Swahili"];
 
-export default function CreateCoursePage() {
+export default function CreateCoursePage({
+  orgSlug,
+  basePath = "/instructor",
+}: {
+  orgSlug?: string;
+  basePath?: string;
+}) {
   const router = useRouter();
   const thumbInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
@@ -66,18 +72,19 @@ export default function CreateCoursePage() {
       thumbnailUrl: form.thumbnailUrl || null,
       promoVideoUrl: form.promoVideoUrl || null,
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      orgSlug,
     });
     setBusy(false);
     if (!r.ok) { toast.error(r.error); return; }
     toast.success("Course created — now add lessons");
-    router.push(`/instructor/course-builder/${r.data!.id}`);
+    router.push(`${basePath}/course-builder/${r.data!.id}`);
   }
 
   return (
     <div style={{ maxWidth: 880, margin: "0 auto", fontFamily: "'Nunito', sans-serif" }}>
       <div style={{ marginBottom: 20 }}>
         <span style={{ display: "inline-block", padding: "3px 10px", background: "rgba(171,71,188,0.15)", color: "#AB47BC", fontSize: 11, fontWeight: 700, borderRadius: 20, letterSpacing: 0.5, marginBottom: 6 }}>
-          INSTRUCTOR · NEW COURSE
+          {orgSlug ? "ORG INSTRUCTOR · NEW COURSE" : "INSTRUCTOR · NEW COURSE"}
         </span>
         <h1 style={{ fontSize: 26, fontWeight: 800, color: "#E8EDF5", margin: "2px 0" }}>Create a new course</h1>
         <p style={{ fontSize: 13, color: "#8892A4", margin: 0 }}>Fill in the basics — you&apos;ll add modules and lessons on the next screen.</p>

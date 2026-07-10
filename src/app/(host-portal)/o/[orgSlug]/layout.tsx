@@ -37,7 +37,7 @@ export default async function HostOrgLayout({ children, params }: Props) {
   const ctx = status.ctx;
   // Host-side portal — only owners/admins/instructors. Students get the
   // /s/<slug> portal instead. Super-admin can preview either.
-  const allowedHostRoles: ReadonlyArray<string> = ["owner", "org_admin", "instructor"];
+  const allowedHostRoles: ReadonlyArray<string> = ["owner", "org_admin", "instructor", "moderator", "finance", "support", "mentor"];
   const allowed = ctx.isSuperAdmin || (ctx.memberRole && allowedHostRoles.includes(ctx.memberRole));
   if (!allowed) notFound();
 
@@ -50,7 +50,16 @@ export default async function HostOrgLayout({ children, params }: Props) {
         isSuperAdmin={ctx.isSuperAdmin}
       />
       <MobileDrawer />
-      <div data-portal-main style={{ marginLeft: 240, minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
+      <div
+        data-portal-main
+        style={{
+          marginLeft: "var(--org-sidebar-width, 280px)",
+          minHeight: "100dvh",
+          display: "flex",
+          flexDirection: "column",
+          transition: "margin-left 0.2s ease",
+        }}
+      >
         <HostHeader
           orgSlug={ctx.org.slug}
           orgName={ctx.org.name}

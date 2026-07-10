@@ -70,7 +70,7 @@ const COMMANDS: Cmd[] = [
   { id: "mentor",    label: "Mentorship",        emoji: "🧑‍🏫", href: "/mentorship",   group: "Navigate",                               roles: [...INTERN_ROLES, "mentor"] },
   { id: "alumni-p",  label: "Alumni",            emoji: "🎓", href: "/alumni",        group: "Navigate",                               roles: ["alumni", ...ADMIN_ROLES] },
   { id: "mktplace",  label: "Marketplace",       emoji: "🛒", href: "/marketplace",   group: "Navigate",                               roles: [...INTERN_ROLES, ...ADMIN_ROLES, "alumni"] },
-  { id: "creative",  label: "Creative Space",    emoji: "🏫", href: "/creative-space", group: "Navigate",                              roles: [...INTERN_ROLES, "instructor", ...ADMIN_ROLES] },
+  { id: "creative",  label: "Organization Spaces",    emoji: "🏫", href: "/creative-space", group: "Navigate",                              roles: [...INTERN_ROLES, "instructor", ...ADMIN_ROLES] },
   { id: "wellness",    label: "Wellness",          emoji: "💚", href: "/wellness",        group: "Navigate",                               roles: [...INTERN_ROLES, ...ADMIN_ROLES] },
   { id: "rewards",     label: "Rewards Hub",       emoji: "🏆", href: "/gamification",    group: "Navigate", keywords: "xp spin wheel missions badges",      roles: [...INTERN_ROLES] },
   { id: "achieve",     label: "Achievements",      emoji: "⭐", href: "/achievements",    group: "Navigate",                               roles: [...INTERN_ROLES, ...ADMIN_ROLES] },
@@ -101,8 +101,8 @@ const COMMANDS: Cmd[] = [
   { id: "inst",        label: "Instructor Portal",   emoji: "🎓", href: "/instructor",              group: "Navigate", roles: ["instructor", ...ADMIN_ROLES] },
   { id: "inst-course", label: "Create Course",        emoji: "➕", href: "/instructor/create-course",group: "Navigate", roles: ["instructor", ...ADMIN_ROLES] },
   { id: "inst-studs",  label: "My Students",          emoji: "👥", href: "/instructor/students",     group: "Navigate", roles: ["instructor", ...ADMIN_ROLES] },
-  { id: "cs-apply",    label: "Apply: Creative Space",emoji: "🏫", href: "/creative-space/apply",    group: "Navigate", roles: ["instructor"] },
-  { id: "cs-manage",   label: "Manage Creative Space",emoji: "🏫", href: "/creative-space/manage",   group: "Navigate", roles: ["instructor"] },
+  { id: "cs-apply",    label: "Create Organization Space",emoji: "🏫", href: "/creative-space/apply",    group: "Navigate", roles: ["instructor", ...ADMIN_ROLES] },
+  { id: "cs-manage",   label: "Manage Organization Spaces",emoji: "🏫", href: "/creative-space/manage",   group: "Navigate", roles: ["instructor", ...ADMIN_ROLES] },
 
   // ── Team Lead ────────────────────────────────────────────────────────────
   { id: "tl",          label: "Team Lead Portal",    emoji: "👥", href: "/team-lead",              group: "Navigate", roles: ["team_lead", ...ADMIN_ROLES] },
@@ -140,7 +140,7 @@ const COMMANDS: Cmd[] = [
   { id: "wrapped",       label: "Monthly Wrapped",          emoji: "🎁", href: "/wrapped",                       group: "Navigate", keywords: "spotify share card recap summary monthly", roles: [...INTERN_ROLES, "mentor", "alumni", ...ADMIN_ROLES] },
   { id: "skills-lab",    label: "Skills Lab",               emoji: "🧪", href: "/skills-lab",                    group: "Navigate", keywords: "assessment test quiz exam proficiency", roles: [...INTERN_ROLES, "mentor", "alumni", ...ADMIN_ROLES] },
   { id: "adm-hack",      label: "Admin · Hackathons",       emoji: "🏆", href: "/admin/hackathons",              group: "Admin", roles: ADMIN_ROLES },
-  { id: "adm-spaces",    label: "Admin · Creative Spaces",  emoji: "🏫", href: "/admin/creative-spaces",         group: "Admin", roles: ADMIN_ROLES },
+  { id: "adm-spaces",    label: "Admin · Organization Spaces",  emoji: "🏫", href: "/admin/creative-spaces",         group: "Admin", roles: ADMIN_ROLES },
   { id: "adm-engage",    label: "Admin · Engagement",       emoji: "📊", href: "/admin/engagement",              group: "Admin", roles: MOD_ROLES },
   { id: "adm-msg",       label: "Admin · Message Control",  emoji: "💬", href: "/admin/message-control",         group: "Admin", roles: ADMIN_ROLES },
   { id: "adm-audit",     label: "Admin · Audit Logs",       emoji: "📝", href: "/admin/audit-logs",              group: "Admin", roles: ADMIN_ROLES },
@@ -221,7 +221,21 @@ export function CommandPalette() {
     );
   }, [q, recents, visibleCommands]);
 
-  const go = (c: Cmd) => { setOpen(false); router.push(c.href); };
+  function scopedHref(href: string): string {
+    const orgMatch = pathname?.match(/^\/(o|s)\/([^/]+)/);
+    if (!orgMatch) return href;
+    const [, portal, slug] = orgMatch;
+    if (href.startsWith("/admin")) return `/o/${slug}${href}`;
+    if (href.startsWith("/instructor")) return `/o/${slug}${href}`;
+    if (href === "/dashboard") return portal === "s" ? `/s/${slug}` : `/o/${slug}`;
+    if (["/classroom", "/courses", "/tasks", "/messages", "/community", "/wallet", "/gamification", "/notes", "/performance"].some((prefix) => href === prefix || href.startsWith(`${prefix}/`))) {
+      const mapped = href.replace(/^\/messages/, "/chat").replace(/^\/gamification/, "/rewards-hub");
+      return `/s/${slug}${mapped}`;
+    }
+    return href;
+  }
+
+  const go = (c: Cmd) => { setOpen(false); router.push(scopedHref(c.href)); };
 
   if (!open) return null;
 

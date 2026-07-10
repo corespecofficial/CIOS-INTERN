@@ -2,6 +2,8 @@
 
 import { getCurrentDbUser, supabaseAdmin } from "@/lib/db";
 import { pushNotification } from "@/app/actions/notifications";
+import { awardVariableXP } from "@/lib/gamification";
+import { revalidatePath } from "next/cache";
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -58,14 +60,32 @@ export async function claimDailyLogin(): Promise<R<{ already: boolean; xpGranted
     }
 
     // Only reached on a genuine first insert of the day — safe to award XP
-    await sb
+    const best = Math.max(me.streak ?? 0, newStreak);
+    const { error: streakError } = await sb.from("streaks").upsert({
+      user_id: me.id,
+      kind: "login",
+      current: newStreak,
+      best,
+      last_day: today,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id,kind" });
+    if (streakError) throw streakError;
+
+    const { error: userError } = await sb
       .from("users")
       .update({
-        xp: (me.xp ?? 0) + bonus,
         streak: newStreak,
+        best_streak: best,
         last_seen: new Date().toISOString(),
       })
       .eq("id", me.id);
+    if (userError) throw userError;
+
+    const xp = await awardVariableXP(me.id, "login_streak", bonus, {
+      refType: "daily_login",
+      refId: today,
+      metadata: { streak: newStreak },
+    });
 
     pushNotification({
       userId: me.id,
@@ -75,7 +95,11 @@ export async function claimDailyLogin(): Promise<R<{ already: boolean; xpGranted
       url: "/gamification",
     }).catch(() => {});
 
-    return { ok: true, data: { already: false, xpGranted: bonus, streak: newStreak } };
+    revalidatePath("/gamification");
+    revalidatePath("/dashboard");
+    revalidatePath("/leaderboard");
+
+    return { ok: true, data: { already: false, xpGranted: xp.awarded, streak: newStreak } };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

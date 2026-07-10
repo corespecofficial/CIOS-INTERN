@@ -17,7 +17,7 @@ interface Props {
 }
 
 interface DashboardCounts {
-  students: number;
+  interns: number;
   instructors: number;
   lessons: number;
   assignments: number;
@@ -64,14 +64,14 @@ async function getRecentActivity(orgId: string, limit = 12): Promise<ActivityRow
 async function getCounts(orgId: string): Promise<DashboardCounts> {
   return cached<DashboardCounts>(orgCacheKey.dashboard(orgId), TTL.short, async () => {
     const sb = supabaseAdmin();
-    const [students, instructors, lessons, assignments] = await Promise.all([
+    const [interns, instructors, lessons, assignments] = await Promise.all([
       sb.from("org_members").select("id", { count: "exact", head: true }).eq("org_id", orgId).eq("role", "student").eq("status", "active"),
-      sb.from("org_members").select("id", { count: "exact", head: true }).eq("org_id", orgId).in("role", ["instructor", "org_admin"]).eq("status", "active"),
+      sb.from("org_members").select("id", { count: "exact", head: true }).eq("org_id", orgId).neq("role", "student").eq("status", "active"),
       sb.from("org_lessons").select("id", { count: "exact", head: true }).eq("org_id", orgId),
       sb.from("org_assignments").select("id", { count: "exact", head: true }).eq("org_id", orgId),
     ]);
     return {
-      students: students.count ?? 0,
+      interns: interns.count ?? 0,
       instructors: instructors.count ?? 0,
       lessons: lessons.count ?? 0,
       assignments: assignments.count ?? 0,
@@ -102,7 +102,7 @@ export default async function OrgDashboard({ params }: Props) {
   ]);
 
   const cards = [
-    { label: "Students", value: counts.students, color: "#1E88E5" },
+    { label: "Interns", value: counts.interns, color: "#1E88E5" },
     { label: "Staff", value: counts.instructors, color: "#9C27B0" },
     { label: "Lessons", value: counts.lessons, color: "#26A69A" },
     { label: "Assignments", value: counts.assignments, color: "#FFA726" },
@@ -165,8 +165,8 @@ export default async function OrgDashboard({ params }: Props) {
         <h2 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 6px 0" }}>Get started</h2>
         <ul style={{ margin: 0, padding: "0 0 0 18px", color: "#8892A4", fontSize: 13, lineHeight: 1.8 }}>
           <li>Add your first lesson under <strong style={{ color: "#E8EDF5" }}>Lessons</strong></li>
-          <li>Invite co-instructors from <strong style={{ color: "#E8EDF5" }}>Members</strong></li>
-          <li>Pin an announcement so new students see it first</li>
+          <li>Invite staff and interns from <strong style={{ color: "#E8EDF5" }}>Interns & staff</strong></li>
+          <li>Pin an announcement so new interns see it first</li>
         </ul>
       </div>
     </div>

@@ -20,7 +20,7 @@ import { updateMyProfile } from "@/app/actions/profile";
 const LOGO = "https://res.cloudinary.com/detsk6uql/image/upload/v1775646964/Adobe_Express_-_file_lydnbc.png";
 
 const INTERESTS: { id: string; emoji: string; label: string }[] = [
-  { id: "find_class",   emoji: "🏫", label: "Find a class to join" },
+  { id: "find_org",     emoji: "🏫", label: "Join an organization space" },
   { id: "find_mentor",  emoji: "🎓", label: "Connect with a mentor" },
   { id: "hackathons",   emoji: "🏆", label: "Compete in hackathons" },
   { id: "marketplace",  emoji: "🛒", label: "Shop the marketplace" },
@@ -68,7 +68,7 @@ export default function VisitorWelcomePage() {
   const steps = [
     { title: "Welcome to CIOS", subtitle: "Your visitor space — explore, save, apply, level up when you're ready." },
     { title: "What brings you here?", subtitle: "Pick anything that fits — we'll surface those first." },
-    { title: "Any tracks of interest?", subtitle: "Optional. Helps us show you the right classes & mentors." },
+    { title: "Any tracks of interest?", subtitle: "Optional. Helps us show you the right organizations, programs and mentors." },
     { title: "Tell us about you", subtitle: "Goes on your profile so the people you connect with know who they're meeting. You can edit anytime." },
     { title: "How CIOS works for visitors", subtitle: "Three things you can do without committing to a role yet." },
     { title: "You're all set!", subtitle: "Welcome aboard. Your visitor portal is ready." },
@@ -162,7 +162,7 @@ export default function VisitorWelcomePage() {
             <div style={{ textAlign: "center", padding: "20px 0" }}>
               <p style={{ fontSize: 15, color: "#B0BEC5", lineHeight: 1.7, marginBottom: 24 }}>
                 Hey <span style={{ color: "#1E88E5", fontWeight: 700 }}>{user.firstName || "there"}</span>!
-                The visitor portal lets you <strong style={{ color: "#26C6DA" }}>browse, save and apply</strong> across every public surface on CIOS — classes, opportunities, hackathons, mentors, the marketplace — without picking a permanent role.
+                The visitor portal lets you <strong style={{ color: "#26C6DA" }}>browse, save and apply</strong> across every public surface on CIOS - organization spaces, opportunities, hackathons, mentors, the marketplace - without picking a permanent role.
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
                 {[
@@ -282,7 +282,7 @@ export default function VisitorWelcomePage() {
           {step === 4 && (
             <div style={{ padding: "8px 0" }}>
               {[
-                { icon: "🏫", title: "Join a class", body: "Browse Creative Spaces hosted by vetted CIOS instructors. Enroll in cohorts, watch lessons, do assignments — all with one click." },
+                { icon: "🏫", title: "Join an organization", body: "Browse Creative Spaces hosted by vetted organizations and instructors. Join a tenant portal, watch lessons, do assignments, chat, and access files from one workspace." },
                 { icon: "🎓", title: "Find a mentor", body: "Connect 1:1 with mentors and alumni who've walked the same path. Book sessions, get feedback, ship better work." },
                 { icon: "💼", title: "Apply for opportunities", body: "Internships, gigs, hackathons. Track every application from your visitor dashboard." },
               ].map((b) => (

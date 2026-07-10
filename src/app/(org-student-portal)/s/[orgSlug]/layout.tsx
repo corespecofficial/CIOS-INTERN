@@ -2,7 +2,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getOrgEntryStatus } from "@/lib/active-org";
 import { StudentNav } from "./student-nav";
+import { StudentHeader } from "./student-header";
 import { MobileDrawer } from "@/components/portal/mobile-drawer";
+import { CommandPalette } from "@/components/command-palette";
 
 export const dynamic = "force-dynamic";
 
@@ -28,9 +30,22 @@ export default async function StudentOrgLayout({ children, params }: {
     <>
       <StudentNav orgSlug={ctx.org.slug} orgName={ctx.org.name} />
       <MobileDrawer />
-      <main data-portal-main style={{ marginLeft: 240, padding: "32px 40px", minHeight: "100dvh" }}>
-        {children}
-      </main>
+      <div
+        data-portal-main
+        style={{
+          marginLeft: "var(--student-sidebar-width, 240px)",
+          minHeight: "100dvh",
+          display: "flex",
+          flexDirection: "column",
+          transition: "margin-left 0.2s ease",
+        }}
+      >
+        <StudentHeader orgName={ctx.org.name} />
+        <main style={{ flex: 1, padding: "32px 40px" }}>
+          {children}
+        </main>
+        <CommandPalette />
+      </div>
     </>
   );
 }

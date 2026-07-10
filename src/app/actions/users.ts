@@ -4,6 +4,7 @@ import { auth, clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
+import { publishOrgQuotaWarnings, publishPlatformOrgEvent } from "@/lib/org-platform-events";
 
 export type Role =
   | "intern" | "team_lead" | "admin" | "super_admin"
@@ -336,9 +337,17 @@ export async function revokeInvitation(invitationId: string): Promise<{ ok: true
    so the caller can pass the Clerk id from the user list.
    ──────────────────────────────────────────────────────────────────── */
 
-export type OrgMemberRole = "owner" | "org_admin" | "instructor" | "student";
+export type OrgMemberRole =
+  | "owner"
+  | "org_admin"
+  | "instructor"
+  | "student"
+  | "moderator"
+  | "finance"
+  | "support"
+  | "mentor";
 
-const ORG_ROLES: OrgMemberRole[] = ["owner", "org_admin", "instructor", "student"];
+const ORG_ROLES: OrgMemberRole[] = ["owner", "org_admin", "instructor", "student", "moderator", "finance", "support", "mentor"];
 
 export interface OrgMembership {
   org_id: string;
@@ -429,16 +438,14 @@ export async function assignUserToOrg(
     if (!sbUserId) return { ok: false, error: "User has no Supabase record yet — wait for Clerk webhook to sync, then retry." };
 
     const sb = supabaseAdmin();
-    const { error } = await sb
-      .from("org_members")
-      .upsert(
-        { org_id: orgId, user_id: sbUserId, role, status: "active" },
-        { onConflict: "org_id,user_id" },
-      );
+    const { error } = await sb.rpc("upsert_org_member_with_quota", {
+      p_org_id: orgId,
+      p_user_id: sbUserId,
+      p_role: role,
+      p_status: "active",
+      p_invited_by: null,
+    });
     if (error) return { ok: false, error: error.message };
-
-    // Recount on the org so dashboard counts stay accurate.
-    await sb.rpc("recount_org_members", { p_org_id: orgId }).then(() => null, () => null);
 
     const me = await getCurrentDbUser();
     await logAudit({
@@ -449,7 +456,15 @@ export async function assignUserToOrg(
       entityType: "user", entityId: clerkId,
       metadata: { orgId, role }, severity: "notice",
     });
+    await publishPlatformOrgEvent({
+      orgId,
+      eventType: "org.member_joined",
+      actorId: me?.id ?? null,
+      metadata: { user_id: sbUserId, role, via: "super_admin_assignment" },
+    });
+    await publishOrgQuotaWarnings(orgId, me?.id ?? null);
     revalidatePath(`/super-admin/users/${clerkId}/orgs`);
+    revalidatePath("/super-admin/orgs");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed to assign org membership" };
@@ -505,7 +520,14 @@ export async function removeUserFromOrg(
       entityType: "user", entityId: clerkId,
       metadata: { orgId }, severity: "notice",
     });
+    await publishPlatformOrgEvent({
+      orgId,
+      eventType: "org.member_removed",
+      actorId: me?.id ?? null,
+      metadata: { user_id: sbUserId, via: "super_admin_removal" },
+    });
     revalidatePath(`/super-admin/users/${clerkId}/orgs`);
+    revalidatePath("/super-admin/orgs");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed to remove org membership" };

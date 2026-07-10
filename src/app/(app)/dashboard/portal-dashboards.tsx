@@ -3,6 +3,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import toast from "react-hot-toast";
 import { setFeatureFlag, setSystemLock, clearPlatformCache, type FeatureFlags } from "@/app/actions/platform-settings";
 import { useIsMobile } from "@/hooks/use-is-mobile";
@@ -305,7 +306,7 @@ export function SuperAdminDashboard({ stats, featureFlags, roleBreakdown }: Supe
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(3, 1fr)", gap: isMobile ? 8 : 12 }}>
           {[
             { emoji: "🛒", label: "Marketplace", sub: "Products & seller earnings", href: "/marketplace", color: "#1E88E5" },
-            { emoji: "🎨", label: "Creative Spaces", sub: "Hosted learning spaces", href: "/creative-space", color: "#AB47BC" },
+            { emoji: "🎨", label: "Org Spaces", sub: "Create or join tenant portals", href: "/creative-space", color: "#AB47BC" },
             { emoji: "💚", label: "Wellness", sub: "Intern mood & wellbeing", href: "/admin/wellness", color: "#66BB6A" },
             { emoji: "⚡", label: "Hackathons", sub: "Events, teams & judging", href: "/hackathons", color: "#FF7043" },
             { emoji: "🚀", label: "Investor Portal", sub: "Traction & startup pitches", href: "/investors", color: "#7C4DFF" },
@@ -314,7 +315,7 @@ export function SuperAdminDashboard({ stats, featureFlags, roleBreakdown }: Supe
             { emoji: "🧑‍🏫", label: "Mentor Hub", sub: "Mentors, sessions & mentees", href: "/mentor", color: "#26C6DA" },
             { emoji: "👨‍👩‍👧", label: "Guardian Portal", sub: "Parent read-only access", href: "/admin", color: "#8892A4" },
             { emoji: "🏆", label: "Admin Hackathons", sub: "Create & manage events", href: "/admin/hackathons", color: "#FF7043" },
-            { emoji: "🏫", label: "Admin Spaces", sub: "Approve creative spaces", href: "/admin/creative-spaces", color: "#AB47BC" },
+            { emoji: "🏫", label: "Org Applications", sub: "Approve organization spaces", href: "/admin/creative-spaces", color: "#AB47BC" },
             { emoji: "👥", label: "Admin Alumni", sub: "Manage graduates", href: "/admin/alumni", color: "#FFC107" },
           ].map((portal) => (
             <a key={portal.label} href={portal.href} style={{
@@ -559,6 +560,8 @@ interface InstructorProps {
   name?: string;
   upcomingClasses?: InstructorUpcomingClass[];
   recentGrades?: InstructorRecentGrade[];
+  basePath?: string;
+  label?: string;
 }
 
 const COURSE_GRADIENTS = [
@@ -574,7 +577,7 @@ const COURSE_ICONS: Record<string, string> = {
   Marketing: "\u{1F4E2}", General: "\u{1F4DA}",
 };
 
-export function InstructorDashboard({ courses: coursesProp, name, upcomingClasses: upcomingProp, recentGrades: gradesProp }: InstructorProps = {}) {
+export function InstructorDashboard({ courses: coursesProp, name, upcomingClasses: upcomingProp, recentGrades: gradesProp, basePath = "/instructor", label = "INSTRUCTOR" }: InstructorProps = {}) {
   const courses = coursesProp ?? [];
   const upcomingClasses = upcomingProp ?? [];
   const recentGrades = gradesProp ?? [];
@@ -617,7 +620,7 @@ export function InstructorDashboard({ courses: coursesProp, name, upcomingClasse
               letterSpacing: 0.5,
             }}
           >
-            INSTRUCTOR
+            {label}
           </span>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "#E8EDF5", margin: 0 }}>
             Instructor Dashboard
@@ -630,7 +633,7 @@ export function InstructorDashboard({ courses: coursesProp, name, upcomingClasse
 
       {/* Action buttons */}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <a href="/instructor/create-course" style={{ background: "linear-gradient(135deg, #AB47BC, #8E24AA)", color: "#fff", textDecoration: "none", border: "none", borderRadius: 12, padding: "12px 20px", fontSize: 13, fontWeight: 700 }}>+ Create course</a>
+        <a href={`${basePath}/create-course`} style={{ background: "linear-gradient(135deg, #AB47BC, #8E24AA)", color: "#fff", textDecoration: "none", border: "none", borderRadius: 12, padding: "12px 20px", fontSize: 13, fontWeight: 700 }}>+ Create course</a>
         <a href="/instructor/students" style={{ background: "#111827", color: "#E8EDF5", textDecoration: "none", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "12px 20px", fontSize: 13, fontWeight: 600 }}>👥 Students</a>
         <a href="/instructor/certificates" style={{ background: "#111827", color: "#E8EDF5", textDecoration: "none", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "12px 20px", fontSize: 13, fontWeight: 600 }}>🏆 Certificates</a>
         <a href="/instructor/schedule-class" style={{ background: "#111827", color: "#E8EDF5", textDecoration: "none", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, padding: "12px 20px", fontSize: 13, fontWeight: 600 }}>📅 Schedule class</a>
@@ -962,7 +965,7 @@ export function MentorDashboard() {
         <div>
           <span style={{ display: "inline-block", padding: "4px 12px", background: "rgba(38,198,218,0.2)", color: "#26C6DA", fontSize: 11, fontWeight: 700, borderRadius: 20, letterSpacing: 0.5, marginBottom: 6 }}>MENTOR</span>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "#E8EDF5", fontFamily: "'Space Grotesk', sans-serif", marginBottom: 4 }}>Mentor Hub</h1>
-          <p style={{ fontSize: 13, color: "#8892A4" }}>Guide interns, manage sessions, and track your mentees' progress.</p>
+          <p style={{ fontSize: 13, color: "#8892A4" }}>Guide interns, manage sessions, and track your mentees&apos; progress.</p>
         </div>
       </div>
 
@@ -1037,11 +1040,11 @@ export function AlumniDashboard() {
           <div style={{ fontSize: 15, fontWeight: 700, color: "#E8EDF5", marginBottom: 4 }}>Alumni Hub</div>
           <div style={{ fontSize: 13, color: "#8892A4" }}>Browse success stories, directory, and submit your own story.</div>
         </a>
-        <a href="/opportunities" style={{ display: "block", background: "#111827", border: "1px solid rgba(255,193,7,0.2)", borderRadius: 14, padding: 20, textDecoration: "none" }}>
+        <Link href="/opportunities" style={{ display: "block", background: "#111827", border: "1px solid rgba(255,193,7,0.2)", borderRadius: 14, padding: 20, textDecoration: "none" }}>
           <div style={{ fontSize: 22, marginBottom: 8 }}>💼</div>
           <div style={{ fontSize: 15, fontWeight: 700, color: "#E8EDF5", marginBottom: 4 }}>Opportunities</div>
           <div style={{ fontSize: 13, color: "#8892A4" }}>Jobs, gigs, and scholarships for CIOS alumni.</div>
-        </a>
+        </Link>
       </div>
     </div>
   );

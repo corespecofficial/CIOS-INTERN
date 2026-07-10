@@ -44,17 +44,16 @@ export function ClassCodesPanel({ orgId, orgSlug, initialCodes }: Props) {
     return `${base}/onboarding/enrollment?code=${encodeURIComponent(token)}`;
   }
 
-  const now = Date.now();
-  const live = codes.filter((c) => new Date(c.expires_at).getTime() > now);
-  const expired = codes.filter((c) => new Date(c.expires_at).getTime() <= now);
+  const live = codes;
+  const expired: PublicEnrollmentCode[] = [];
 
   return (
     <section style={{ marginTop: 28 }}>
       <h2 style={{ fontSize: 16, fontWeight: 800, margin: "0 0 4px 0", fontFamily: "'Space Grotesk', sans-serif" }}>
-        🎟️ Class enrollment codes
+        Organization enrollment codes
       </h2>
       <p style={{ color: "#8892A4", fontSize: 12, margin: "0 0 14px 0", lineHeight: 1.5 }}>
-        Share these on social or in a post — anyone with the code joins your class as a student.
+        Share these on social or in a post - anyone with the code joins your organization space as an intern.
         They&apos;ll auto-route into <code style={{ background: "rgba(255,255,255,0.06)", padding: "1px 5px", borderRadius: 4, fontSize: 11 }}>/s/{orgSlug}</code>.
       </p>
 

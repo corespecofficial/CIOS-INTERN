@@ -53,7 +53,7 @@ const PAGE_LABELS: Record<string, string> = {
   mentor: "Mentor Portal",
   mentorship: "Mentorship",
   alumni: "Alumni",
-  "creative-space": "Creative Space",
+  "creative-space": "Org Spaces",
   projects: "Projects",
   admin: "Admin",
   "super-admin": "Super Admin",
@@ -89,6 +89,7 @@ export function Header() {
   const { notifications: notifsList, unread: unreadCount, markRead: markAsRead, markAll: markAllRead, justArrived, enableBrowserNotifications } = useServerNotifications(user.id || null);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   const pathname = usePathname();
   const router = useRouter();
@@ -98,13 +99,17 @@ export function Header() {
 
   useEffect(() => {
     if (!showDropdown) return;
+    const tick = window.setInterval(() => setNowMs(Date.now()), 60_000);
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setShowDropdown(false);
       }
     };
     document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    return () => {
+      window.clearInterval(tick);
+      document.removeEventListener("mousedown", handler);
+    };
   }, [showDropdown]);
 
   return (
@@ -227,7 +232,7 @@ export function Header() {
           {/* Notification bell */}
           <div ref={dropdownRef} style={{ position: "relative" }}>
             <button
-              onClick={() => setShowDropdown(v => !v)}
+              onClick={() => { setNowMs(Date.now()); setShowDropdown(v => !v); }}
               style={{
                 position: "relative", width: 36, height: 36,
                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -306,7 +311,7 @@ export function Header() {
                     ) : notifsList.map(n => {
                       const icon = ({ message: "💬", task: "📋", achievement: "🏆", fine: "💸", info: "🔔", success: "✅", warning: "⚠️", error: "🚨", system: "⚙️" } as Record<string, string>)[n.type] || "🔔";
                       const color = ({ message: "#1E88E5", task: "#AB47BC", achievement: "#FFC107", fine: "#EF5350", info: "#1E88E5", success: "#66BB6A", warning: "#FFC107", error: "#EF5350", system: "#8892A4" } as Record<string, string>)[n.type] || "#1E88E5";
-                      const ms = Date.now() - new Date(n.created_at).getTime();
+                      const ms = nowMs - new Date(n.created_at).getTime();
                       const mins = Math.floor(ms / 60000);
                       const time = mins < 1 ? "just now" : mins < 60 ? `${mins}m ago` : mins < 1440 ? `${Math.floor(mins / 60)}h ago` : `${Math.floor(mins / 1440)}d ago`;
                       return (
@@ -504,13 +509,12 @@ export function Header() {
 }
 
 function BrowserPermNudge({ onEnable }: { onEnable: () => Promise<NotificationPermission> }) {
-  const [perm, setPerm] = useState<NotificationPermission | "unsupported" | null>(null);
+  const [perm, setPerm] = useState<NotificationPermission | "unsupported" | null>(() => {
+    if (typeof window === "undefined") return null;
+    if (!("Notification" in window)) return "unsupported";
+    return Notification.permission;
+  });
   const [helpOpen, setHelpOpen] = useState(false);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!("Notification" in window)) { setPerm("unsupported"); return; }
-    setPerm(Notification.permission);
-  }, []);
 
   const test = () => {
     try {

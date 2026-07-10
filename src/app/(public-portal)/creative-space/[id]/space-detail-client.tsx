@@ -76,7 +76,7 @@ export function SpaceDetailClient({ space: s, reviews, credBadge, credTier, prov
             marginBottom: 16,
           }}
         >
-          ← Creative Spaces
+          ← Org Spaces
         </Link>
 
         <div className="sd-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 360px", gap: 26, alignItems: "start" }}>

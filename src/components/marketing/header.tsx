@@ -47,7 +47,7 @@ const NAV: NavItem[] = [
       // them here as well made the dropdown feel congested. The "For
       // organizations" footer link below points people there.
       { href: "/marketplace",    label: "Marketplace",     icon: "🛍️", desc: "Digital products by vetted CIOS talent" },
-      { href: "/creative-space", label: "Creative Spaces", icon: "🎨", desc: "Cohorts taught by ranked instructors" },
+      { href: "/creative-space", label: "Org Spaces", icon: "🎨", desc: "Create or join organization portals" },
       { href: "/opportunities",  label: "Opportunities",   icon: "💼", desc: "Jobs, gigs, internships, scholarships" },
       { href: "/hackathons",     label: "Hackathons",      icon: "⚡", desc: "Build, compete, win on CIOS" },
       { href: "/investors",      label: "Startups",        icon: "🚀", desc: "Pitches from CIOS founders" },

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { inviteByEmail, revokeEmailInvite, type PendingInvite } from "@/app/actions/org-invites";
 
-type InviteRole = "org_admin" | "instructor" | "student";
+type InviteRole = "org_admin" | "instructor" | "student" | "moderator" | "finance" | "support" | "mentor";
 
 interface Props {
   orgId: string;
@@ -17,12 +17,20 @@ const ROLE_TINTS: Record<InviteRole, string> = {
   org_admin:  "#A855F7",
   instructor: "#26C6DA",
   student:    "#1E88E5",
+  moderator:  "#26C6DA",
+  finance:    "#FFC107",
+  support:    "#5C6BC0",
+  mentor:     "#66BB6A",
 };
 
 const ROLE_LABELS: Record<InviteRole, string> = {
   org_admin:  "Org admin",
   instructor: "Instructor",
-  student:    "Student",
+  student:    "Intern",
+  moderator:  "Moderator",
+  finance:    "Finance",
+  support:    "Support",
+  mentor:     "Mentor",
 };
 
 /**
@@ -32,7 +40,7 @@ const ROLE_LABELS: Record<InviteRole, string> = {
  * naming a SPECIFIC person (a co-instructor you know personally), the
  * codes panel is for broadcast (sharing on social).
  */
-export function InvitePanel({ orgId, orgSlug, initialPending }: Props) {
+export function InvitePanel({ orgId, initialPending }: Props) {
   const [pending, setPending] = useState(initialPending);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<InviteRole>("student");
@@ -97,7 +105,7 @@ export function InvitePanel({ orgId, orgSlug, initialPending }: Props) {
         <div>
           <div style={{ fontSize: 14, fontWeight: 700, color: "#E8EDF5" }}>📨 Invite by email</div>
           <div style={{ fontSize: 12, color: "#8892A4", marginTop: 2 }}>
-            Direct invitation to a specific person. For broadcast codes, see Settings → Class enrollment codes.
+            Direct invitation to a specific person. For broadcast codes, see Settings - organization enrollment codes.
           </div>
         </div>
         <button
@@ -128,8 +136,12 @@ export function InvitePanel({ orgId, orgSlug, initialPending }: Props) {
             aria-label="Role"
             style={{ padding: "10px 12px", background: "#0A0E1A", border: "1px solid #1F2937", borderRadius: 6, color: "#E8EDF5", fontSize: 13 }}
           >
-            <option value="student">Student</option>
+            <option value="student">Intern</option>
             <option value="instructor">Instructor</option>
+            <option value="moderator">Moderator</option>
+            <option value="finance">Finance</option>
+            <option value="support">Support</option>
+            <option value="mentor">Mentor</option>
             <option value="org_admin">Org admin</option>
           </select>
           <button type="button" onClick={send} disabled={busy || !email.trim()} style={{ padding: "10px 18px", background: busy || !email.trim() ? "rgba(30,136,229,0.30)" : "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: busy || !email.trim() ? "not-allowed" : "pointer" }}>
@@ -161,14 +173,13 @@ export function InvitePanel({ orgId, orgSlug, initialPending }: Props) {
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {pending.map((p) => {
               const r = p.role as InviteRole;
-              const expiresIn = Math.max(0, Math.ceil((new Date(p.expires_at).getTime() - Date.now()) / 86400000));
               return (
                 <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "#0A0E1A", borderRadius: 6, fontSize: 12 }}>
                   <span style={{ flex: 1, color: "#E8EDF5" }}>{p.email}</span>
                   <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 999, background: `${ROLE_TINTS[r]}22`, color: ROLE_TINTS[r], textTransform: "uppercase", letterSpacing: 0.5, fontWeight: 700 }}>
                     {ROLE_LABELS[r]}
                   </span>
-                  <span style={{ color: "#5A6478" }}>{expiresIn}d left</span>
+                  <span style={{ color: "#5A6478" }}>exp {new Date(p.expires_at).toLocaleDateString()}</span>
                   <button type="button" onClick={() => copy(shareLink(p.token), "Link")} style={{ padding: "3px 10px", background: "transparent", color: "#1E88E5", border: "1px solid rgba(30,136,229,0.30)", borderRadius: 5, fontSize: 11, cursor: "pointer" }}>Copy</button>
                   <button type="button" onClick={() => revoke(p.id, p.email)} disabled={busy} style={{ padding: "3px 10px", background: "transparent", color: "#FF8A80", border: "1px solid rgba(239,83,80,0.30)", borderRadius: 5, fontSize: 11, cursor: busy ? "not-allowed" : "pointer" }}>Revoke</button>
                 </div>

@@ -22,7 +22,7 @@ import { listMyNotifications } from "@/app/actions/notifications";
 interface Props {
   orgSlug: string;
   orgName: string;
-  memberRole: "owner" | "org_admin" | "instructor" | "student" | null;
+  memberRole: "owner" | "org_admin" | "instructor" | "student" | "moderator" | "finance" | "support" | "mentor" | null;
   isSuperAdmin: boolean;
 }
 
@@ -31,7 +31,22 @@ const ROLE_TINT: Record<string, { fg: string; bg: string }> = {
   org_admin:   { fg: "#AB47BC", bg: "rgba(171,71,188,0.12)" },
   instructor:  { fg: "#26A69A", bg: "rgba(38,166,154,0.12)" },
   student:     { fg: "#1E88E5", bg: "rgba(30,136,229,0.12)" },
+  moderator:   { fg: "#26C6DA", bg: "rgba(38,198,218,0.12)" },
+  finance:     { fg: "#FFC107", bg: "rgba(255,193,7,0.12)" },
+  support:     { fg: "#5C6BC0", bg: "rgba(92,107,192,0.12)" },
+  mentor:      { fg: "#66BB6A", bg: "rgba(102,187,106,0.12)" },
   super_admin: { fg: "#EF5350", bg: "rgba(239,83,80,0.12)" },
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  owner: "Owner",
+  org_admin: "Org Admin",
+  instructor: "Instructor",
+  student: "Intern",
+  moderator: "Moderator",
+  finance: "Finance",
+  support: "Support",
+  mentor: "Mentor",
 };
 
 export function HostHeader({ orgSlug, orgName, memberRole, isSuperAdmin }: Props) {
@@ -55,7 +70,7 @@ export function HostHeader({ orgSlug, orgName, memberRole, isSuperAdmin }: Props
 
   const roleKey = isSuperAdmin ? "super_admin" : (memberRole || "student");
   const tint = ROLE_TINT[roleKey] || ROLE_TINT.student;
-  const roleLabel = isSuperAdmin ? "Super Admin" : (memberRole || "guest").replace("_", " ");
+  const roleLabel = isSuperAdmin ? "Super Admin" : ROLE_LABELS[memberRole || ""] || "Guest";
 
   return (
     <header
@@ -63,12 +78,15 @@ export function HostHeader({ orgSlug, orgName, memberRole, isSuperAdmin }: Props
         position: "sticky",
         top: 0,
         zIndex: 50,
+        height: 72,
+        minHeight: 72,
         display: "flex",
         alignItems: "center",
-        gap: 12,
-        padding: "12px 24px",
-        background: "rgba(10,14,26,0.85)",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
+        justifyContent: "space-between",
+        gap: 16,
+        padding: "0 32px",
+        background: "var(--bg-secondary, #111827)",
+        borderBottom: "1px solid var(--border-default, rgba(255,255,255,0.08))",
         backdropFilter: "blur(10px)",
         WebkitBackdropFilter: "blur(10px)",
       }}
@@ -80,7 +98,15 @@ export function HostHeader({ orgSlug, orgName, memberRole, isSuperAdmin }: Props
 
       {/* Cmd+K search trigger — wires into the existing CommandPalette
           (mounted globally) via the cios:open-palette custom event. */}
-      <div style={{ position: "relative", flex: 1, maxWidth: 480 }}>
+      <div
+        className="cios-host-search"
+        style={{
+          position: "relative",
+          flex: "0 1 660px",
+          maxWidth: 660,
+          minWidth: 280,
+        }}
+      >
         <input
           type="text"
           readOnly
@@ -89,12 +115,13 @@ export function HostHeader({ orgSlug, orgName, memberRole, isSuperAdmin }: Props
           placeholder={`🔍  Search ${orgName}…`}
           style={{
             width: "100%",
-            padding: "8px 70px 8px 14px",
-            borderRadius: 8,
-            border: "1px solid rgba(255,255,255,0.10)",
-            background: "rgba(255,255,255,0.04)",
-            color: "#E8EDF5",
-            fontSize: 13,
+            height: 52,
+            padding: "0 72px 0 18px",
+            borderRadius: 10,
+            border: "1px solid var(--border-default, rgba(255,255,255,0.10))",
+            background: "var(--bg-tertiary, rgba(255,255,255,0.04))",
+            color: "var(--text-primary, #E8EDF5)",
+            fontSize: 16,
             outline: "none",
             cursor: "pointer",
           }}
@@ -102,25 +129,35 @@ export function HostHeader({ orgSlug, orgName, memberRole, isSuperAdmin }: Props
         <span
           style={{
             position: "absolute",
-            right: 10,
-            top: "50%",
-            transform: "translateY(-50%)",
-            fontSize: 10,
-            color: "#5A6478",
-            border: "1px solid rgba(255,255,255,0.10)",
-            borderRadius: 4,
-            padding: "2px 6px",
-            background: "rgba(255,255,255,0.03)",
-            pointerEvents: "none",
-          }}
+              right: 12,
+              top: "50%",
+              transform: "translateY(-50%)",
+              fontSize: 10,
+              color: "var(--text-muted, #5A6478)",
+              border: "1px solid var(--border-default, rgba(255,255,255,0.10))",
+              borderRadius: 6,
+              padding: "5px 8px",
+              background: "rgba(255,255,255,0.03)",
+              pointerEvents: "none",
+            }}
         >
           Cmd+K
         </span>
       </div>
 
       {/* Right cluster */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-        <ThemeToggle />
+      <div
+        className="cios-host-right"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          gap: 14,
+          flexShrink: 0,
+          marginLeft: "auto",
+        }}
+      >
+        <ThemeToggle compact />
 
         {/* Bell — links to /notifications with unread badge */}
         <Link
@@ -135,8 +172,8 @@ export function HostHeader({ orgSlug, orgName, memberRole, isSuperAdmin }: Props
             alignItems: "center",
             justifyContent: "center",
             borderRadius: 8,
-            color: "#8892A4",
-            fontSize: 16,
+            color: "var(--text-secondary, #8892A4)",
+            fontSize: 18,
             textDecoration: "none",
           }}
         >
@@ -171,12 +208,13 @@ export function HostHeader({ orgSlug, orgName, memberRole, isSuperAdmin }: Props
           style={{
             display: "inline-flex",
             alignItems: "center",
-            padding: "6px 12px",
+            minHeight: 38,
+            padding: "0 18px",
             borderRadius: 999,
             background: tint.bg,
             color: tint.fg,
             border: `1px solid ${tint.fg}33`,
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: 800,
             letterSpacing: 0.5,
             textTransform: "uppercase",
@@ -194,8 +232,8 @@ export function HostHeader({ orgSlug, orgName, memberRole, isSuperAdmin }: Props
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 36,
-            height: 36,
+            width: 44,
+            height: 44,
             borderRadius: "50%",
             overflow: "hidden",
             background: "rgba(255,255,255,0.05)",
@@ -207,9 +245,9 @@ export function HostHeader({ orgSlug, orgName, memberRole, isSuperAdmin }: Props
             <img
               src={user.imageUrl}
               alt=""
-              width={36}
-              height={36}
-              style={{ width: 36, height: 36, objectFit: "cover", aspectRatio: "1 / 1" }}
+              width={44}
+              height={44}
+              style={{ width: 44, height: 44, objectFit: "cover", aspectRatio: "1 / 1" }}
             />
           ) : (
             <span style={{ fontSize: 14, fontWeight: 800, color: "#E8EDF5" }}>
@@ -223,6 +261,14 @@ export function HostHeader({ orgSlug, orgName, memberRole, isSuperAdmin }: Props
       <style>{`
         @media (max-width: 768px) {
           .cios-show-mobile { display: block !important; }
+          .cios-host-search { display: none !important; }
+          .cios-host-right { gap: 8px !important; }
+        }
+        @media (max-width: 1100px) {
+          .cios-host-search {
+            flex-basis: 520px !important;
+            min-width: 220px !important;
+          }
         }
       `}</style>
 

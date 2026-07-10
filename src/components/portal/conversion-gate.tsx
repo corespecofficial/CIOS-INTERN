@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useUser, SignInButton, SignUpButton } from "@clerk/nextjs";
+import { Component, useState, type ReactNode } from "react";
+import Link from "next/link";
+import { SignInButton, SignUpButton, useUser } from "@clerk/nextjs";
 import type { Role } from "@/store/use-app-store";
 
 interface ConversionGateProps {
@@ -14,51 +15,94 @@ interface ConversionGateProps {
   /** What the user becomes when they sign up here. Defaults to public_user. */
   intendedRole?: Role;
   /** Children rendered once the gate passes. */
-  children: React.ReactNode;
-  /** Visual variant — "inline" for list items, "card" for standalone CTA, "sheet" for a modal-like experience. */
+  children: ReactNode;
+  /** Visual variant: inline for list items, card for standalone CTA. */
   variant?: "inline" | "card";
+}
+
+type ClerkGateState = {
+  available: boolean;
+  user: ReturnType<typeof useUser>["user"] | null;
+  isLoaded: boolean;
+  isSignedIn: boolean;
+};
+
+class ClerkGateBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    if (this.state.failed) return this.props.fallback;
+    return this.props.children;
+  }
 }
 
 /**
  * Role-aware conversion wall.
  *
- * The public-portal philosophy is: let anyone browse, prompt sign-up at the
- * moment of action. This component sits between a browse surface and an action
- * (buy, book, apply, post). It:
- *   1. Renders `children` when the visitor is signed in AND has an allowed role.
- *   2. Otherwise renders a branded sign-up prompt naming the action and benefit.
- *
- * Keep the prompt copy tight — conversions here drive the whole public-portal
- * business model (masterplan §3). Don't over-explain; promise the benefit and
- * get out of the way.
+ * Public pages should never crash if Clerk is missing or unavailable. The
+ * boundary keeps browse pages alive and falls back to normal sign-in links.
  */
-export function ConversionGate({
+export function ConversionGate(props: ConversionGateProps) {
+  const fallbackClerk: ClerkGateState = {
+    available: false,
+    user: null,
+    isLoaded: true,
+    isSignedIn: false,
+  };
+
+  return (
+    <ClerkGateBoundary fallback={<ConversionGateContent {...props} clerk={fallbackClerk} />}>
+      <ConversionGateWithClerk {...props} />
+    </ClerkGateBoundary>
+  );
+}
+
+function ConversionGateWithClerk(props: ConversionGateProps) {
+  const clerk = useUser();
+
+  return (
+    <ConversionGateContent
+      {...props}
+      clerk={{
+        available: true,
+        user: clerk.user,
+        isLoaded: clerk.isLoaded,
+        isSignedIn: clerk.isSignedIn,
+      }}
+    />
+  );
+}
+
+function ConversionGateContent({
   allowedRoles,
   action,
   benefit,
   intendedRole = "public_user",
   children,
   variant = "card",
-}: ConversionGateProps) {
-  const { user, isLoaded, isSignedIn } = useUser();
+  clerk,
+}: ConversionGateProps & { clerk: ClerkGateState }) {
   const [expanded, setExpanded] = useState(false);
 
-  if (!isLoaded) {
+  if (!clerk.isLoaded) {
     return (
       <div aria-busy="true" style={{ padding: 20, color: "#6B7280", fontSize: 13 }}>
-        Checking access…
+        Checking access...
       </div>
     );
   }
 
-  const role = (user?.publicMetadata?.role as Role | undefined) ?? null;
+  const role = (clerk.user?.publicMetadata?.role as Role | undefined) ?? null;
   const rolesOk = !allowedRoles || allowedRoles.length === 0 || (role && allowedRoles.includes(role));
 
-  if (isSignedIn && rolesOk) return <>{children}</>;
+  if (clerk.isSignedIn && rolesOk) return <>{children}</>;
 
-  const needsUpgrade = isSignedIn && !rolesOk;
+  const needsUpgrade = clerk.isSignedIn && !rolesOk;
 
-  // Inline variant — compact single-line prompt used inside lists / rows.
   if (variant === "inline") {
     return (
       <div
@@ -78,17 +122,18 @@ export function ConversionGate({
           Sign up to {action.toLowerCase()}
         </span>
         {needsUpgrade ? (
-          <a href={`/onboarding/${intendedRole}`} style={ctaStyle}>Continue</a>
-        ) : (
+          <Link href={`/onboarding/${intendedRole}`} style={ctaStyle}>Continue</Link>
+        ) : clerk.available ? (
           <SignUpButton mode="modal">
             <button style={ctaStyle}>Sign up free</button>
           </SignUpButton>
+        ) : (
+          <Link href="/sign-up" style={ctaStyle}>Sign up free</Link>
         )}
       </div>
     );
   }
 
-  // Card variant — default. Benefit-led CTA card.
   return (
     <div
       style={{
@@ -128,10 +173,10 @@ export function ConversionGate({
 
       <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
         {needsUpgrade ? (
-          <a href={`/onboarding/${intendedRole}`} style={primaryBtn}>
+          <Link href={`/onboarding/${intendedRole}`} style={primaryBtn}>
             Continue as {intendedRole.replace("_", " ")}
-          </a>
-        ) : (
+          </Link>
+        ) : clerk.available ? (
           <>
             <SignUpButton mode="modal">
               <button style={primaryBtn}>Join free</button>
@@ -139,6 +184,11 @@ export function ConversionGate({
             <SignInButton mode="modal">
               <button style={secondaryBtn}>I have an account</button>
             </SignInButton>
+          </>
+        ) : (
+          <>
+            <Link href="/sign-up" style={primaryBtn}>Join free</Link>
+            <Link href="/sign-in" style={secondaryBtn}>I have an account</Link>
           </>
         )}
       </div>
@@ -155,13 +205,13 @@ export function ConversionGate({
           fontFamily: "inherit",
         }}
       >
-        {expanded ? "▲ hide details" : "▼ what happens when I sign up?"}
+        {expanded ? "hide details" : "what happens when I sign up?"}
       </button>
       {expanded && (
         <div style={{ marginTop: 10, fontSize: 12, color: "#94A3B8", lineHeight: 1.6, textAlign: "left", maxWidth: 480, margin: "10px auto 0" }}>
-          • Free to join · no card required
-          <br />• Your account stays yours — leave any time
-          <br />• Uploads by public users auto-delete after 24h unless you upgrade
+          - Free to join, no card required
+          <br />- Your account stays yours, leave any time
+          <br />- Uploads by public users auto-delete after 24h unless you upgrade
         </div>
       )}
     </div>
@@ -200,6 +250,7 @@ const secondaryBtn: React.CSSProperties = {
   color: "#E8EDF5",
   fontSize: 14,
   fontWeight: 600,
+  textDecoration: "none",
   border: "1px solid rgba(255,255,255,0.14)",
   cursor: "pointer",
 };
