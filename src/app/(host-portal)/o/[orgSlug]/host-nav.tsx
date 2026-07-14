@@ -171,6 +171,7 @@ export function HostNav({ orgSlug, orgName, memberRole, isSuperAdmin, operations
   const sections = useMemo(() => {
     const operations: NavItem[] = operationsEnabled ? [
       { href: "/operations", label: "Programme Operations", icon: "📋", section: "OPERATIONS", roles: ["owner", "org_admin", "instructor", "finance"] },
+      { href: "/growth", label: "Growth Operations", icon: "📈", section: "OPERATIONS", roles: ["owner", "org_admin", "instructor"] },
     ] : [];
     const visible = [...NAV_ITEMS, ...operations, ...ORG_PARITY_ITEMS].filter((item) => canSeeItem(item, memberRole, isSuperAdmin));
     const grouped: Array<{ label: string; items: NavItem[] }> = [];

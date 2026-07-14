@@ -102,6 +102,7 @@ export function StudentNav({ orgSlug, orgName, operationsEnabled }: Props) {
     { href: "/my-day", label: "My Day", icon: "📅", section: "OPERATIONS" },
     { href: "/attendance", label: "Attendance", icon: "✅", section: "OPERATIONS" },
     { href: "/work-sessions", label: "Work Sessions", icon: "⏱", section: "OPERATIONS" },
+    { href: "/growth", label: "Growth Workspace", icon: "📈", section: "OPERATIONS" },
     ...NAV_ITEMS.slice(4),
   ] : NAV_ITEMS;
   for (const item of items) {
