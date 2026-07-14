@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentDbUser, supabaseAdmin } from "@/lib/db";
-import { atomicWalletDebit } from "@/app/actions/payments/wallet-debit";
+import { createFlutterwaveCheckout } from "@/lib/flutterwave";
 import { pushNotification } from "@/app/actions/notifications";
 import type {
   ComplianceFine,
@@ -85,7 +85,7 @@ export async function getMyComplianceStatus(): Promise<R<MyComplianceStatus>> {
     ).filter((a) => a.task && a.task.status !== "archived");
 
     const taskIds = taskAssignments.map((a) => a.task_id);
-    let submissionsMap = new Map<string, ComplianceTaskSubmission>();
+    const submissionsMap = new Map<string, ComplianceTaskSubmission>();
 
     if (taskIds.length > 0) {
       const { data: subs } = await sb
@@ -185,7 +185,7 @@ export async function getMyFines(limit = 20): Promise<R<ComplianceFine[]>> {
 // payFine
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function payFine(fineId: string, paymentRef?: string): Promise<R> {
+export async function payFine(fineId: string): Promise<R<{ checkoutUrl: string; reference: string }>> {
   try {
     const me = await requireMe();
     const sb = supabaseAdmin();
@@ -209,62 +209,26 @@ export async function payFine(fineId: string, paymentRef?: string): Promise<R> {
     }
 
     const fineAmount = Number((fine as { amount: number }).amount);
-
-    // Debit wallet atomically
-    const debit = await atomicWalletDebit({
-      userId: me.id,
-      amount: fineAmount,
-      type: "fine",
-      description: `Compliance fine payment`,
-      idempotencyKey: `fine-${fineId}`,
-      gateway: "internal",
-      metadata: { fine_id: fineId },
+    if (!me.email) return { ok: false, error: "Add an email address before paying this fine" };
+    const reference = `CIOS-FINE-${fineId.replace(/-/g, "").slice(0, 10).toUpperCase()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.vercel.app";
+    const { data: intent, error } = await sb.from("payment_intents").insert({
+      user_id: me.id, org_id: null, amount_ngn: fineAmount, currency: "NGN",
+      purpose: "fine_payment", description: "CIOS compliance fine payment",
+      reference, gateway: "flutterwave", status: "pending",
+      product_type: "compliance_fine", product_id: fineId,
+      metadata: { fine_id: fineId, customer_email: me.email, workspace: "root" },
+    }).select("id").single();
+    if (error || !intent) return { ok: false, error: error?.message || "Unable to create payment" };
+    const checkoutUrl = await createFlutterwaveCheckout({
+      txRef: reference, amount: fineAmount, currency: "NGN",
+      redirectUrl: `${appUrl}/compliance?payment_ref=${encodeURIComponent(reference)}`,
+      customer: { email: me.email, name: me.name },
+      description: "CIOS compliance fine",
+      meta: { payment_intent_id: intent.id, purpose: "fine_payment", fine_id: fineId },
     });
-    if (!debit.ok) return { ok: false, error: debit.error };
-
-    const ref = paymentRef ?? `FINE-${fineId.slice(0, 8).toUpperCase()}`;
-
-    // Mark fine as paid
-    const { error } = await sb
-      .from("compliance_fines")
-      .update({
-        status: "paid",
-        paid_at: new Date().toISOString(),
-        payment_ref: ref,
-      })
-      .eq("id", fineId);
-
-    if (error) return { ok: false, error: error.message };
-
-    // Check remaining unpaid fines
-    const { count: remainingFines } = await sb
-      .from("compliance_fines")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", me.id)
-      .eq("status", "unpaid");
-
-    // If no more unpaid fines, check and update suspension if it was solely fine-related
-    if (!remainingFines || remainingFines === 0) {
-      const { data: suspension } = await sb
-        .from("compliance_suspensions")
-        .select("id, reason")
-        .eq("user_id", me.id)
-        .eq("status", "active")
-        .maybeSingle();
-
-      if (
-        suspension &&
-        (suspension as { reason: string }).reason?.toLowerCase().includes("unpaid fine")
-      ) {
-        await sb
-          .from("compliance_suspensions")
-          .update({ status: "lifted", lifted_at: new Date().toISOString() })
-          .eq("id", (suspension as { id: string }).id);
-      }
-    }
-
-    revalidatePath("/compliance");
-    return { ok: true };
+    await sb.from("payment_intents").update({ checkout_url: checkoutUrl, updated_at: new Date().toISOString() }).eq("id", intent.id);
+    return { ok: true, data: { checkoutUrl, reference } };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }

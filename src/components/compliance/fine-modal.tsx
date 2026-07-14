@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { payFine } from "@/app/actions/compliance-fines";
 import type { ComplianceFine, ComplianceSuspension } from "@/app/actions/compliance-types";
@@ -57,10 +57,8 @@ function useOverdueTimer(issuedAt: string) {
 interface FineRowProps {
   fine: ComplianceFine;
   payingFineId: string | null;
-  payingRef: string;
   expandedFineId: string | null;
   onExpandToggle: (id: string) => void;
-  onRefChange: (ref: string) => void;
   onPayClick: (fineId: string) => void;
   isProcessing: boolean;
 }
@@ -68,10 +66,8 @@ interface FineRowProps {
 function FineRow({
   fine,
   payingFineId,
-  payingRef,
   expandedFineId,
   onExpandToggle,
-  onRefChange,
   onPayClick,
   isProcessing,
 }: FineRowProps) {
@@ -171,31 +167,11 @@ function FineRow({
           }}
         >
           <div style={{ fontSize: 12, color: "#8892A4", marginBottom: 8 }}>
-            Enter your Paystack payment reference after completing payment:
+            Continue to Flutterwave to pay securely. The verified payment and receipt will be linked to this fine automatically.
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <input
-              type="text"
-              value={isThisPaying ? payingRef : ""}
-              onChange={(e) => {
-                if (!isThisPaying) onExpandToggle(fine.id);
-                onRefChange(e.target.value);
-              }}
-              placeholder="e.g. PAY-ABC123XYZ"
-              style={{
-                flex: 1,
-                padding: "8px 12px",
-                borderRadius: 8,
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "rgba(255,255,255,0.05)",
-                color: "#E8EDF5",
-                fontSize: 13,
-                fontFamily: "inherit",
-                outline: "none",
-              }}
-            />
             <button
-              disabled={isProcessing || !(isThisPaying ? payingRef : "").trim()}
+              disabled={isProcessing && isThisPaying}
               onClick={() => onPayClick(fine.id)}
               style={{
                 padding: "8px 16px",
@@ -211,7 +187,7 @@ function FineRow({
                 whiteSpace: "nowrap",
               }}
             >
-              {isProcessing ? "Processing…" : "Confirm"}
+              {isProcessing && isThisPaying ? "Opening checkout…" : "Pay with Flutterwave"}
             </button>
           </div>
         </div>
@@ -224,7 +200,7 @@ function FineRow({
 // Main modal
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function FineModal({ fines, totalAmount, suspension, onFinesPaid }: FineModalProps) {
+export function FineModal({ fines, totalAmount, suspension }: FineModalProps) {
   const router = useRouter();
 
   // Only show unpaid fines
@@ -243,10 +219,9 @@ export function FineModal({ fines, totalAmount, suspension, onFinesPaid }: FineM
   // Per-fine payment state
   const [expandedFineId, setExpandedFineId] = useState<string | null>(null);
   const [payingFineId, setPayingFineId] = useState<string | null>(null);
-  const [payingRef, setPayingRef] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [successMsg] = useState<string | null>(null);
 
   // Scroll lock while modal is open
   useEffect(() => {
@@ -259,38 +234,23 @@ export function FineModal({ fines, totalAmount, suspension, onFinesPaid }: FineM
     if (expandedFineId === fineId) {
       setExpandedFineId(null);
       setPayingFineId(null);
-      setPayingRef("");
     } else {
       setExpandedFineId(fineId);
       setPayingFineId(fineId);
-      setPayingRef("");
     }
     setError(null);
   }
 
-  function handleRefChange(ref: string) {
-    setPayingRef(ref);
-    setError(null);
-  }
-
   async function handlePayClick(fineId: string) {
-    const ref = payingRef.trim();
-    if (!ref) { setError("Payment reference is required."); return; }
-
     setIsProcessing(true);
     setError(null);
 
     try {
-      const result = await payFine(fineId, ref);
+      const result = await payFine(fineId);
       if (!result.ok) {
         setError(result.error);
       } else {
-        setSuccessMsg("Fine marked as paid. Re-checking compliance…");
-        setExpandedFineId(null);
-        setPayingFineId(null);
-        setPayingRef("");
-        // Give a moment for the success message to show, then re-check
-        setTimeout(() => onFinesPaid(), 1200);
+        window.location.assign(result.data.checkoutUrl);
       }
     } catch {
       setError("An unexpected error occurred. Please try again.");
@@ -529,10 +489,8 @@ export function FineModal({ fines, totalAmount, suspension, onFinesPaid }: FineM
                   key={fine.id}
                   fine={fine}
                   payingFineId={payingFineId}
-                  payingRef={payingRef}
                   expandedFineId={expandedFineId}
                   onExpandToggle={handleExpandToggle}
-                  onRefChange={handleRefChange}
                   onPayClick={handlePayClick}
                   isProcessing={isProcessing}
                 />

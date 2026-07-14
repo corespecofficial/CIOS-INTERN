@@ -258,7 +258,7 @@ export function SpaceDetailClient({ space: s, reviews, credBadge, credTier, prov
 
               <ConversionGate
                 action={isFree ? "Enrol for free" : `Enrol in "${s.title}"`}
-                benefit="Join free as a public user. Pay per cohort from your CIOS wallet — top up with Paystack or Monnify."
+                benefit="Join free as a public user. Pay per cohort from your CIOS wallet — top up securely with Flutterwave."
                 intendedRole="public_user"
                 variant="card"
               >

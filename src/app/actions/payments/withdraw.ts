@@ -2,7 +2,7 @@
 
 /**
  * Withdrawal system — users request a withdrawal, admin approves,
- * Monnify disburses funds to the user's bank account.
+ * approved payouts remain under superadmin/finance control.
  *
  * Minimum withdrawal: ₦500
  * Platform fee: ₦100 flat (deducted from withdrawal amount)
@@ -12,9 +12,9 @@
  *  2. Wallet is debited immediately (funds held in escrow)
  *  3. withdrawal_requests record created (status=pending)
  *  4. Admin reviews + approves from /admin/finance/withdrawals
- *  5. On approval: Monnify disbursal API called (or manual bank transfer)
+ *  5. On approval: finance completes and records the controlled payout
  *
- * ⚠️  MONNIFY DISBURSAL KEYS: same env vars as initiate-topup.ts
+ * Approval never releases funds without a finance review.
  */
 
 import { getCurrentDbUser, supabaseAdmin } from "@/lib/db";
@@ -155,7 +155,7 @@ export async function adminGetWithdrawals(status?: string): Promise<R<AdminWithd
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// adminApproveWithdrawal — mark as approved + trigger Monnify disbursal
+// adminApproveWithdrawal — approve for controlled finance payout
 // ─────────────────────────────────────────────────────────────────────────────
 export async function adminApproveWithdrawal(id: string, note?: string): Promise<R> {
   try {
@@ -174,10 +174,6 @@ export async function adminApproveWithdrawal(id: string, note?: string): Promise
       .maybeSingle();
 
     if (!req) return { ok: false, error: "Withdrawal not found or already processed" };
-
-    // TODO: Call Monnify Disbursal API here when API keys are available
-    // POST /api/v2/disbursements/single
-    // body: { amount, reference, narration, destinationBankCode, destinationAccountNumber, currency: "NGN", destinationAccountName, sourceAccountNumber: MONNIFY_SOURCE_ACCT }
 
     await sb.from("withdrawal_requests").update({
       status: "approved",

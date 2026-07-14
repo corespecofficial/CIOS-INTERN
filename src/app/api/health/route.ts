@@ -54,8 +54,8 @@ export async function GET() {
           : "unknown",
     },
     {
-      name: "Payments (Paystack)",
-      status: !!process.env.PAYSTACK_SECRET_KEY ? "operational" : "unknown",
+      name: "Payments (Flutterwave)",
+      status: !!process.env.FLW_SECRET_KEY && !!process.env.FLW_SECRET_HASH ? "operational" : "unknown",
     },
     {
       name: "AI Services",

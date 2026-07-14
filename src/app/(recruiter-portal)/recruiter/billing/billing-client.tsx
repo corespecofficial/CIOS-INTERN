@@ -152,7 +152,7 @@ export function RecruiterBillingClient({ currentPlan, activeListings, renewsAt, 
       {/* Admin note */}
       {isAdmin && (
         <div style={{ marginTop: 22, padding: "12px 16px", background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.3)", borderRadius: 12, fontSize: 12, color: "#93C5FD" }}>
-          ⚡ As {isAdmin ? "admin" : ""} you can force-switch tiers without payment for testing. The "Talk to us" / paid flows will hit Paystack in a follow-up phase.
+          ⚡ As {isAdmin ? "admin" : ""} you can manage tiers for testing. Paid plans are controlled through the central Flutterwave billing configuration.
         </div>
       )}
     </div>

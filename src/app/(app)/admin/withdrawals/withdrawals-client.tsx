@@ -86,7 +86,7 @@ export default function AdminWithdrawalsClient({ withdrawals: initial }: { withd
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto", padding: "0 0 40px" }}>
       <h1 style={{ fontSize: 24, fontWeight: 800, margin: "0 0 6px" }}>Withdrawal Requests</h1>
-      <p style={{ color: "#8892A4", fontSize: 14, margin: "0 0 24px" }}>Review and approve user withdrawal requests. Approved requests are disbursed via Monnify.</p>
+      <p style={{ color: "#8892A4", fontSize: 14, margin: "0 0 24px" }}>Review and approve withdrawal requests. Payout release remains under superadmin and finance control.</p>
 
       {/* Summary cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, marginBottom: 24 }}>
@@ -112,12 +112,12 @@ export default function AdminWithdrawalsClient({ withdrawals: initial }: { withd
         ))}
       </div>
 
-      {/* Monnify note */}
+      {/* Payout control note */}
       {filter === "pending" && total.pending > 0 && (
         <div style={{ background: "rgba(255,193,7,0.08)", border: "1px solid rgba(255,193,7,0.2)", borderRadius: 12, padding: "12px 16px", marginBottom: 20, display: "flex", gap: 10, alignItems: "center" }}>
           <span style={{ fontSize: 18 }}>⚠️</span>
           <p style={{ margin: 0, fontSize: 13, color: "#FFC107" }}>
-            <strong>Monnify disbursal API not yet connected.</strong> When you approve, update the withdrawal_request status manually and transfer via your Monnify dashboard until the API keys are configured.
+            <strong>Approval does not automatically send funds.</strong> Finance must complete the payout through the approved platform account and retain the transaction reference.
           </p>
         </div>
       )}

@@ -88,7 +88,6 @@ function TopUpModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (a
   const [custom, setCustom] = useState("");
   const [step, setStep] = useState<"pick" | "redirect" | "verify">("pick");
   const [ref, setRef] = useState("");
-  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const selected = custom ? Number(custom) : amount;
@@ -100,9 +99,8 @@ function TopUpModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (a
       if (!res.ok) { toast.error(res.error); return; }
       const d = res.data!;
       setRef(d.reference);
-      setCheckoutUrl(d.checkoutUrl);
       if (d.checkoutUrl) {
-        // Redirect to Monnify checkout
+        // Redirect to Flutterwave checkout
         window.location.href = d.checkoutUrl;
       } else {
         // Gateway not yet configured — show manual bank transfer info
@@ -193,7 +191,7 @@ function TopUpModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (a
             <div style={{ fontSize: 40, marginBottom: 12 }}>🏦</div>
             <h4 style={{ color: "#FFC107", margin: "0 0 8px", fontSize: 15 }}>Gateway Setup Pending</h4>
             <p style={{ color: "#8892A4", fontSize: 13, margin: "0 0 18px" }}>
-              The Monnify payment gateway is being configured. Once live, you&apos;ll be redirected to complete payment instantly.
+              Flutterwave is not configured yet. Once the server keys are added, you&apos;ll be redirected to complete payment instantly.
             </p>
             <div style={{ background: "rgba(255,193,7,0.08)", borderRadius: 12, padding: 16, textAlign: "left", marginBottom: 18, border: "1px solid rgba(255,193,7,0.2)" }}>
               <p style={{ margin: "0 0 6px", fontSize: 12, color: "#FFC107", fontWeight: 700 }}>Your Reference</p>
@@ -497,7 +495,7 @@ export default function WalletClient({
           return (
             <div key={tx.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 0", borderBottom: i < filtered.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
               <div style={{ width: 40, height: 40, borderRadius: 12, background: credit ? "rgba(102,187,106,0.12)" : "rgba(239,83,80,0.12)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>
-                {tx.gateway === "monnify" ? "🏦" : credit ? "↙" : "↗"}
+                {tx.gateway === "flutterwave" ? "🏦" : credit ? "↙" : "↗"}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: 14, fontWeight: 600, color: "#E8EDF5", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tx.description}</p>

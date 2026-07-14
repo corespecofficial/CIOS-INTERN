@@ -259,7 +259,7 @@ export function LibraryItemClient({ item, reviews, userRole }: Props) {
               <li>⬇️ {item.download_allowed ? "Downloadable file" : "Stream / view online"}</li>
               <li>♾️ Lifetime access after purchase</li>
               <li>📱 Access on any device</li>
-              <li>🔒 Secure payment via Paystack</li>
+              <li>🔒 Secure payment via Flutterwave</li>
             </ul>
             <button
               style={{ width: "100%", padding: 15, background: "linear-gradient(135deg,#FFC107,#FF7043)", border: "none", borderRadius: 12, color: "#fff", fontSize: 15, fontWeight: 800, cursor: "pointer", fontFamily: "'Space Grotesk', sans-serif" }}

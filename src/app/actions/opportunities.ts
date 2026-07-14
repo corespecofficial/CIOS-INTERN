@@ -396,12 +396,11 @@ export async function getRecruiterDashboard(): Promise<R<{ profile: Record<strin
 export async function updateMyPlan(tier: "free" | "growth" | "pro" | "enterprise"): Promise<R> {
   try {
     const me = await requireRecruiter();
-    // Phase 3 ships the UI + enforcement. Actual Paystack subscription wiring
+    // The billing UI and enforcement use centrally configured subscription plans.
     // lands in a follow-up (for now admins can flip tiers; recruiters see the
-    // plan card + limits and Paystack integration is stubbed with a TODO).
+    // Superadmin must activate the corresponding Flutterwave billing plan.
     if (me.role === "recruiter" && (tier === "pro" || tier === "enterprise" || tier === "growth")) {
-      // TODO: Paystack subscription; for now treat as "upgrade requested".
-      return { ok: false, error: "Paid plans — Paystack integration coming next. Contact support to upgrade for free during beta." };
+      return { ok: false, error: "This paid plan is not active yet. Contact the superadmin to configure its Flutterwave subscription." };
     }
     await supabaseAdmin().from("recruiter_profiles").update({
       plan_tier: tier, plan_started_at: new Date().toISOString(), updated_at: new Date().toISOString(),

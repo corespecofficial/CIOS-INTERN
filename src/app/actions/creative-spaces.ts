@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import type { CreativeSpace, SyllabusSection, SpaceReview } from "./creative-spaces-types";
 import { atomicWalletDebit, atomicWalletCredit } from "@/app/actions/payments/wallet-debit";
 import { slugifyOrgName, isReservedSlug, invalidateMembership } from "@/lib/active-org";
-import { clerkClient } from "@clerk/nextjs/server";
 import { logOrgAudit } from "@/lib/org-audit";
 import { cached, cacheDel, TTL } from "@/lib/cache";
 import { publishOrgQuotaWarnings, publishPlatformOrgEvent } from "@/lib/org-platform-events";
@@ -264,12 +263,15 @@ export interface ApplySpaceInput {
   syllabus?: SyllabusSection[];
 }
 
+const ORG_TYPES = new Set(["company", "institution", "government", "partner", "startup", "creator"]);
+
 export async function applyForSpace(input: ApplySpaceInput): Promise<R<{ id: string; orgId: string; orgSlug: string; provisioned: boolean }>> {
   try {
     const me = await getCurrentDbUser();
     if (!me) return { ok: false, error: "Unauthorized" };
     if (input.title.trim().length < 5) return { ok: false, error: "Title too short (min 5 chars)" };
     if (input.description.trim().length < 30) return { ok: false, error: "Description too short (min 30 chars)" };
+    const orgType = input.org_type && ORG_TYPES.has(input.org_type) ? input.org_type : "creator";
 
     const sb = supabaseAdmin();
     const slug = slugify(input.title);
@@ -309,7 +311,7 @@ export async function applyForSpace(input: ApplySpaceInput): Promise<R<{ id: str
     // success screen with no /o portal behind it.
     try {
       const provision = await provisionOrgFromSpace(newSpaceId, {
-        orgType: input.org_type,
+        orgType,
         internLimit: input.intern_limit,
         brandColor: input.brand_color,
         brandLogoUrl: input.brand_logo_url,
@@ -357,7 +359,7 @@ export async function applyForSpace(input: ApplySpaceInput): Promise<R<{ id: str
  * Enrol in a space. Handles free + paid in one action:
  *   - Free spaces: instant enrolment, payment_status='free'.
  *   - Paid spaces: debits buyer's wallet, credits instructor (85%), 15% to CIOS pool.
- *     The Paystack top-up is a separate flow; if wallet is insufficient the
+ *     The Flutterwave top-up is a separate flow; if wallet is insufficient the
  *     caller surfaces a "Top up your wallet" CTA.
  */
 export async function enrollInSpace(spaceId: string): Promise<R<{ paid: boolean; amount: number }>> {
@@ -793,6 +795,41 @@ export async function provisionOrgFromSpace(
       await sb.from("creative_orgs").update(orgPatch).eq("id", orgId);
     }
 
+    // Historical specialist portals are modules of the unified tenant. Their
+    // domain tables remain useful, but org_id is the common routing and
+    // authorization boundary so they never become a second, mismatched UI.
+    const orgType = opts?.orgType && ORG_TYPES.has(opts.orgType) ? opts.orgType : "creator";
+    const capacity = Number.isFinite(opts?.internLimit) ? Math.max(1, Math.round(opts!.internLimit!)) : 50;
+    if (orgType === "institution") {
+      await sb.from("institutions").upsert({
+        org_id: orgId, name: space.title, slug, coordinator_id: space.owner_id,
+        seat_limit: capacity, status: "active",
+      }, { onConflict: "org_id" });
+    } else if (orgType === "company") {
+      await sb.from("company_orgs").upsert({
+        org_id: orgId, name: space.title, slug, owner_id: space.owner_id,
+        intern_capacity: capacity, status: "active",
+      }, { onConflict: "org_id" });
+    } else if (orgType === "partner") {
+      await sb.from("partners").upsert({
+        org_id: orgId, owner_id: space.owner_id, agency_name: space.title, slug, status: "active",
+      }, { onConflict: "org_id" });
+    } else if (orgType === "government") {
+      const code = `ORG-${slug.replace(/[^a-z0-9]/gi, "").slice(0, 16).toUpperCase()}`;
+      const { data: agency } = await sb.from("gov_agencies").upsert({
+        org_id: orgId, code, name: space.title, active: true,
+      }, { onConflict: "org_id" }).select("id").single();
+      if (agency) {
+        await sb.from("gov_officers").upsert({
+          user_id: space.owner_id,
+          agency_id: agency.id,
+          role_title: String(opts?.settings?.owner_role || "Organization owner"),
+          status: "active",
+          approved_at: new Date().toISOString(),
+        }, { onConflict: "user_id,agency_id" });
+      }
+    }
+
     // Count only for audit/readability; the RPC does the actual backfill.
 
     // Owner membership — first member of the org, by definition.
@@ -813,33 +850,14 @@ export async function provisionOrgFromSpace(
     // because middleware reads Clerk. Surface as a warning on the
     // returned data so the admin UI can show "org created but role
     // promotion needs retry" instead of a silent green toast.
-    let clerkPromotionWarning: string | null = null;
-    try {
-      const { data: ownerRow } = await sb
-        .from("users")
-        .select("clerk_id, role")
-        .eq("id", space.owner_id)
-        .maybeSingle();
-      const owner = ownerRow as { clerk_id: string | null; role: string } | null;
-      if (owner?.clerk_id && (owner.role === "intern" || owner.role === "public_user")) {
-        const client = await clerkClient();
-        await client.users.updateUserMetadata(owner.clerk_id, {
-          publicMetadata: { role: "creative_host" },
-        });
-        await sb.from("users").update({ role: "creative_host" }).eq("id", space.owner_id);
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      console.warn("[provisionOrgFromSpace] clerk role promotion failed:", msg);
-      clerkPromotionWarning = `Owner role promotion failed: ${msg}`;
-    }
+    const clerkPromotionWarning: string | null = null;
 
     // Notify the owner — first thing they'll see in the bell.
     await sb.from("notifications").insert({
       user_id: space.owner_id,
       org_id: orgId,
       title: "Your organization space is live",
-      message: `"${space.title}" is approved. Your portal is at /o/${slug}.`,
+      message: `"${space.title}" workspace is live at /o/${slug}.`,
       type: "success",
       action_url: `/o/${slug}`,
       is_read: false,

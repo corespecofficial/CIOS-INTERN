@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 
 /**
  * Atomic wallet debit — uses a Postgres row-level lock (FOR UPDATE) to
@@ -84,7 +84,7 @@ export async function atomicWalletDebit(input: DebitInput): Promise<DebitResult>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// atomicWalletCredit — used by webhook after successful Monnify payment
+// atomicWalletCredit — used after a verified gateway payment
 // ─────────────────────────────────────────────────────────────────────────────
 export type CreditInput = {
   userId: string;

@@ -91,7 +91,7 @@ export function AnalyticsClient({ totalUsers, dau, wau, mau, roleCounts }: Props
           <h3 style={{ fontSize: 15, fontWeight: 700, color: "#E8EDF5", marginBottom: 12 }}>Revenue Overview</h3>
           <p style={{ fontSize: 13, color: "#8892A4", marginBottom: 8 }}>Total Revenue</p>
           <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 28, fontWeight: 800, color: "#FFC107", marginBottom: 4 }}>₦0</div>
-          <p style={{ fontSize: 11, color: "#5A6478" }}>Wire Paystack to see real revenue</p>
+          <p style={{ fontSize: 11, color: "#5A6478" }}>Configure Flutterwave to see verified revenue</p>
         </div>
 
         <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: 20 }}>

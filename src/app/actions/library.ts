@@ -386,7 +386,7 @@ export async function recordLibraryPurchase(itemId: string, paymentRef: string):
     await sb.from("library_purchases").upsert({
       user_id: me.id, item_id: itemId,
       amount_paid: item.price, currency: item.currency,
-      payment_ref: paymentRef, payment_method: "paystack",
+      payment_ref: paymentRef, payment_method: "flutterwave",
     }, { onConflict: "user_id,item_id" });
 
     await sb.from("library_items").update({ purchase_count: ((item as Record<string, unknown>).purchase_count as number ?? 0) + 1 }).eq("id", itemId).then(() => {}).catch(() => {});
