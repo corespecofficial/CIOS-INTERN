@@ -173,6 +173,7 @@ export function HostNav({ orgSlug, orgName, memberRole, isSuperAdmin, operations
       { href: "/operations", label: "Programme Operations", icon: "📋", section: "OPERATIONS", roles: ["owner", "org_admin", "instructor", "finance"] },
       { href: "/growth", label: "Growth Operations", icon: "📈", section: "OPERATIONS", roles: ["owner", "org_admin", "instructor"] },
       { href: "/accountability", label: "Performance & Discipline", icon: "⚖️", section: "OPERATIONS", roles: ["owner", "org_admin", "instructor"] },
+      { href: "/finance", label: "Finance & Bookkeeping", icon: "💰", section: "OPERATIONS", roles: ["owner", "org_admin", "finance"] },
     ] : [];
     const visible = [...NAV_ITEMS, ...operations, ...ORG_PARITY_ITEMS].filter((item) => canSeeItem(item, memberRole, isSuperAdmin));
     const grouped: Array<{ label: string; items: NavItem[] }> = [];
