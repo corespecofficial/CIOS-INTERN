@@ -7,7 +7,8 @@ export const runtime = "nodejs";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_SERVICE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const CLERK_WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 
 /* Supabase admin client (service role for writes) */
@@ -113,7 +114,7 @@ async function handleUserCreated(data: ClerkUserData) {
     "recruiter", "mentor", "alumni",
     "public_user", "investor", "startup_founder", "partner_org", "creative_host",
   ];
-  let role = existingRole && validRoles.includes(existingRole) ? existingRole : "public_user";
+  const role = existingRole && validRoles.includes(existingRole) ? existingRole : "public_user";
 
   if (!existingRole) {
     try {

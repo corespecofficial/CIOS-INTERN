@@ -60,6 +60,9 @@ async function runComplianceCheck() {
   let violationsCount = 0;
   let incidentReportsCount = 0;
   let suspensionsCount = 0;
+  // Governance safeguard: automation may record and recommend, but it must not
+  // impose monetary penalties or suspend a person without an authorized review.
+  const automaticPunitiveActionsEnabled = false;
 
   // ───────────────────────────────────────────────────────────────────────────
   // Fetch all active tasks with their assignments in a single pass
@@ -291,7 +294,7 @@ async function runComplianceCheck() {
     if (violationInserts.length > 0) {
       await sb.from("compliance_violations").insert(violationInserts);
     }
-    if (fineInserts.length > 0) {
+    if (automaticPunitiveActionsEnabled && fineInserts.length > 0) {
       await sb.from("compliance_fines").insert(fineInserts);
       await pushNotifs(sb, missedNotifs);
     }
@@ -440,7 +443,7 @@ async function runComplianceCheck() {
     return now.getTime() > effectiveDeadline + 60 * 60 * 1000;
   });
 
-  if (autoSuspendTasks.length > 0) {
+  if (automaticPunitiveActionsEnabled && autoSuspendTasks.length > 0) {
     const autoSuspendTaskIds = autoSuspendTasks.map((t) => t.id as string);
 
     // Find users with unpaid fines for these tasks

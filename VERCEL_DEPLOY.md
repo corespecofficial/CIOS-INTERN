@@ -26,8 +26,10 @@ Paste these into **Project Settings → Environment Variables**. Same values you
 | `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` | ✅ | `/post-auth` |
 | `CLERK_WEBHOOK_SECRET` | ✅ | Clerk → Webhooks |
 | `NEXT_PUBLIC_SUPABASE_URL` | ✅ | Supabase → Project Settings → API |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✅ | Supabase → API |
-| `SUPABASE_SERVICE_ROLE_KEY` | ✅ | Supabase → API (service_role, keep secret) |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | ✅ | Supabase → Settings → API Keys (safe for browser) |
+| `SUPABASE_SECRET_KEY` | ✅ | Supabase → Settings → API Keys (server-only, keep secret) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Legacy fallback | Supabase → Legacy API Keys |
+| `SUPABASE_SERVICE_ROLE_KEY` | Legacy fallback | Supabase → Legacy API Keys (server-only) |
 | `NEXT_PUBLIC_ABLY_API_KEY` | ✅ | Ably → Apps → API keys |
 | `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | ✅ | Cloudinary → Dashboard |
 | `NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET` | ✅ | Cloudinary → Settings → Upload |

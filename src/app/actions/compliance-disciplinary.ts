@@ -37,6 +37,7 @@ export async function evaluateAndActOnUser(
 
     const sb = supabaseAdmin();
     const now = new Date().toISOString();
+    const automaticFinancialPenaltiesEnabled = false;
 
     // Run parallel queries
     const [violationRes, finesRes, priorActionsRes] = await Promise.all([
@@ -71,15 +72,15 @@ export async function evaluateAndActOnUser(
     let reason: string;
 
     if (violations >= 8) {
-      action = "ban";
+      action = "other";
       reason = `Termination recommended: ${violations} violations recorded (admin approval required)`;
     } else if (violations >= 6) {
       action = "other"; // final_review
       reason = `Final review required: ${violations} violations recorded`;
     } else if (violations >= 4) {
-      action = "suspension";
-      reason = `Automatic suspension: ${violations} violations recorded`;
-    } else if (unpaidTotal > 0 && violations >= 2) {
+      action = "other";
+      reason = `Suspension review recommended: ${violations} violations recorded (admin approval required)`;
+    } else if (automaticFinancialPenaltiesEnabled && unpaidTotal > 0 && violations >= 2) {
       action = "fine";
       reason = `Fine increase applied: unpaid fines of ₦${unpaidTotal} with ${violations} violations`;
       // Multiply each unpaid fine by 1.5

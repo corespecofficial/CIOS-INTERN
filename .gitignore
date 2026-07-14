@@ -46,3 +46,6 @@ next-env.d.ts
 
 # clerk configuration (can include secrets)
 /.clerk/
+
+# Supabase CLI local project link/cache (may contain connection metadata)
+/supabase/.temp/

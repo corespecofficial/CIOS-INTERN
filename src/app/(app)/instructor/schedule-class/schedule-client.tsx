@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { createClassSession } from "@/app/actions/classes";
+import { formatCompulsoryClassSchedule } from "@/lib/class-schedule";
 
 function toInputDT(d: Date): string {
   const p = (n: number) => n.toString().padStart(2, "0");
@@ -23,6 +24,7 @@ export function ScheduleClient({ courses }: { courses: { id: string; title: stri
   const [courseId, setCourseId] = useState<string>("");
   const [maxAttendees, setMaxAttendees] = useState<number | "">("");
   const [busy, setBusy] = useState(false);
+  const [isCompulsory, setIsCompulsory] = useState(true);
 
   async function submit() {
     if (!title.trim()) { toast.error("Title required"); return; }
@@ -35,6 +37,7 @@ export function ScheduleClient({ courses }: { courses: { id: string; title: stri
       meetingUrl,
       courseId: courseId || null,
       maxAttendees: maxAttendees === "" ? null : Number(maxAttendees),
+      isCompulsory,
     });
     setBusy(false);
     if (!r.ok) { toast.error(r.error); return; }
@@ -53,6 +56,9 @@ export function ScheduleClient({ courses }: { courses: { id: string; title: stri
       </div>
 
       <div style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ padding: 12, borderRadius: 10, background: "rgba(30,136,229,0.10)", color: "#B8D9FF", fontSize: 13 }}>
+          Compulsory programme schedule: {formatCompulsoryClassSchedule()}
+        </div>
         <Field label="Class title (required)">
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Live Q&A: Prompt Engineering Advanced" style={input} autoFocus />
         </Field>
@@ -70,6 +76,10 @@ export function ScheduleClient({ courses }: { courses: { id: string; title: stri
         <Field label="Meeting link (Zoom / Meet / LiveKit / any URL)">
           <input value={meetingUrl} onChange={(e) => setMeetingUrl(e.target.value)} placeholder="https://zoom.us/j/... or https://meet.google.com/..." style={input} />
         </Field>
+        <label style={{ display: "flex", gap: 10, alignItems: "flex-start", color: "#E8EDF5", fontSize: 13 }}>
+          <input type="checkbox" checked={isCompulsory} onChange={(e) => setIsCompulsory(e.target.checked)} />
+          <span><strong>Compulsory class</strong><br /><span style={{ color: "#8892A4" }}>Opens attendance 15 minutes before class and records late arrival after 15 minutes. Absence still requires human review.</span></span>
+        </label>
         <div style={grid2}>
           <Field label="Link to a course (optional)">
             <select value={courseId} onChange={(e) => setCourseId(e.target.value)} style={input}>
