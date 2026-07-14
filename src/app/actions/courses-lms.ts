@@ -62,6 +62,14 @@ async function getCourseOrgId(courseId: string): Promise<string | null> {
   return (data as { org_id?: string | null } | null)?.org_id ?? null;
 }
 
+async function requireCourseLearnerAccess(courseId: string, userId: string): Promise<string | null> {
+  const orgId = await getCourseOrgId(courseId);
+  if (!orgId) return null;
+  const membership = await getOrgMembershipForUser(orgId, userId);
+  if (!membership) throw new Error("You must be an active member of this organization");
+  return orgId;
+}
+
 function revalidateCoursePaths(courseId: string, orgSlug?: string | null) {
   revalidatePath("/instructor");
   revalidatePath(`/instructor/course-builder/${courseId}`);
@@ -322,7 +330,7 @@ export async function submitQuizAttempt(moduleId: string, answers: { questionId:
     const percent = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
     const passed = percent >= (mod.pass_score || 60);
 
-    const courseOrgId = await getCourseOrgId(mod.course_id);
+    const courseOrgId = await requireCourseLearnerAccess(mod.course_id, me.id);
     const attemptPayload: Record<string, unknown> = {
       user_id: me.id, module_id: moduleId,
       answers, score: percent, max_score: 100, passed,
@@ -364,7 +372,7 @@ export async function submitAssignment(moduleId: string, content: string, fileUr
     if (!content.trim() && !fileUrl) return { ok: false, error: "Write something or attach a file" };
     const { data: mod } = await sb.from("course_modules").select("course_id").eq("id", moduleId).single();
     if (!mod) return { ok: false, error: "Module not found" };
-    const courseOrgId = await getCourseOrgId(mod.course_id);
+    const courseOrgId = await requireCourseLearnerAccess(mod.course_id, me.id);
     const submissionPayload: Record<string, unknown> = {
       user_id: me.id,
       module_id: moduleId,
@@ -563,7 +571,7 @@ export async function enrollInCourse(courseId: string): Promise<Result> {
   try {
     const me = await requireMe();
     const sb = supabaseAdmin();
-    const courseOrgId = await getCourseOrgId(courseId);
+    const courseOrgId = await requireCourseLearnerAccess(courseId, me.id);
     const enrollmentPayload: Record<string, unknown> = { user_id: me.id, course_id: courseId, status: "active", progress: 0 };
     if (courseOrgId) enrollmentPayload.org_id = courseOrgId;
     const { error } = await sb.from("course_enrollments").upsert(
@@ -599,6 +607,9 @@ export async function markModuleComplete(courseId: string, moduleId: string): Pr
   try {
     const me = await requireMe();
     const sb = supabaseAdmin();
+    await requireCourseLearnerAccess(courseId, me.id);
+    const { data: moduleRow } = await sb.from("course_modules").select("id").eq("id", moduleId).eq("course_id", courseId).maybeSingle();
+    if (!moduleRow) return { ok: false, error: "Module does not belong to this course" };
     const { data: enroll } = await sb.from("course_enrollments")
       .select("id, completed_modules").eq("user_id", me.id).eq("course_id", courseId).maybeSingle();
     if (!enroll) return { ok: false, error: "Not enrolled" };
@@ -655,6 +666,7 @@ export async function issueCertificate(courseId: string): Promise<Result<{ certi
   try {
     const me = await requireMe();
     const sb = supabaseAdmin();
+    const courseOrgId = await requireCourseLearnerAccess(courseId, me.id);
     // Verify completion
     const { data: enroll } = await sb.from("course_enrollments")
       .select("status, progress").eq("user_id", me.id).eq("course_id", courseId).maybeSingle();
@@ -667,7 +679,6 @@ export async function issueCertificate(courseId: string): Promise<Result<{ certi
 
     const certificateNumber = generateCertNumber();
     const shareSlug = Math.random().toString(36).slice(2, 12);
-    const courseOrgId = await getCourseOrgId(courseId);
     const certificatePayload: Record<string, unknown> = {
       user_id: me.id,
       course_id: courseId,

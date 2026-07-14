@@ -53,8 +53,10 @@ export default async function HostOrgLayout({ children, params }: Props) {
       <div
         data-portal-main
         style={{
-          marginLeft: "var(--org-sidebar-width, 280px)",
-          minHeight: "100dvh",
+          marginLeft: "var(--org-sidebar-width, 240px)",
+          height: "100dvh",
+          maxHeight: "100dvh",
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
           transition: "margin-left 0.2s ease",
@@ -66,7 +68,7 @@ export default async function HostOrgLayout({ children, params }: Props) {
           memberRole={ctx.memberRole}
           isSuperAdmin={ctx.isSuperAdmin}
         />
-        <main style={{ flex: 1, padding: "32px 40px" }}>
+        <main style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 20 }}>
           {children}
         </main>
         {/* Cmd+K palette — wires the search input in HostHeader to the

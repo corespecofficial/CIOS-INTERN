@@ -34,14 +34,16 @@ export default async function StudentOrgLayout({ children, params }: {
         data-portal-main
         style={{
           marginLeft: "var(--student-sidebar-width, 240px)",
-          minHeight: "100dvh",
+          height: "100dvh",
+          maxHeight: "100dvh",
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
           transition: "margin-left 0.2s ease",
         }}
       >
         <StudentHeader orgName={ctx.org.name} />
-        <main style={{ flex: 1, padding: "32px 40px" }}>
+        <main style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 20 }}>
           {children}
         </main>
         <CommandPalette />

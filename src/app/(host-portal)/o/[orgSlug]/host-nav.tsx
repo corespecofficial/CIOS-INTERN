@@ -160,7 +160,7 @@ export function HostNav({ orgSlug, orgName, memberRole, isSuperAdmin }: Props) {
   }, []);
 
   useEffect(() => {
-    const width = collapsed ? "76px" : "280px";
+    const width = collapsed ? "64px" : "240px";
     document.documentElement.style.setProperty("--org-sidebar-width", width);
     try {
       window.localStorage.setItem("cios-org-sidebar-collapsed", String(collapsed));
@@ -195,8 +195,8 @@ export function HostNav({ orgSlug, orgName, memberRole, isSuperAdmin }: Props) {
     <aside
       data-portal-sidebar
       style={{
-        width: "var(--org-sidebar-width, 280px)",
-        minWidth: "var(--org-sidebar-width, 280px)",
+        width: "var(--org-sidebar-width, 240px)",
+        minWidth: "var(--org-sidebar-width, 240px)",
         position: "fixed",
         top: 0,
         left: 0,

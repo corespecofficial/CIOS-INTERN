@@ -47,7 +47,9 @@ const ROLE_HOME: Record<Role, string> = {
 };
 
 // Shared routes everyone can access
-const SHARED_ROUTES = ["/profile", "/settings", "/notifications", "/post-auth", "/onboarding"];
+// Signed-in users may reach the tenant selectors. Concrete /o/<slug> and
+// /s/<slug> paths are still authorized by the membership guard below.
+const SHARED_ROUTES = ["/profile", "/settings", "/notifications", "/post-auth", "/onboarding", "/o", "/s"];
 
 // Per-role allowed route prefixes
 const ROLE_ACCESS: Record<Role, string[]> = {

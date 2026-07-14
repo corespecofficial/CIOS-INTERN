@@ -19,24 +19,24 @@ export function StudentHeader({ orgName }: { orgName: string }) {
         position: "sticky",
         top: 0,
         zIndex: 50,
-        height: 76,
-        minHeight: 76,
+        height: 56,
+        minHeight: 56,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "0 24px",
+        padding: "0 16px",
         background: "var(--bg-secondary, #111827)",
         borderBottom: "1px solid var(--border-default, #1F2937)",
-        gap: 18,
+        gap: 10,
       }}
     >
-      <div style={{ position: "relative", flex: "1 1 520px", maxWidth: 660 }}>
+      <div style={{ position: "relative", flex: "1 1 480px", maxWidth: 480 }}>
         <Search
           size={18}
           aria-hidden
           style={{
             position: "absolute",
-            left: 18,
+            left: 14,
             top: "50%",
             transform: "translateY(-50%)",
             color: "var(--text-muted, #5A6478)",
@@ -54,13 +54,13 @@ export function StudentHeader({ orgName }: { orgName: string }) {
           placeholder={`Search ${orgName}...`}
           style={{
             width: "100%",
-            height: 52,
-            padding: "0 86px 0 52px",
-            borderRadius: 10,
+            height: 36,
+            padding: "0 72px 0 42px",
+            borderRadius: 8,
             border: "1px solid var(--border-default, #1F2937)",
             background: "var(--bg-tertiary, #182132)",
             color: "var(--text-primary, #E8EDF5)",
-            fontSize: 16,
+            fontSize: 13,
             outline: "none",
             cursor: "pointer",
             boxSizing: "border-box",
@@ -85,7 +85,7 @@ export function StudentHeader({ orgName }: { orgName: string }) {
         </span>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 18, flexShrink: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
         <button
           type="button"
           onClick={toggleTheme}

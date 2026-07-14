@@ -78,13 +78,13 @@ export function HostHeader({ orgSlug, orgName, memberRole, isSuperAdmin }: Props
         position: "sticky",
         top: 0,
         zIndex: 50,
-        height: 72,
-        minHeight: 72,
+        height: 56,
+        minHeight: 56,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: 16,
-        padding: "0 32px",
+        gap: 10,
+        padding: "0 16px",
         background: "var(--bg-secondary, #111827)",
         borderBottom: "1px solid var(--border-default, rgba(255,255,255,0.08))",
         backdropFilter: "blur(10px)",
@@ -102,9 +102,9 @@ export function HostHeader({ orgSlug, orgName, memberRole, isSuperAdmin }: Props
         className="cios-host-search"
         style={{
           position: "relative",
-          flex: "0 1 660px",
-          maxWidth: 660,
-          minWidth: 280,
+          flex: "0 1 480px",
+          maxWidth: 480,
+          minWidth: 220,
         }}
       >
         <input
@@ -115,13 +115,13 @@ export function HostHeader({ orgSlug, orgName, memberRole, isSuperAdmin }: Props
           placeholder={`🔍  Search ${orgName}…`}
           style={{
             width: "100%",
-            height: 52,
-            padding: "0 72px 0 18px",
-            borderRadius: 10,
+            height: 36,
+            padding: "0 64px 0 14px",
+            borderRadius: 8,
             border: "1px solid var(--border-default, rgba(255,255,255,0.10))",
             background: "var(--bg-tertiary, rgba(255,255,255,0.04))",
             color: "var(--text-primary, #E8EDF5)",
-            fontSize: 16,
+            fontSize: 13,
             outline: "none",
             cursor: "pointer",
           }}
