@@ -14,7 +14,7 @@
  * post can land here with the code pre-filled.
  */
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
@@ -28,28 +28,27 @@ export default function EnrollmentCodePage() {
   const params = useSearchParams();
   const me = useCurrentUser();
   const { isLoaded, isSignedIn } = useUser();
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState(() => params?.get("code") || "");
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
-  const [autoTried, setAutoTried] = useState(false);
+  const autoTried = useRef(false);
 
   // If the admin shared a deep link with `?code=...`, prefill + auto-submit
   // so the user doesn't have to retype it. Only run once.
   useEffect(() => {
     const c = params?.get("code");
     if (!isLoaded || !isSignedIn) return;
-    if (c && !autoTried) {
-      setAutoTried(true);
-      setCode(c);
+    if (c && !autoTried.current) {
+      autoTried.current = true;
       start(async () => {
         const r = await redeemEnrollmentCode(c);
         if (r.ok) router.replace(r.data!.redirectTo);
         else setErr(r.error);
       });
-    } else if (!autoTried) {
-      setAutoTried(true);
+    } else if (!autoTried.current) {
+      autoTried.current = true;
     }
-  }, [isLoaded, isSignedIn, autoTried, params, router, start]);
+  }, [isLoaded, isSignedIn, params, router, start]);
 
   function submit() {
     setErr(null);
@@ -117,9 +116,10 @@ export default function EnrollmentCodePage() {
           {err && <div style={{ marginTop: 12, padding: "10px 14px", background: "rgba(239,83,80,0.10)", color: "#FF8A80", border: "1px solid rgba(239,83,80,0.30)", borderRadius: 8, fontSize: 12 }}>{err}</div>}
 
           {!isSignedIn && isLoaded ? (
-            <Link href={`/sign-in?redirect_url=${encodeURIComponent(returnPath)}`} style={{ marginTop: 14, width: "100%", padding: "14px 24px", display: "block", boxSizing: "border-box", textAlign: "center", background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff", borderRadius: 10, fontSize: 14, fontWeight: 800, textDecoration: "none" }}>
-              Sign in to join this organization →
-            </Link>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 14 }}>
+              <Link href={`/sign-up?redirect_url=${encodeURIComponent(returnPath)}`} style={{ padding: "14px 12px", textAlign: "center", background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff", borderRadius: 10, fontSize: 13, fontWeight: 800, textDecoration: "none" }}>Create account</Link>
+              <Link href={`/sign-in?redirect_url=${encodeURIComponent(returnPath)}`} style={{ padding: "14px 12px", textAlign: "center", border: "1px solid #1E88E5", color: "#64B5F6", borderRadius: 10, fontSize: 13, fontWeight: 800, textDecoration: "none" }}>Sign in</Link>
+            </div>
           ) : <button
             type="button"
             onClick={submit}
@@ -146,14 +146,14 @@ export default function EnrollmentCodePage() {
               >
                 Browse classes →
               </Link>
-              <button
+              {isSignedIn && <button
                 type="button"
                 onClick={continueAsVisitor}
                 disabled={pending}
                 style={{ padding: "8px 14px", background: "transparent", color: "#8892A4", border: "1px solid rgba(255,255,255,0.10)", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: pending ? "not-allowed" : "pointer", fontFamily: "inherit" }}
               >
                 Skip — continue as visitor
-              </button>
+              </button>}
             </div>
           </div>
         </div>

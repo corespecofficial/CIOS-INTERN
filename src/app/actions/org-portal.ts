@@ -275,6 +275,13 @@ export interface AssignmentInput {
   brief?: string;
   due_at?: string | null;
   lesson_id?: string | null;
+  learning_objective?: string;
+  instructions?: string;
+  submission_format?: string;
+  evidence_requirement?: string;
+  maximum_score?: number;
+  revision_allowance?: number;
+  priority?: "low" | "medium" | "high" | "urgent";
 }
 
 export async function createAssignment(orgId: string, input: AssignmentInput): Promise<R<{ id: string }>> {
@@ -291,6 +298,13 @@ export async function createAssignment(orgId: string, input: AssignmentInput): P
       brief: input.brief?.trim() || null,
       due_at: input.due_at || null,
       lesson_id: input.lesson_id || null,
+      learning_objective: input.learning_objective?.trim() || null,
+      instructions: input.instructions?.trim() || input.brief?.trim() || null,
+      submission_format: input.submission_format?.trim() || null,
+      evidence_requirement: input.evidence_requirement?.trim() || null,
+      maximum_score: Math.max(1, Math.min(1000, Math.round(input.maximum_score ?? 100))),
+      revision_allowance: Math.max(0, Math.min(20, Math.round(input.revision_allowance ?? 1))),
+      priority: input.priority ?? "medium",
       created_by: a.data.me.id,
     })
     .select("id")
@@ -315,7 +329,12 @@ export async function submitAssignment(orgId: string, assignmentId: string, body
   if (body.trim().length === 0) return { ok: false, error: "Submission cannot be empty" };
 
   const sb = supabaseAdmin();
-  const { error } = await sb
+  const { data: assignment } = await sb.from("org_assignments").select("id,due_at,revision_allowance").eq("id", assignmentId).eq("org_id", orgId).maybeSingle();
+  if (!assignment) return { ok: false, error: "Assignment not found" };
+  const { data: existing } = await sb.from("org_submissions").select("id,revision_count").eq("assignment_id", assignmentId).eq("student_id", a.data.me.id).maybeSingle();
+  if (existing && Number(existing.revision_count || 0) >= Number(assignment.revision_allowance || 0)) return { ok: false, error: "Revision allowance has been used" };
+  const isLate = Boolean(assignment.due_at && new Date() > new Date(assignment.due_at));
+  const { data: saved, error } = await sb
     .from("org_submissions")
     .upsert(
       {
@@ -328,11 +347,20 @@ export async function submitAssignment(orgId: string, assignmentId: string, body
         grade: null,
         feedback: null,
         graded_by: null,
-        graded_at: null,
+          graded_at: null,
+          status: "submitted",
+          is_late: isLate,
+          revision_count: existing ? Number(existing.revision_count || 0) + 1 : 0,
       },
       { onConflict: "assignment_id,student_id" },
-    );
-  if (error) return { ok: false, error: error.message };
+      ).select("id,body,attachment_key,submitted_at,revision_count").single();
+  if (error || !saved) return { ok: false, error: error?.message || "Submission failed" };
+  const { count } = await sb.from("org_submission_versions").select("id", { count: "exact", head: true }).eq("submission_id", saved.id);
+  const { error: versionError } = await sb.from("org_submission_versions").insert({
+    org_id: orgId, submission_id: saved.id, assignment_id: assignmentId, student_id: a.data.me.id,
+    version_number: (count || 0) + 1, body: saved.body, attachment_key: saved.attachment_key, submitted_at: saved.submitted_at,
+  });
+  if (versionError) return { ok: false, error: "Submission saved, but version history failed; contact your instructor" };
 
   revalidatePath(`/s/${a.data.org.slug}/assignments`);
   revalidatePath(`/s/${a.data.org.slug}/assignments/${assignmentId}`);

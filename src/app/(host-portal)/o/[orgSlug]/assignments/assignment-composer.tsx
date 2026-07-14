@@ -8,11 +8,14 @@ export function AssignmentComposer({ orgId }: { orgId: string }) {
   const [title, setTitle] = useState("");
   const [brief, setBrief] = useState("");
   const [due, setDue] = useState("");
+  const [objective, setObjective] = useState("");
+  const [format, setFormat] = useState("");
+  const [evidence, setEvidence] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   function reset() {
-    setTitle(""); setBrief(""); setDue(""); setErr(null); setOpen(false);
+    setTitle(""); setBrief(""); setDue(""); setObjective(""); setFormat(""); setEvidence(""); setErr(null); setOpen(false);
   }
   function submit() {
     setErr(null);
@@ -20,6 +23,10 @@ export function AssignmentComposer({ orgId }: { orgId: string }) {
       const r = await createAssignment(orgId, {
         title, brief: brief || undefined,
         due_at: due ? new Date(due).toISOString() : null,
+        learning_objective: objective,
+        instructions: brief,
+        submission_format: format,
+        evidence_requirement: evidence,
       });
       if (!r.ok) { setErr(r.error); return; }
       reset();
@@ -38,6 +45,9 @@ export function AssignmentComposer({ orgId }: { orgId: string }) {
     <div style={{ background: "#111827", border: "1px solid #1F2937", borderRadius: 12, padding: 18, marginBottom: 16 }}>
       <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Assignment title" style={inputStyle} autoFocus />
       <textarea value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="Brief / instructions" rows={4} style={{ ...inputStyle, marginTop: 8, resize: "vertical", fontFamily: "inherit" }} />
+      <input value={objective} onChange={(e) => setObjective(e.target.value)} placeholder="Learning objective" style={{ ...inputStyle, marginTop: 8 }} />
+      <input value={format} onChange={(e) => setFormat(e.target.value)} placeholder="Submission format (document, link, video…)" style={{ ...inputStyle, marginTop: 8 }} />
+      <input value={evidence} onChange={(e) => setEvidence(e.target.value)} placeholder="Required evidence" style={{ ...inputStyle, marginTop: 8 }} />
       <div style={{ display: "flex", gap: 8, marginTop: 8, alignItems: "center" }}>
         <label style={{ fontSize: 12, color: "#5A6478" }}>Due:</label>
         <input type="datetime-local" value={due} onChange={(e) => setDue(e.target.value)} style={{ ...inputStyle, flex: 1 }} />

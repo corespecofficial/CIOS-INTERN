@@ -15,6 +15,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { logOrgAudit } from "@/lib/org-audit";
 import { cacheDel, orgCacheKey } from "@/lib/cache";
 import { publishOrgQuotaWarnings, publishPlatformOrgEvent } from "@/lib/org-platform-events";
+import { rateLimit } from "@/lib/rate-limit";
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -202,8 +203,9 @@ export async function redeemOrgInvite(token: string): Promise<R<ResolveResult>> 
 export async function redeemEnrollmentCode(code: string): Promise<R<ResolveResult>> {
   const me = await getCurrentDbUser();
   if (!me) return { ok: false, error: "Unauthorized" };
-  const trimmed = code.trim();
+  const trimmed = code.trim().toUpperCase();
   if (!trimmed) return { ok: false, error: "Enter a code" };
+  if (!rateLimit(`org-enrollment:${me.id}`, 10, 60_000).ok) return { ok: false, error: "Too many code attempts. Wait one minute and try again." };
 
   const sb = supabaseAdmin();
   const { data: inviteRow } = await sb
