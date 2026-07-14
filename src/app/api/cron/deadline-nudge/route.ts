@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/db";
 import { pushNotification } from "@/app/actions/notifications";
+import { isAuthorizedCronRequest } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -41,13 +42,7 @@ const NUDGE_WINDOWS = [
 type NudgeKey = (typeof NUDGE_WINDOWS)[number]["key"];
 
 function checkAuth(req: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
-  const provided =
-    req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
-    req.headers.get("x-cron-secret") ||
-    "";
-  return provided === secret;
+  return isAuthorizedCronRequest(req);
 }
 
 async function runDeadlineNudge() {

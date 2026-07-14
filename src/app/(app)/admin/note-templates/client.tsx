@@ -3,6 +3,7 @@
 
 import { useState, useTransition } from "react";
 import toast from "react-hot-toast";
+import DOMPurify from "dompurify";
 import { createTemplate, updateTemplate, deleteTemplate, type NoteTemplateRow } from "@/app/actions/note-templates";
 
 const DEFAULT_CATEGORIES = ["Letters", "Resumes", "Education", "Business", "Reports", "Custom"];
@@ -213,7 +214,7 @@ function TemplateEditor({ row, onClose, onSaved }: { row: NoteTemplateRow | null
           <div>
             <div style={lbl}>Live preview</div>
             <div style={{ background: "#fff", borderRadius: 10, padding: 10, maxHeight: 300, overflow: "auto" }}
-              dangerouslySetInnerHTML={{ __html: html || "<p style='color:#999'>No content</p>" }} />
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html || "<p>No content</p>") }} />
           </div>
         </div>
       </div>

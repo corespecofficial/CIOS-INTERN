@@ -41,7 +41,7 @@ export default async function OpportunityDetailPage({ params }: { params: Promis
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <OpportunityDetailClient opp={o as never} userRole={me?.role ?? null} />
     </>
   );

@@ -712,7 +712,7 @@ function DTile({ label, active, onClick }: { label: string; active?: boolean; on
 function FormulaHint({ name, desc }: { name: string; desc: string }) {
   return (
     <div style={{ padding: "10px 12px", background: "#111827", border: "1px solid rgba(255,255,255,0.05)", borderRadius: 8 }}>
-      <div style={{ fontSize: 12, fontWeight: 800, color: "#107C41", fontFamily: "ui-monospace, monospace" }} dangerouslySetInnerHTML={{ __html: name }} />
+      <div style={{ fontSize: 12, fontWeight: 800, color: "#107C41", fontFamily: "ui-monospace, monospace" }}>{name}</div>
       <div style={{ fontSize: 10, color: "#8892A4", marginTop: 2 }}>{desc}</div>
     </div>
   );

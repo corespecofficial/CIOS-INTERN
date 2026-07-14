@@ -47,7 +47,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
         fontFamily: "'Nunito', system-ui, sans-serif",
       }}
     >
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
         {Array.from({ length: 40 }).map((_, i) => (
           <div key={i} style={{

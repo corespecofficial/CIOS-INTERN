@@ -23,6 +23,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/db";
 import { sendEmail, wrapEmail } from "@/lib/email";
+import { isAuthorizedCronRequest } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,9 +40,7 @@ interface MembershipRow {
 }
 
 export async function GET(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  const provided = req.headers.get("x-cron-secret") || req.headers.get("authorization")?.replace(/^Bearer\s+/, "");
-  if (secret && provided !== secret) {
+  if (!isAuthorizedCronRequest(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

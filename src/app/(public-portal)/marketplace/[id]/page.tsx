@@ -85,7 +85,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <ProductDetailClient product={p} credBadge={cred.badge} credTier={cred.tier} provenance={cred.provenance} />
     </>
   );

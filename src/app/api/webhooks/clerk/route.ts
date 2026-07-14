@@ -38,9 +38,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
   } else {
-    // Dev mode — allow without signing secret (NOT safe for prod)
-    evt = JSON.parse(payload) as WebhookEvent;
-    console.warn("[clerk-webhook] running without CLERK_WEBHOOK_SECRET — unsafe for production");
+    console.error("[clerk-webhook] CLERK_WEBHOOK_SECRET is not configured");
+    return NextResponse.json({ error: "Webhook verification unavailable" }, { status: 503 });
   }
 
   try {

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchPublicHtml } from "@/lib/safe-link-preview";
 
 export const runtime = "nodejs";
 
@@ -21,21 +22,7 @@ export async function GET(req: Request) {
   const target = searchParams.get("url");
   if (!target) return NextResponse.json({ error: "url required" }, { status: 400 });
   try {
-    const parsed = new URL(target);
-    if (!["http:", "https:"].includes(parsed.protocol)) {
-      return NextResponse.json({ error: "invalid protocol" }, { status: 400 });
-    }
-    const ctl = new AbortController();
-    const to = setTimeout(() => ctl.abort(), 5000);
-    const res = await fetch(target, {
-      headers: { "user-agent": "Mozilla/5.0 (compatible; CIOSBot/1.0)" },
-      signal: ctl.signal,
-      redirect: "follow",
-    }).finally(() => clearTimeout(to));
-    if (!res.ok) return NextResponse.json({ error: `upstream ${res.status}` }, { status: 502 });
-    const type = res.headers.get("content-type") || "";
-    if (!type.includes("text/html")) return NextResponse.json({ error: "not html" }, { status: 415 });
-    const html = (await res.text()).slice(0, 200 * 1024); // cap at 200 KB
+    const { url: parsed, html } = await fetchPublicHtml(target);
 
     const title =
       pickMeta(html, ["og:title", "twitter:title"]) ||
@@ -46,11 +33,11 @@ export async function GET(req: Request) {
     if (image && image.startsWith("/")) image = `${parsed.origin}${image}`;
     const siteName = pickMeta(html, ["og:site_name"]) || parsed.hostname;
 
-    const preview: Preview = { url: target, title: title || parsed.hostname, description, image, siteName };
+    const preview: Preview = { url: parsed.toString(), title: title || parsed.hostname, description, image, siteName };
     return NextResponse.json(preview, {
       headers: { "cache-control": "public, s-maxage=3600, stale-while-revalidate=86400" },
     });
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "Unable to preview this URL" }, { status: 400 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/db";
 import { pushNotification, type NotificationType } from "@/app/actions/notifications";
+import { isAuthorizedCronRequest } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -567,13 +568,7 @@ async function runComplianceCheck() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function checkAuth(req: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return true; // No secret configured — allow (dev mode)
-  const provided =
-    req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ||
-    req.headers.get("x-cron-secret") ||
-    "";
-  return provided === secret;
+  return isAuthorizedCronRequest(req);
 }
 
 export async function GET(req: Request) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/db";
 import { sendEmail, wrapEmail } from "@/lib/email";
+import { isAuthorizedCronRequest } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,9 +17,7 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://cios-intern.vercel.a
  * Config: vercel.json → `{ path: "/api/cron/daily-digest", schedule: "0 8 * * *" }`
  */
 export async function GET(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  const provided = req.headers.get("x-cron-secret") || req.headers.get("authorization")?.replace(/^Bearer\s+/, "");
-  if (secret && provided !== secret) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isAuthorizedCronRequest(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const sb = supabaseAdmin();
   const dayOfWeek = new Date().getUTCDay(); // 0=Sun..6=Sat

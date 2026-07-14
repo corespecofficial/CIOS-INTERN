@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import html2canvas from "html2canvas";
+import DOMPurify from "dompurify";
 import { saveNote, trashNote, type DbNote } from "@/app/actions/notes";
 import { ShareNoteModal } from "@/components/notes/share-modal";
 import { uploadToCloudinary, compressImage } from "@/lib/cloudinary-upload";
@@ -307,7 +308,7 @@ export function SlidesEditorClient({ initialNote }: { initialNote: DbNote }) {
                 />
                 {current.ink && (
                   <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
-                    dangerouslySetInnerHTML={{ __html: current.ink }} />
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(current.ink) }} />
                 )}
 
                 {/* Draggable shape overlays */}
@@ -769,7 +770,7 @@ function ShapeOverlay({ shape, selected, onSelect, onChange, onDelete }: {
       }}
     >
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: "100%", height: "100%", display: "block" }}
-        dangerouslySetInnerHTML={{ __html: shape.svg.replace(/<(rect|circle|ellipse|polygon|polyline|path)/g, `<$1 fill="${shape.fill || "#1E88E5"}" stroke="${shape.stroke || "transparent"}"`) }} />
+        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(shape.svg.replace(/<(rect|circle|ellipse|polygon|polyline|path)/g, `<$1 fill="${shape.fill || "#1E88E5"}" stroke="${shape.stroke || "transparent"}"`), { USE_PROFILES: { svg: true } }) }} />
 
       {selected && (
         <>
@@ -834,7 +835,7 @@ function ShapesPickerSheet({ onClose, onPick }: { onClose: () => void; onPick: (
                   title={s.id}
                   style={{ background: "#111827", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 8, padding: 12, cursor: "pointer", aspectRatio: "1/1", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" style={{ width: "100%", height: "100%" }}
-                    dangerouslySetInnerHTML={{ __html: s.svg.replace(/<(rect|circle|ellipse|polygon|polyline|path|line)/g, `<$1 fill="#E8EDF5" stroke="#E8EDF5"`) }} />
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(s.svg.replace(/<(rect|circle|ellipse|polygon|polyline|path|line)/g, `<$1 fill="#E8EDF5" stroke="#E8EDF5"`), { USE_PROFILES: { svg: true } }) }} />
                 </button>
               ))}
             </div>
@@ -1461,8 +1462,8 @@ function PlayMode({ deck, startAt, autoplay: initialAutoplay, presenter, onExit 
       }}>
         <div style={{ fontSize: "min(5vw, 48px)", fontWeight: 800, marginBottom: 14, lineHeight: 1.15 }}>{slide.title}</div>
         {slide.subtitle && <div style={{ fontSize: "min(2.6vw, 22px)", opacity: 0.8, marginBottom: 14 }}>{slide.subtitle}</div>}
-        {slide.body && <div style={{ fontSize: "min(2vw, 18px)", lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: slide.body }} />}
-        {slide.ink && <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }} dangerouslySetInnerHTML={{ __html: slide.ink }} />}
+        {slide.body && <div style={{ fontSize: "min(2vw, 18px)", lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(slide.body) }} />}
+        {slide.ink && <div style={{ position: "absolute", inset: 0, pointerEvents: "none" }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(slide.ink) }} />}
       </div>
 
       {/* PRESENTER PANEL */}

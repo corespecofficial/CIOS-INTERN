@@ -55,7 +55,7 @@ export default async function StartupDetailPage({ params }: { params: Promise<{ 
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <StartupDetailClient
         pitch={p}
         credBadge={cred.badge}

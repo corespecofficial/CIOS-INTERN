@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import DOMPurify from "dompurify";
 
 export default function SharedNotePage() {
   const [doc, setDoc] = useState<{ title: string; html: string; icon: string } | null>(null);
@@ -24,7 +25,7 @@ export default function SharedNotePage() {
       <h1 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 32, fontWeight: 800, margin: "0 0 18px", display: "flex", alignItems: "center", gap: 10 }}>
         <span>{doc.icon}</span><span>{doc.title}</span>
       </h1>
-      <article style={{ fontSize: 16, lineHeight: 1.7 }} dangerouslySetInnerHTML={{ __html: doc.html }} />
+      <article style={{ fontSize: 16, lineHeight: 1.7 }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(doc.html) }} />
       <div style={{ marginTop: 36, paddingTop: 18, borderTop: "1px solid rgba(255,255,255,0.07)", fontSize: 11, color: "#5A6478", textAlign: "center" }}>
         Created with <strong>CIOS</strong> · COSPRONOS Internship Operating System
       </div>

@@ -6,6 +6,7 @@ import { uploadToCloudinary, compressImage } from "@/lib/cloudinary-upload";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import DOMPurify from "dompurify";
 import { useUser } from "@clerk/nextjs";
 import { listMyNotes, saveNote, trashNote, type DbNote } from "@/app/actions/notes";
 import { ShareNoteModal } from "@/components/notes/share-modal";
@@ -845,7 +846,7 @@ function TemplatePicker({ docType, onClose, onBack }: { docType: DocType; onClos
                       style={{ background: "none", border: "none", cursor: locked ? "not-allowed" : "pointer", textAlign: "left", padding: 0, opacity: locked ? 0.65 : 1 }}>
                       <div style={{ position: "relative", width: "100%", aspectRatio: "3/4", borderRadius: 10, overflow: "hidden", background: "#fff", boxShadow: "0 4px 14px rgba(0,0,0,0.25)", border: `1px solid ${c.accent}33` }}>
                         <div style={{ position: "absolute", inset: 0, transform: "scale(0.22)", transformOrigin: "top left", width: 816, minHeight: 1088, pointerEvents: "none" }}
-                          dangerouslySetInnerHTML={{ __html: c.html }} />
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(c.html) }} />
                         {c.is_premium && (
                           <div style={{ position: "absolute", top: 6, left: 6, padding: "3px 7px", background: "linear-gradient(135deg,#FFC107,#FF7043)", color: "#fff", fontSize: 9, fontWeight: 800, borderRadius: 4, letterSpacing: 0.5 }}>💎 PREMIUM</div>
                         )}
@@ -977,7 +978,7 @@ function TemplateThumb({ tpl }: { tpl: NoteTemplate }) {
         const scale = cardWidth / PAGE_W;
         el.style.setProperty("--scale", String(scale));
       }}
-      dangerouslySetInnerHTML={{ __html: tpl.html }}
+      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(tpl.html) }}
       />
       {badge}
     </div>

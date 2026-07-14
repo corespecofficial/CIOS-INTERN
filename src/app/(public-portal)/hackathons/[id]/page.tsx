@@ -65,7 +65,7 @@ export default async function HackathonDetailPage({ params }: { params: Promise<
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <HackathonDetailWrapper
         hackathon={h}
         teams={teamsRes.ok ? teamsRes.data : []}

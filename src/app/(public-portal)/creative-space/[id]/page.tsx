@@ -77,7 +77,7 @@ export default async function SpaceDetailPage({ params }: { params: Promise<{ id
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <SpaceDetailClient
         space={s}
         reviews={reviews}

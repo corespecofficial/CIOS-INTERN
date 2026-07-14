@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchPublicHtml } from "@/lib/safe-link-preview";
 
 export const runtime = "nodejs";
 
@@ -7,21 +8,16 @@ export async function GET(req: Request) {
   const u = new URL(req.url).searchParams.get("url");
   if (!u) return NextResponse.json({ error: "missing url" }, { status: 400 });
   try {
-    const res = await fetch(u, {
-      headers: { "user-agent": "Mozilla/5.0 (CIOS link-preview)" },
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!res.ok) return NextResponse.json({ error: `status ${res.status}` }, { status: 200 });
-    const html = await res.text();
+    const { url, html } = await fetchPublicHtml(u);
     const pick = (re: RegExp) => html.match(re)?.[1]?.trim();
     const meta = (name: string) => pick(new RegExp(`<meta[^>]+(?:property|name)=["']${name}["'][^>]*content=["']([^"']+)["']`, "i"))
       || pick(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]*(?:property|name)=["']${name}["']`, "i"));
-    const title = meta("og:title") || pick(/<title[^>]*>([^<]+)<\/title>/i) || u;
+    const title = meta("og:title") || pick(/<title[^>]*>([^<]+)<\/title>/i) || url.toString();
     const description = meta("og:description") || meta("description") || "";
     const image = meta("og:image") || "";
-    const siteName = meta("og:site_name") || new URL(u).hostname;
+    const siteName = meta("og:site_name") || url.hostname;
     return NextResponse.json({ title, description, image, siteName });
-  } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 200 });
+  } catch {
+    return NextResponse.json({ error: "Unable to preview this URL" }, { status: 400 });
   }
 }

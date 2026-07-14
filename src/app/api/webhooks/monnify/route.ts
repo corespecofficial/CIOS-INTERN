@@ -115,11 +115,17 @@ async function handleSuccessfulTransaction(data: Record<string, unknown>) {
     return; // idempotent
   }
 
+  const expectedAmount = Number(intent.amount_ngn);
+  if (!Number.isFinite(expectedAmount) || Math.abs(paidAmount - expectedAmount) > 0.01) {
+    console.error("[monnify-webhook] Amount mismatch for payment intent:", paymentRef);
+    return;
+  }
+
   // Credit the wallet
   const idempotencyKey = `monnify-topup-${monnifyRef}`;
   const credit = await atomicWalletCredit({
     userId: intent.user_id,
-    amount: paidAmount,
+    amount: expectedAmount,
     type: "credit",
     description: `Wallet top-up via Monnify`,
     idempotencyKey,
@@ -140,7 +146,7 @@ async function handleSuccessfulTransaction(data: Record<string, unknown>) {
     resolved_at: new Date().toISOString(),
   }).eq("reference", paymentRef);
 
-  console.log(`[monnify-webhook] Credited ₦${paidAmount} to user ${intent.user_id}`);
+  console.log("[monnify-webhook] Credited verified payment:", paymentRef);
 }
 
 async function handleFailedTransaction(data: Record<string, unknown>) {
