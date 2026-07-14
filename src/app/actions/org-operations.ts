@@ -35,7 +35,7 @@ export async function getOperationsDashboard(orgSlug: string) {
       c.sb.from("org_programme_meetings").select("*").eq("programme_id", c.programme.id).gte("ends_at", now).order("starts_at").limit(8),
       c.sb.from("org_meeting_attendance").select("*").eq("programme_id", c.programme.id).eq("user_id", c.me.id).order("created_at", { ascending: false }).limit(20),
       c.isAdmin
-        ? c.sb.from("org_work_sessions").select("id,status,submitted_minutes,approved_minutes,user_id,created_at").eq("programme_id", c.programme.id).order("created_at", { ascending: false }).limit(100)
+        ? c.sb.from("org_work_sessions").select("id,status,submitted_minutes,approved_minutes,user_id,planned_activity,work_summary,output_produced,reviewer_feedback,created_at,users:user_id(name,email)").eq("programme_id", c.programme.id).order("created_at", { ascending: false }).limit(100)
         : c.sb.from("org_work_sessions").select("id,status,submitted_minutes,approved_minutes,user_id,created_at").eq("programme_id", c.programme.id).eq("user_id", c.me.id).order("created_at", { ascending: false }).limit(100),
       c.sb.from("org_programme_members").select("id,user_id,position_title,programme_role,status,department_id").eq("programme_id", c.programme.id).order("created_at"),
     ]);

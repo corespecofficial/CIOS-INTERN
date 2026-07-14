@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getOperationsDashboard } from "@/app/actions/org-operations";
+import { WorkSessionReview } from "@/components/org-operations/work-session-review";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export default async function OperationsPage({ params }: { params: Promise<{ org
     </section>
     <section style={{ marginTop: 18, background: "#111827", border: "1px solid #1F2937", borderRadius: 12, padding: 18 }}>
       <h2 style={{ marginTop: 0, fontSize: 17 }}>Work sessions awaiting human review</h2>
-      {pending.length === 0 ? <p style={{ color: "#8892A4" }}>Nothing is waiting for review.</p> : pending.map((s) => <div key={s.id} style={{ padding: "10px 0", borderTop: "1px solid #1F2937", fontSize: 13 }}>Intern {String(s.user_id).slice(0,8)} · {s.submitted_minutes || 0} minutes · <strong>{s.status}</strong></div>)}
+      {pending.length === 0 ? <p style={{ color: "#8892A4" }}>Nothing is waiting for review.</p> : pending.map((s) => <div key={s.id} style={{ padding: "12px 0", borderTop: "1px solid #1F2937", fontSize: 13 }}><strong>{Array.isArray(s.users) ? s.users[0]?.name : (s.users as {name?:string}|null)?.name || "Intern"}</strong> · {s.submitted_minutes || 0} minutes · {s.status}<div style={{color:"#8892A4",marginTop:4}}>{s.planned_activity}</div><WorkSessionReview orgSlug={orgSlug} sessionId={s.id} submittedMinutes={Number(s.submitted_minutes||0)}/></div>)}
     </section>
   </div>;
 }
