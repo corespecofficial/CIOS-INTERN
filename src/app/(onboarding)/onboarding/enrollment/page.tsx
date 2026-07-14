@@ -17,6 +17,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
 import { redeemEnrollmentCode, chooseVisitor } from "@/app/actions/onboarding-intent";
 import { useCurrentUser } from "@/lib/use-current-user";
 
@@ -26,6 +27,7 @@ export default function EnrollmentCodePage() {
   const router = useRouter();
   const params = useSearchParams();
   const me = useCurrentUser();
+  const { isLoaded, isSignedIn } = useUser();
   const [code, setCode] = useState("");
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
@@ -35,6 +37,7 @@ export default function EnrollmentCodePage() {
   // so the user doesn't have to retype it. Only run once.
   useEffect(() => {
     const c = params?.get("code");
+    if (!isLoaded || !isSignedIn) return;
     if (c && !autoTried) {
       setAutoTried(true);
       setCode(c);
@@ -46,8 +49,7 @@ export default function EnrollmentCodePage() {
     } else if (!autoTried) {
       setAutoTried(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isLoaded, isSignedIn, autoTried, params, router, start]);
 
   function submit() {
     setErr(null);
@@ -58,6 +60,8 @@ export default function EnrollmentCodePage() {
       router.replace(r.data!.redirectTo);
     });
   }
+
+  const returnPath = `/onboarding/enrollment${code || params?.get("code") ? `?code=${encodeURIComponent(code || params?.get("code") || "")}` : ""}`;
 
   function continueAsVisitor() {
     setErr(null);
@@ -112,7 +116,11 @@ export default function EnrollmentCodePage() {
 
           {err && <div style={{ marginTop: 12, padding: "10px 14px", background: "rgba(239,83,80,0.10)", color: "#FF8A80", border: "1px solid rgba(239,83,80,0.30)", borderRadius: 8, fontSize: 12 }}>{err}</div>}
 
-          <button
+          {!isSignedIn && isLoaded ? (
+            <Link href={`/sign-in?redirect_url=${encodeURIComponent(returnPath)}`} style={{ marginTop: 14, width: "100%", padding: "14px 24px", display: "block", boxSizing: "border-box", textAlign: "center", background: "linear-gradient(135deg, #1E88E5, #1565C0)", color: "#fff", borderRadius: 10, fontSize: 14, fontWeight: 800, textDecoration: "none" }}>
+              Sign in to join this organization →
+            </Link>
+          ) : <button
             type="button"
             onClick={submit}
             disabled={pending || !code.trim()}
@@ -125,7 +133,7 @@ export default function EnrollmentCodePage() {
             }}
           >
             {pending ? "Joining…" : "Join class →"}
-          </button>
+          </button>}
 
           <div style={{ marginTop: 22, paddingTop: 18, borderTop: "1px solid rgba(255,255,255,0.05)", textAlign: "center" }}>
             <div style={{ fontSize: 11, color: "#5A6478", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8, fontWeight: 700 }}>

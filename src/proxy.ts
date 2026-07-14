@@ -144,7 +144,8 @@ const isProtectedRoute = createRouteMatcher([
   // Anonymous visitors can browse the empty state + see the marketing copy.
   // Sending a message / generating a doc still requires auth — enforced in
   // the server actions, NOT at the route level.
-  '/onboarding(.*)', '/productivity(.*)', '/certificates(.*)', '/my-analytics(.*)',
+  '/onboarding/intent(.*)', '/onboarding/organization-space(.*)', '/onboarding/visitor-welcome(.*)',
+  '/productivity(.*)', '/certificates(.*)', '/my-analytics(.*)',
   '/recruiter', '/recruiter/(.*)', '/talent', '/talent/(.*)',
   // Opportunities: browse + detail + public recruiter profile are public (Phase 3).
   // Apply/saved/applications still require auth — handled in the server actions.
