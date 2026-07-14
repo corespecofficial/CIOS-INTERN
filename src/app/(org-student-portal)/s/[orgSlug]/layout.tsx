@@ -28,7 +28,7 @@ export default async function StudentOrgLayout({ children, params }: {
 
   return (
     <>
-      <StudentNav orgSlug={ctx.org.slug} orgName={ctx.org.name} />
+      <StudentNav orgSlug={ctx.org.slug} orgName={ctx.org.name} operationsEnabled={ctx.org.module_flags?.org_operations === true} />
       <MobileDrawer />
       <div
         data-portal-main

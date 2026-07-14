@@ -48,6 +48,7 @@ export default async function HostOrgLayout({ children, params }: Props) {
         orgName={ctx.org.name}
         memberRole={ctx.memberRole}
         isSuperAdmin={ctx.isSuperAdmin}
+        operationsEnabled={ctx.org.module_flags?.org_operations === true}
       />
       <MobileDrawer />
       <div

@@ -1,0 +1,5 @@
+import { notFound } from "next/navigation";
+import { getOperationsDashboard } from "@/app/actions/org-operations";
+import { WorkSessionForm } from "@/components/org-operations/work-session-form";
+export const dynamic = "force-dynamic";
+export default async function WorkSessionsPage({params}:{params:Promise<{orgSlug:string}>}) { const {orgSlug}=await params; const r=await getOperationsDashboard(orgSlug); if(!r.ok) notFound(); const active=r.data.sessions.find(s=>['running','paused','evidence_requested'].includes(s.status)); return <div style={{maxWidth:960}}><h1 style={{marginBottom:4}}>Work Sessions</h1><p style={{color:"#8892A4",marginTop:0}}>No hidden monitoring. Only your timer, notes and voluntarily submitted evidence are recorded.</p><WorkSessionForm orgSlug={orgSlug} activeSessionId={active?.id}/><div style={{marginTop:18}}>{r.data.sessions.map(s=><div key={s.id} style={{padding:12,borderBottom:"1px solid #1F2937",display:"flex",justifyContent:"space-between"}}><span>{new Date(s.created_at).toLocaleDateString("en-NG")}</span><span>{s.status} · approved {s.approved_minutes||0} min</span></div>)}</div></div>; }

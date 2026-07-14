@@ -19,6 +19,7 @@ interface Props {
   orgName: string;
   memberRole: "owner" | "org_admin" | "instructor" | "student" | "moderator" | "finance" | "support" | "mentor" | null;
   isSuperAdmin: boolean;
+  operationsEnabled: boolean;
 }
 
 type HostRole = NonNullable<Props["memberRole"]>;
@@ -139,7 +140,7 @@ function initials(name: string | null | undefined) {
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "C";
 }
 
-export function HostNav({ orgSlug, orgName, memberRole, isSuperAdmin }: Props) {
+export function HostNav({ orgSlug, orgName, memberRole, isSuperAdmin, operationsEnabled }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useUser();
@@ -168,7 +169,10 @@ export function HostNav({ orgSlug, orgName, memberRole, isSuperAdmin }: Props) {
   }, [collapsed]);
 
   const sections = useMemo(() => {
-    const visible = [...NAV_ITEMS, ...ORG_PARITY_ITEMS].filter((item) => canSeeItem(item, memberRole, isSuperAdmin));
+    const operations: NavItem[] = operationsEnabled ? [
+      { href: "/operations", label: "Programme Operations", icon: "📋", section: "OPERATIONS", roles: ["owner", "org_admin", "instructor", "finance"] },
+    ] : [];
+    const visible = [...NAV_ITEMS, ...operations, ...ORG_PARITY_ITEMS].filter((item) => canSeeItem(item, memberRole, isSuperAdmin));
     const grouped: Array<{ label: string; items: NavItem[] }> = [];
     const byLabel = new Map<string, { label: string; items: NavItem[] }>();
     for (const item of visible) {
@@ -181,7 +185,7 @@ export function HostNav({ orgSlug, orgName, memberRole, isSuperAdmin }: Props) {
       section.items.push(item);
     }
     return grouped;
-  }, [memberRole, isSuperAdmin]);
+  }, [memberRole, isSuperAdmin, operationsEnabled]);
 
   const roleLabel = isSuperAdmin ? "Super admin - view-only" : ROLE_LABELS[memberRole ?? ""] ?? "Guest";
   const personName = user?.fullName || user?.username || "CIOS User";

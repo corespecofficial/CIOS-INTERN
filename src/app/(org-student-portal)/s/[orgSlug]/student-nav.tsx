@@ -18,6 +18,7 @@ const LOGO_URL =
 interface Props {
   orgSlug: string;
   orgName: string;
+  operationsEnabled: boolean;
 }
 
 type NavItem = {
@@ -67,7 +68,7 @@ function initials(name: string | null | undefined) {
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "I";
 }
 
-export function StudentNav({ orgSlug, orgName }: Props) {
+export function StudentNav({ orgSlug, orgName, operationsEnabled }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useUser();
@@ -96,7 +97,14 @@ export function StudentNav({ orgSlug, orgName }: Props) {
 
   const sections: Array<{ label: string; items: NavItem[] }> = [];
   const byLabel = new Map<string, { label: string; items: NavItem[] }>();
-  for (const item of NAV_ITEMS) {
+  const items: NavItem[] = operationsEnabled ? [
+    ...NAV_ITEMS.slice(0, 4),
+    { href: "/my-day", label: "My Day", icon: "📅", section: "OPERATIONS" },
+    { href: "/attendance", label: "Attendance", icon: "✅", section: "OPERATIONS" },
+    { href: "/work-sessions", label: "Work Sessions", icon: "⏱", section: "OPERATIONS" },
+    ...NAV_ITEMS.slice(4),
+  ] : NAV_ITEMS;
+  for (const item of items) {
     let section = byLabel.get(item.section);
     if (!section) {
       section = { label: item.section, items: [] };

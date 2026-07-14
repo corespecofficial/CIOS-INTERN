@@ -13,7 +13,7 @@ import { supabaseAdmin, getCurrentDbUser, type Role } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { clerkClient } from "@clerk/nextjs/server";
 import { logOrgAudit } from "@/lib/org-audit";
-import { cacheDel } from "@/lib/cache";
+import { cacheDel, orgCacheKey } from "@/lib/cache";
 import { publishOrgQuotaWarnings, publishPlatformOrgEvent } from "@/lib/org-platform-events";
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
@@ -76,6 +76,13 @@ async function joinOrgWithQuota(input: {
   });
   await publishOrgQuotaWarnings(input.orgId, input.actorId ?? input.userId);
   revalidatePath("/super-admin/orgs");
+}
+
+async function clearJoinedOrgCaches(userId: string, clerkId: string | null, slug: string) {
+  await Promise.all([
+    cacheDel(orgCacheKey.membership(userId, slug)),
+    ...(clerkId ? [cacheDel(orgCacheKey.membership(clerkId, slug))] : []),
+  ]);
 }
 
 /* ───────────── Path 1: continue as visitor ───────────── */
@@ -160,6 +167,7 @@ export async function redeemOrgInvite(token: string): Promise<R<ResolveResult>> 
     actorId: me.id,
     via: "org_invite",
   });
+  await clearJoinedOrgCaches(me.id, me.clerk_id, invite.creative_orgs.slug);
   await sb.from("org_invites").update({ accepted_at: new Date().toISOString() }).eq("id", invite.id);
   await logOrgAudit({
     orgId: invite.org_id, actorId: me.id, action: "member.joined",
@@ -229,6 +237,7 @@ export async function redeemEnrollmentCode(code: string): Promise<R<ResolveResul
     via: isPublic ? "public_code" : "email_invite",
     metadata: { code: trimmed },
   });
+  await clearJoinedOrgCaches(me.id, me.clerk_id, invite.creative_orgs.slug);
   if (!isPublic) {
     await sb.from("org_invites").update({ accepted_at: new Date().toISOString() }).eq("id", invite.id);
   }
