@@ -244,6 +244,14 @@ async function checkOnboardingCompleted(clerkUserId: string): Promise<boolean | 
   return completed;
 }
 
+async function checkAccountStatus(clerkUserId: string): Promise<string | null> {
+  const sb = getEdgeSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb.from("users").select("status").eq("clerk_id", clerkUserId).maybeSingle();
+  if (error) return null;
+  return (data as { status?: string } | null)?.status || null;
+}
+
 /**
  * Look up "is this Clerk user a member of this org slug, and what role?"
  * Cached in Upstash for 60s so the per-request edge call doesn't hit
@@ -342,6 +350,17 @@ export default clerkMiddleware(async (auth, request) => {
   }
 
   const pathname = request.nextUrl.pathname;
+
+  // Clerk may still present a session briefly after an operator bans the
+  // account. Enforce the database kill switch on every protected request,
+  // not only tenant routes, so the ban is effective immediately everywhere.
+  const accountStatus = await checkAccountStatus(userId);
+  if (accountStatus && accountStatus !== "active" && pathname !== "/suspended") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/suspended";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
 
   // Onboarding gate: every signed-in user must pass through
   // /onboarding/intent on first auth'd request unless they're already
