@@ -973,13 +973,18 @@ export interface ClassSessionRow {
   youtube_replay_id: string | null;
   is_mine: boolean;
   i_rsvped: boolean;
+  is_compulsory: boolean;
+  attendance_opens_at: string | null;
+  attendance_closes_at: string | null;
+  my_joined_at: string | null;
+  my_left_at: string | null;
 }
 
 export async function listClassSessions(opts: { upcomingOnly?: boolean; limit?: number } = {}): Promise<ClassSessionRow[]> {
   const me = await getCurrentDbUser();
   const { data } = await supabase()
     .from("class_sessions")
-    .select("id, title, description, instructor_id, course_id, scheduled_at, duration_minutes, meeting_url, status, max_attendees, attendee_count, youtube_replay_id, instructor:users!class_sessions_instructor_id_fkey(name, avatar_url), course:courses!class_sessions_course_id_fkey(title)")
+    .select("id, title, description, instructor_id, course_id, scheduled_at, duration_minutes, meeting_url, status, max_attendees, attendee_count, youtube_replay_id, is_compulsory, attendance_opens_at, attendance_closes_at, instructor:users!class_sessions_instructor_id_fkey(name, avatar_url), course:courses!class_sessions_course_id_fkey(title)")
     .order("scheduled_at", { ascending: true })
     .limit(opts.limit ?? 50);
 
@@ -988,12 +993,13 @@ export async function listClassSessions(opts: { upcomingOnly?: boolean; limit?: 
 
   // RSVP list for current user
   const myRsvpSet = new Set<string>();
+  const myAttendance = new Map<string, { joined_at: string | null; left_at: string | null }>();
   if (me) {
-    const { data: rs } = await supabase().from("attendance").select("session_id").eq("user_id", me.id);
-    for (const r of (rs || []) as { session_id: string }[]) myRsvpSet.add(r.session_id);
+    const { data: rs } = await supabase().from("attendance").select("session_id,joined_at,left_at").eq("user_id", me.id);
+    for (const r of (rs || []) as { session_id: string; joined_at: string | null; left_at: string | null }[]) { myRsvpSet.add(r.session_id); myAttendance.set(r.session_id, r); }
   }
 
-  type R = { id: string; title: string; description: string; instructor_id: string; course_id: string | null; scheduled_at: string; duration_minutes: number; meeting_url: string | null; status: string; max_attendees: number | null; attendee_count: number; youtube_replay_id: string | null; instructor?: { name?: string; avatar_url?: string | null } | { name?: string; avatar_url?: string | null }[] | null; course?: { title?: string } | { title?: string }[] | null; };
+  type R = { id: string; title: string; description: string; instructor_id: string; course_id: string | null; scheduled_at: string; duration_minutes: number; meeting_url: string | null; status: string; max_attendees: number | null; attendee_count: number; youtube_replay_id: string | null; is_compulsory: boolean; attendance_opens_at: string | null; attendance_closes_at: string | null; instructor?: { name?: string; avatar_url?: string | null } | { name?: string; avatar_url?: string | null }[] | null; course?: { title?: string } | { title?: string }[] | null; };
 
   const rows = (data as unknown as R[]).map((r) => {
     const instr = Array.isArray(r.instructor) ? r.instructor[0] : r.instructor;
@@ -1011,6 +1017,11 @@ export async function listClassSessions(opts: { upcomingOnly?: boolean; limit?: 
       youtube_replay_id: r.youtube_replay_id,
       is_mine: me?.id === r.instructor_id,
       i_rsvped: myRsvpSet.has(r.id),
+      is_compulsory: !!r.is_compulsory,
+      attendance_opens_at: r.attendance_opens_at,
+      attendance_closes_at: r.attendance_closes_at,
+      my_joined_at: myAttendance.get(r.id)?.joined_at || null,
+      my_left_at: myAttendance.get(r.id)?.left_at || null,
     } as ClassSessionRow;
   });
 

@@ -84,6 +84,14 @@ export async function ensureCurrentDbUser(): Promise<{
       email ||
       "New User";
     const avatarUrl = clerkUser.imageUrl || null;
+    const { data: denied } = await supabaseAdmin().from("platform_identity_blacklist")
+      .select("email").eq("email", email.trim().toLowerCase()).is("disabled_at", null).maybeSingle();
+    if (denied) {
+      const client = await clerkClient();
+      await client.users.banUser(userId);
+      await supabaseAdmin().from("users").update({ status: "suspended" }).eq("clerk_id", userId);
+      return { ok: false, created: false, role: "", error: "identity_blacklisted" };
+    }
 
     // 3. Backfill role if it isn't set on Clerk metadata yet.
     //    Default is "public_user" — every new signup goes through the

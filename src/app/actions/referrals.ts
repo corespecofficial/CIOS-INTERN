@@ -2,6 +2,7 @@
 
 import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { clerkClient } from "@clerk/nextjs/server";
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -124,23 +125,31 @@ export async function getReferrerByCode(code: string): Promise<{ name: string; a
  * Creates the referral record (status = "joined") and awards 100 XP to the new user.
  * Referrer's 500 XP is awarded separately via rewardReferral() once new user is active.
  */
-export async function processReferralJoin(referralCode: string): Promise<void> {
+export async function processReferralJoin(referralCode: string): Promise<{ mainOrgIntern: boolean }> {
   try {
     const me = await getCurrentDbUser();
-    if (!me || !me.email) return;
+    if (!me || !me.email) return { mainOrgIntern: false };
     const sb = supabaseAdmin();
 
     // Look up referrer
-    const { data: referrer } = await sb.from("users").select("id").eq("referral_code", referralCode).maybeSingle();
-    if (!referrer) return;
+    const { data: referrer } = await sb.from("users").select("id,role").eq("referral_code", referralCode).maybeSingle();
+    if (!referrer) return { mainOrgIntern: false };
     const referrerId = (referrer as { id: string }).id;
+    const isMainOrgReferral = (referrer as { role: string }).role === "super_admin";
 
     // Prevent self-referral
-    if (referrerId === me.id) return;
+    if (referrerId === me.id) return { mainOrgIntern: false };
 
     // Prevent duplicate referrals
     const { data: existing } = await sb.from("referrals").select("id").eq("referred_user_id", me.id).maybeSingle();
-    if (existing) return;
+    if (existing) {
+      if (isMainOrgReferral) {
+        await sb.from("users").update({ role: "intern", onboarding_completed_at: new Date().toISOString(), onboarding_intent: "intern" }).eq("id", me.id);
+        const client = await clerkClient();
+        await client.users.updateUserMetadata(me.clerk_id, { publicMetadata: { role: "intern" } });
+      }
+      return { mainOrgIntern: isMainOrgReferral };
+    }
 
     // Create referral record as "joined" (user is already confirmed)
     await sb.from("referrals").insert({
@@ -153,8 +162,15 @@ export async function processReferralJoin(referralCode: string): Promise<void> {
     // Award 100 XP welcome bonus to the new user
     await sb.from("users").update({ xp: (me.xp ?? 0) + 100 } as Record<string, unknown>).eq("id", me.id);
 
+    if (isMainOrgReferral) {
+      await sb.from("users").update({ role: "intern", onboarding_completed_at: new Date().toISOString(), onboarding_intent: "intern" }).eq("id", me.id);
+      const client = await clerkClient();
+      await client.users.updateUserMetadata(me.clerk_id, { publicMetadata: { role: "intern" } });
+    }
+
     revalidatePath("/dashboard");
-  } catch { /* non-fatal */ }
+    return { mainOrgIntern: isMainOrgReferral };
+  } catch { return { mainOrgIntern: false }; }
 }
 
 /** Call when a referred user completes their first active week (streak ≥ 7 or 5+ tasks done). Awards 500 XP to referrer. */

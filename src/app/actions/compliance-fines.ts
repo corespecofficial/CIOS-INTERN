@@ -39,6 +39,33 @@ export async function getMyComplianceStatus(): Promise<R<MyComplianceStatus>> {
     const sb = supabaseAdmin();
     const now = Date.now();
 
+    // Hobby-plan-safe attendance engine: materialize only this user's missed
+    // compulsory sessions on a normal authenticated request. No always-on bot
+    // or frequent cron is required, and no attendance is fabricated.
+    if (me.role === "intern" || me.role === "team_lead") {
+      const nowIso = new Date(now).toISOString();
+      const { data: closedSessions } = await sb.from("class_sessions")
+        .select("id,scheduled_at").eq("is_compulsory", true)
+        .lt("attendance_closes_at", nowIso).gte("scheduled_at", "2026-07-14T00:00:00Z");
+      const sessionIds = (closedSessions || []).map((s: { id: string }) => s.id);
+      if (sessionIds.length) {
+        const { data: existingRows } = await sb.from("attendance").select("session_id").eq("user_id", me.id).in("session_id", sessionIds);
+        const existing = new Set((existingRows || []).map((r: { session_id: string }) => r.session_id));
+        const missed = (closedSessions || []).filter((s: { id: string }) => !existing.has(s.id));
+        if (missed.length) {
+          await sb.from("attendance").upsert(missed.map((s: { id: string }) => ({
+            session_id: s.id, user_id: me.id, joined_at: null, left_at: null,
+            duration_minutes: 0, status: "absent", evidence_source: "system",
+          })), { onConflict: "session_id,user_id", ignoreDuplicates: true });
+          await sb.from("class_attendance_reviews").upsert(missed.map((s: { id: string }) => ({
+            session_id: s.id, user_id: me.id, finding: "pending_explanation",
+            explanation: "No sign-in was recorded before the compulsory attendance window closed.",
+            evidence: { source: "request_time_attendance_engine" }, recommended_step: "coaching_notice",
+          })), { onConflict: "session_id,user_id", ignoreDuplicates: true });
+        }
+      }
+    }
+
     // Run all queries in parallel
     const [assignmentsRes, finesRes, suspensionRes, violationRes] = await Promise.all([
       sb

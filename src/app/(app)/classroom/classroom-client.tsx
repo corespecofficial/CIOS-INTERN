@@ -5,7 +5,7 @@ import { useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import type { ClassSessionRow, HomeTask, HomeActivityItem, MaterialRow } from "@/lib/db";
-import { toggleRsvp, markJoined, updateSessionStatus, deleteSession } from "@/app/actions/classes";
+import { toggleRsvp, markJoined, markLeft, updateSessionStatus, deleteSession } from "@/app/actions/classes";
 import { addMaterial, deleteMaterial, setSessionReplay } from "@/app/actions/classroom-extras";
 import { uploadToCloudinary } from "@/lib/cloudinary-upload";
 
@@ -85,9 +85,18 @@ export function ClassroomClient({
   }
 
   async function onJoin(s: ClassSessionRow) {
-    if (!s.meeting_url) { toast.error("Instructor hasn't set a meeting link yet"); return; }
-    await markJoined(s.id);
-    window.open(s.meeting_url, "_blank", "noopener");
+    const result = await markJoined(s.id);
+    if (!result.ok) { toast.error(result.error); return; }
+    setSessions((prev) => prev.map((x) => x.id === s.id ? { ...x, my_joined_at: x.my_joined_at || new Date().toISOString() } : x));
+    toast.success("Attendance sign-in recorded. Participation still requires instructor confirmation.");
+    if (s.meeting_url) window.open(s.meeting_url, "_blank", "noopener");
+  }
+
+  async function onSignOut(s: ClassSessionRow) {
+    const result = await markLeft(s.id);
+    if (!result.ok) { toast.error(result.error); return; }
+    setSessions((prev) => prev.map((x) => x.id === s.id ? { ...x, my_left_at: new Date().toISOString() } : x));
+    toast.success("Attendance sign-out recorded.");
   }
 
   async function onGoLive(s: ClassSessionRow) {
@@ -184,6 +193,10 @@ export function ClassroomClient({
           {activeList.map((s) => {
             const live = isLiveWindow(s) && s.status !== "completed";
             const full = s.max_attendees != null && s.attendee_count >= s.max_attendees && !s.i_rsvped;
+            const startMs = new Date(s.scheduled_at).getTime();
+            const signInOpen = now >= startMs - 15 * 60_000 && now <= startMs + 15 * 60_000;
+            const endMs = startMs + s.duration_minutes * 60_000;
+            const signOutOpen = now >= endMs - 10 * 60_000 && now <= endMs + 15 * 60_000;
             return (
               <div key={s.id} style={{
                 background: "#111827", border: `1px solid ${live ? "rgba(239,83,80,0.3)" : "rgba(255,255,255,0.07)"}`,
@@ -253,10 +266,12 @@ export function ClassroomClient({
                       )}
                       <button onClick={() => onDelete(s)} style={{ ...btnGhost, color: "#EF5350", borderColor: "rgba(239,83,80,0.3)" }}>Delete</button>
                     </>
+                  ) : signOutOpen && s.my_joined_at && !s.my_left_at ? (
+                    <button onClick={() => onSignOut(s)} style={{ ...btnPrimary, background: "linear-gradient(135deg,#26A69A,#00796B)" }}>Sign out</button>
+                  ) : signInOpen && !s.my_joined_at ? (
+                    <button onClick={() => onJoin(s)} style={{ ...btnPrimary, background: "linear-gradient(135deg, #66BB6A, #2E7D32)" }}>Sign in{s.meeting_url ? " & join" : ""}</button>
                   ) : live && s.meeting_url ? (
-                    <button onClick={() => onJoin(s)} style={{ ...btnPrimary, background: "linear-gradient(135deg, #66BB6A, #2E7D32)" }}>
-                      ▶ Join now
-                    </button>
+                    <a href={s.meeting_url} target="_blank" rel="noopener noreferrer" style={btnPrimary}>Open class</a>
                   ) : s.status === "completed" || (tab === "past") ? (
                     <span style={{ fontSize: 11, color: "#8892A4", padding: "6px 10px" }}>Ended</span>
                   ) : (

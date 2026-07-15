@@ -155,17 +155,31 @@ export async function setUserBan(userId: string, banned: boolean): Promise<{ ok:
   try {
     await requireSuperAdmin();
     const client = await clerkClient();
+    const target = await client.users.getUser(userId);
+    const email = target.emailAddresses.find((e) => e.id === target.primaryEmailAddressId)?.emailAddress
+      || target.emailAddresses[0]?.emailAddress || "";
+    const sb = supabaseAdmin();
+    const { data: dbTarget } = await sb.from("users").select("id").eq("clerk_id", userId).maybeSingle();
+    const actor = await getCurrentDbUser();
     if (banned) {
       await client.users.banUser(userId);
+      if (email) await sb.from("platform_identity_blacklist").upsert({
+        email: email.trim().toLowerCase(), reason: "Super-admin account ban",
+        source_user_id: dbTarget?.id || null, blocked_by: actor?.id || null,
+        blocked_at: new Date().toISOString(), disabled_at: null, disabled_by: null,
+      }, { onConflict: "email" });
     } else {
       await client.users.unbanUser(userId);
+      if (email) await sb.from("platform_identity_blacklist").update({
+        disabled_at: new Date().toISOString(), disabled_by: actor?.id || null,
+      }).eq("email", email.trim().toLowerCase()).is("disabled_at", null);
     }
-    await supabaseAdmin()
+    await sb
       .from("users")
       .update({ status: banned ? "suspended" : "active" })
       .eq("clerk_id", userId);
     await invalidateUserOrgAccess(userId);
-    const me = await getCurrentDbUser();
+    const me = actor;
     await logAudit({
       actionCode: banned ? "admin.user_suspended" : "admin.user_restored",
       category: "admin",
@@ -211,6 +225,25 @@ export async function deleteUser(userId: string): Promise<{
     if (userId === meId) return { ok: false, error: "You cannot delete yourself" };
 
     const client = await clerkClient();
+    let deletedEmail = "";
+    try {
+      const target = await client.users.getUser(userId);
+      deletedEmail = target.emailAddresses.find((e) => e.id === target.primaryEmailAddressId)?.emailAddress
+        || target.emailAddresses[0]?.emailAddress || "";
+    } catch { /* deletion remains idempotent */ }
+
+    if (deletedEmail) {
+      const sb = supabaseAdmin();
+      const [{ data: source }, actor] = await Promise.all([
+        sb.from("users").select("id").eq("clerk_id", userId).maybeSingle(),
+        getCurrentDbUser(),
+      ]);
+      await sb.from("platform_identity_blacklist").upsert({
+        email: deletedEmail.trim().toLowerCase(), reason: "Super-admin permanent deletion",
+        source_user_id: source?.id || null, blocked_by: actor?.id || null,
+        blocked_at: new Date().toISOString(), disabled_at: null, disabled_by: null,
+      }, { onConflict: "email" });
+    }
 
     // Capture and invalidate tenant access before the application user row
     // (and cascading memberships) disappears.

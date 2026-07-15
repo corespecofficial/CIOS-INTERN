@@ -8,8 +8,10 @@ export const COMPULSORY_CLASS_SCHEDULE = [
 
 export const CLASS_ATTENDANCE_POLICY = {
   joinOpensMinutesBefore: 15,
-  lateAfterMinutes: 15,
-  joinClosesMinutesAfterStart: 120,
+  lateAfterMinutes: 0,
+  joinClosesMinutesAfterStart: 15,
+  signOutOpensMinutesBeforeEnd: 10,
+  signOutClosesMinutesAfterEnd: 15,
   minimumPresentMinutes: 90,
 } as const;
 
@@ -45,5 +47,8 @@ export function getAttendanceWindow(scheduledAt: string, durationMinutes: number
   const lateAt = new Date(
     startsAt.getTime() + CLASS_ATTENDANCE_POLICY.lateAfterMinutes * 60_000,
   );
-  return { startsAt, opensAt, closesAt, lateAt };
+  const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
+  const signOutOpensAt = new Date(endsAt.getTime() - CLASS_ATTENDANCE_POLICY.signOutOpensMinutesBeforeEnd * 60_000);
+  const signOutClosesAt = new Date(endsAt.getTime() + CLASS_ATTENDANCE_POLICY.signOutClosesMinutesAfterEnd * 60_000);
+  return { startsAt, endsAt, opensAt, closesAt, lateAt, signOutOpensAt, signOutClosesAt };
 }

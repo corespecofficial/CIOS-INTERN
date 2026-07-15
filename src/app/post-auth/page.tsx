@@ -47,9 +47,15 @@ export default function PostAuthPage() {
       // path is handled by its own page.
       const params = new URLSearchParams(window.location.search);
       const refCode = params.get("ref");
+      let mainOrgReferral = false;
       if (refCode) {
-        try { await processReferralJoin(refCode); }
+        try { mainOrgReferral = (await processReferralJoin(refCode)).mainOrgIntern; }
         catch (e) { console.warn("[post-auth] referral processing failed (non-fatal):", e); }
+      }
+      if (mainOrgReferral) {
+        setStatus("Opening your intern portal…");
+        router.replace("/dashboard");
+        return;
       }
 
       // Onboarding gate: if onboarding_completed_at is NULL the user has

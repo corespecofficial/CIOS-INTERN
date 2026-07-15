@@ -102,6 +102,21 @@ async function handleUserCreated(data: ClerkUserData) {
   const lastName = data.last_name || "";
   const name = [firstName, lastName].filter(Boolean).join(" ") || email.split("@")[0] || "Visitor";
 
+  const normalizedEmail = email.trim().toLowerCase();
+  const { data: denied } = await supa().from("platform_identity_blacklist")
+    .select("email").eq("email", normalizedEmail).is("disabled_at", null).maybeSingle();
+  if (denied) {
+    const client = await clerkClient();
+    await client.users.banUser(data.id);
+    await supa().from("users").upsert({
+      clerk_id: data.id, email: normalizedEmail, name, role: "public_user",
+      avatar_url: data.image_url || null, status: "suspended",
+      signup_signals: { email_domain: normalizedEmail.split("@")[1] || "", identity_blacklisted: true },
+    }, { onConflict: "clerk_id" });
+    console.warn("[clerk-webhook] blocked blacklisted identity", { clerkUserId: data.id });
+    return;
+  }
+
   // 1. Default role is "public_user" — every new signup goes through the
   //    /onboarding/intent gate first to choose their portal. Existing
   //    publicMetadata.role (e.g. set programmatically by an invite flow)

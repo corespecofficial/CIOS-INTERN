@@ -156,9 +156,10 @@ export async function markJoined(sessionId: string): Promise<Result> {
     if (now < opensAt) return { ok: false, error: "Attendance opens 15 minutes before class" };
     if (now > closesAt) return { ok: false, error: "Attendance has closed for this class" };
     const status = now > fallback.lateAt ? "late" : "present";
-    const { error } = await sb.from("attendance").upsert(
-      { session_id: sessionId, user_id: me.id, joined_at: now.toISOString(), left_at: null, status, evidence_source: "class_join" },
-      { onConflict: "session_id,user_id" }
+    const { data: existing } = await sb.from("attendance").select("id").eq("session_id", sessionId).eq("user_id", me.id).maybeSingle();
+    if (existing) return { ok: true };
+    const { error } = await sb.from("attendance").insert(
+      { session_id: sessionId, user_id: me.id, joined_at: now.toISOString(), left_at: null, status, evidence_source: "class_join" }
     );
     if (error && !error.message.includes("duplicate")) return { ok: false, error: error.message };
     const { count } = await sb.from("attendance").select("*", { count: "exact", head: true }).eq("session_id", sessionId);
@@ -167,4 +168,24 @@ export async function markJoined(sessionId: string): Promise<Result> {
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
+}
+
+export async function markLeft(sessionId: string): Promise<Result> {
+  try {
+    const me = await requireMe();
+    const sb = supabaseAdmin();
+    const { data: session } = await sb.from("class_sessions").select("scheduled_at,duration_minutes").eq("id", sessionId).maybeSingle();
+    if (!session) return { ok: false, error: "Class session not found" };
+    const now = new Date();
+    const window = getAttendanceWindow(session.scheduled_at, session.duration_minutes);
+    if (now < window.signOutOpensAt || now > window.signOutClosesAt) return { ok: false, error: "Sign-out is open from 9:50 PM to 10:15 PM WAT" };
+    const { data: row } = await sb.from("attendance").select("id,joined_at,left_at").eq("session_id", sessionId).eq("user_id", me.id).maybeSingle();
+    if (!row?.joined_at) return { ok: false, error: "You did not sign in to this class" };
+    if (row.left_at) return { ok: true };
+    const duration = Math.max(0, Math.floor((now.getTime() - new Date(row.joined_at).getTime()) / 60_000));
+    const { error } = await sb.from("attendance").update({ left_at: now.toISOString(), duration_minutes: duration }).eq("id", row.id).eq("user_id", me.id);
+    if (error) return { ok: false, error: error.message };
+    revalidatePath("/classroom");
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e instanceof Error ? e.message : String(e) }; }
 }
