@@ -109,10 +109,9 @@ export default async function OrgDashboard({ params }: Props) {
   ];
 
   return (
-    <div style={{ maxWidth: 1100 }}>
-      <h1 style={{ fontSize: 26, fontWeight: 800, margin: "0 0 4px 0" }}>
-        {ctx.org.name}
-      </h1>
+    <div style={{ maxWidth: 1080 }}>
+      <div style={{ display: "inline-flex", padding: "4px 9px", borderRadius: 999, background: "rgba(171,71,188,.10)", color: "#AB47BC", fontSize: 10, fontWeight: 900, letterSpacing: .7, marginBottom: 7 }}>HOST WORKSPACE</div>
+      <h1 style={{ fontSize: 25, fontWeight: 800, margin: "0 0 4px 0" }}>{ctx.org.name}</h1>
       <p style={{ color: "#8892A4", fontSize: 13, margin: "0 0 14px 0" }}>
         Welcome back. This is your private host portal — nothing here is visible to other orgs.
       </p>
@@ -126,23 +125,23 @@ export default async function OrgDashboard({ params }: Props) {
         <StatusPill status={spaceStatus.status} notes={spaceStatus.review_notes ?? null} />
       )}
 
-      <div style={{ height: 14 }} />
+      <div style={{ height: 8 }} />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
         {cards.map((c) => (
           <div
             key={c.label}
             style={{
               background: "#111827",
               border: "1px solid #1F2937",
-              borderRadius: 12,
-              padding: 18,
+              borderRadius: 10,
+              padding: "13px 15px",
             }}
           >
             <div style={{ fontSize: 11, color: "#5A6478", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>
               {c.label}
             </div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: c.color }}>
+            <div style={{ fontSize: 23, lineHeight: 1.1, fontWeight: 800, color: c.color }}>
               {c.value}
             </div>
           </div>
@@ -153,7 +152,7 @@ export default async function OrgDashboard({ params }: Props) {
           covers everything: signups, invites, announcements, lessons,
           grading. Hidden when truly empty (brand-new org with only the
           org.created entry shows that single row, which is fine). */}
-      <div style={{ marginTop: 32, padding: 20, background: "#111827", border: "1px solid #1F2937", borderRadius: 12 }}>
+      <div style={{ marginTop: 18, padding: 16, background: "#111827", border: "1px solid #1F2937", borderRadius: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>Recent activity</h2>
           <a href={`/o/${ctx.org.slug}/audit`} style={{ fontSize: 11, color: "#1E88E5", textDecoration: "none" }}>Full log →</a>
@@ -161,7 +160,7 @@ export default async function OrgDashboard({ params }: Props) {
         <ActivityFeed orgId={ctx.org.id} orgSlug={ctx.org.slug} initial={activity} />
       </div>
 
-      <div style={{ marginTop: 18, padding: 20, background: "#111827", border: "1px solid #1F2937", borderRadius: 12 }}>
+      <div style={{ marginTop: 12, padding: 16, background: "#111827", border: "1px solid #1F2937", borderRadius: 12 }}>
         <h2 style={{ fontSize: 15, fontWeight: 700, margin: "0 0 6px 0" }}>Get started</h2>
         <ul style={{ margin: 0, padding: "0 0 0 18px", color: "#8892A4", fontSize: 13, lineHeight: 1.8 }}>
           <li>Add your first lesson under <strong style={{ color: "#E8EDF5" }}>Lessons</strong></li>

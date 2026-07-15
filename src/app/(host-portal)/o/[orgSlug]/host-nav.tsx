@@ -384,7 +384,7 @@ export function HostNav({ orgSlug, orgName, memberRole, isSuperAdmin, operations
                     whiteSpace: "nowrap",
                   }}
                 >
-                  <span style={{ fontSize: 20, lineHeight: 1, width: 24, textAlign: "center", flexShrink: 0 }}>{item.icon}</span>
+                  <span style={{ fontSize: 18, lineHeight: 1, width: 22, textAlign: "center", flexShrink: 0 }}>{item.icon}</span>
                   {!collapsed && <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{item.label}</span>}
                 </Link>
               );
