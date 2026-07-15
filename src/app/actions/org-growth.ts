@@ -30,6 +30,13 @@ function safeUrl(value: string | null) {
   try { const url = new URL(value); return url.protocol === "https:" ? url.toString() : null; } catch { return null; }
 }
 
+async function ownedAssignee(c: Awaited<ReturnType<typeof context>>, value: FormDataEntryValue | null) {
+  const userId = optional(value) || c.me.id;
+  const { data } = await c.sb.from("org_members").select("user_id").eq("org_id", c.org.id).eq("user_id", userId).eq("status", "active").maybeSingle();
+  if (!data && c.me.role !== "super_admin") throw new Error("Assignee is not an active member of this organization");
+  return userId;
+}
+
 export async function getGrowthDashboard(orgSlug: string) {
   try {
     const c = await context(orgSlug);
@@ -57,7 +64,8 @@ export async function createLead(orgSlug: string, form: FormData): Promise<Resul
     if (websiteInput && !website) return { ok: false, error: "Website must be a valid HTTPS URL" };
     const value = Number(form.get("estimatedValue") || 0);
     if (!Number.isFinite(value) || value < 0) return { ok: false, error: "Estimated value is invalid" };
-    const row = { org_id: c.org.id, programme_id: c.programme.id, prospect_name: prospectName, business_name: businessName, industry: optional(form.get("industry")), email: optional(form.get("email"))?.toLowerCase(), telephone: optional(form.get("telephone")), website, business_problem: optional(form.get("businessProblem")), personalization_note: optional(form.get("personalizationNote")), recommended_offer: optional(form.get("recommendedOffer")), estimated_deal_value: value, assigned_to: optional(form.get("assignedTo")) || c.me.id, created_by: c.me.id };
+    const assignedTo = await ownedAssignee(c, form.get("assignedTo"));
+    const row = { org_id: c.org.id, programme_id: c.programme.id, prospect_name: prospectName, business_name: businessName, industry: optional(form.get("industry")), email: optional(form.get("email"))?.toLowerCase(), telephone: optional(form.get("telephone")), website, business_problem: optional(form.get("businessProblem")), personalization_note: optional(form.get("personalizationNote")), recommended_offer: optional(form.get("recommendedOffer")), estimated_deal_value: value, assigned_to: assignedTo, created_by: c.me.id };
     const { data, error } = await c.sb.from("org_leads").insert(row).select("id").single();
     if (error || !data) return { ok: false, error: error?.code === "23505" ? "Duplicate lead: that email, telephone or website already exists" : error?.message || "Unable to create lead" };
     await audit(c, "lead.created", "lead", data.id, row);
@@ -94,7 +102,8 @@ export async function createContentItem(orgSlug: string, form: FormData): Promis
     const topic = String(form.get("topic") || "").trim();
     if (topic.length < 3) return { ok: false, error: "A content topic is required" };
     const dueRaw = optional(form.get("dueAt"));
-    const item = { org_id: c.org.id, programme_id: c.programme.id, brand: optional(form.get("brand")) || "Cospronos", campaign: optional(form.get("campaign")), content_pillar: optional(form.get("pillar")), content_type: String(form.get("contentType") || "post"), topic, caption: optional(form.get("caption")), script: optional(form.get("script")), assigned_to: optional(form.get("assignedTo")) || c.me.id, due_at: dueRaw ? new Date(dueRaw).toISOString() : null, status: "idea", created_by: c.me.id };
+    const assignedTo = await ownedAssignee(c, form.get("assignedTo"));
+    const item = { org_id: c.org.id, programme_id: c.programme.id, brand: optional(form.get("brand")) || "Cospronos", campaign: optional(form.get("campaign")), content_pillar: optional(form.get("pillar")), content_type: String(form.get("contentType") || "post"), topic, caption: optional(form.get("caption")), script: optional(form.get("script")), assigned_to: assignedTo, due_at: dueRaw ? new Date(dueRaw).toISOString() : null, status: "idea", created_by: c.me.id };
     const { data, error } = await c.sb.from("org_content_items").insert(item).select("id").single();
     if (error || !data) return { ok: false, error: error?.message || "Unable to create content" };
     const platform = String(form.get("platform") || "linkedin");

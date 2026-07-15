@@ -84,6 +84,10 @@ export async function startWorkSession(orgSlug: string, input: { plannedActivity
     const planned = input.plannedActivity.trim(); const output = input.expectedOutput.trim();
     if (planned.length < 10 || output.length < 10) return { ok: false, error: "Describe the planned activity and expected output" };
     if (!Number.isInteger(input.estimatedMinutes) || input.estimatedMinutes < 15 || input.estimatedMinutes > 720) return { ok: false, error: "Estimated duration must be 15–720 minutes" };
+    if (input.departmentId) {
+      const { data: department } = await c.sb.from("org_departments").select("id").eq("id", input.departmentId).eq("org_id", c.org.id).maybeSingle();
+      if (!department) return { ok: false, error: "Department does not belong to this organization" };
+    }
     const { count } = await c.sb.from("org_work_sessions").select("id", { count: "exact", head: true }).eq("user_id", c.me.id).eq("programme_id", c.programme.id).in("status", ["running","paused"]);
     if (count) return { ok: false, error: "Finish or submit your current work session first" };
     const { data: row, error } = await c.sb.from("org_work_sessions").insert({
