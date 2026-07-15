@@ -13,23 +13,44 @@ async function requireMe() {
   return me;
 }
 
+async function resolveOrgScope(orgSlug: string | undefined, userId: string): Promise<string | null> {
+  if (!orgSlug) return null;
+  const sb = supabaseAdmin();
+  const { data: org } = await sb.from("creative_orgs").select("id").eq("slug", orgSlug).maybeSingle();
+  if (!org) throw new Error("Organization not found");
+  const { data: member } = await sb.from("org_members").select("id").eq("org_id", org.id).eq("user_id", userId).eq("status", "active").maybeSingle();
+  if (!member) throw new Error("You are not an active member of this organization");
+  return org.id as string;
+}
+
 async function assertMember(roomId: string, userId: string) {
   const { data, error } = await supabaseAdmin()
     .from("chat_room_members")
-    .select("id, role")
+    .select("id, role, room:chat_rooms!chat_room_members_chat_room_id_fkey(org_id)")
     .eq("chat_room_id", roomId)
     .eq("user_id", userId)
     .maybeSingle();
   if (error || !data) throw new Error("Forbidden — you are not a member of this room");
+  const joined = data as unknown as { id: string; role: string; room: { org_id: string | null } | { org_id: string | null }[] | null };
+  const room = Array.isArray(joined.room) ? joined.room[0] : joined.room;
+  if (room?.org_id) {
+    const { data: active } = await supabaseAdmin().from("org_members").select("id").eq("org_id", room.org_id).eq("user_id", userId).eq("status", "active").maybeSingle();
+    if (!active) throw new Error("Your organization membership is no longer active");
+  }
   return data;
 }
 
 /* ───────── DM helpers ───────── */
 
-export async function getOrCreateDirectRoom(otherUserId: string): Promise<Result<{ roomId: string }>> {
+export async function getOrCreateDirectRoom(otherUserId: string, orgSlug?: string): Promise<Result<{ roomId: string }>> {
   try {
     const me = await requireMe();
+    const orgId = await resolveOrgScope(orgSlug, me.id);
     if (me.id === otherUserId) return { ok: false, error: "Cannot DM yourself" };
+    if (orgId) {
+      const { data: peer } = await supabaseAdmin().from("org_members").select("id").eq("org_id", orgId).eq("user_id", otherUserId).eq("status", "active").maybeSingle();
+      if (!peer) return { ok: false, error: "This person is not an active member of this organization" };
+    }
     // Enforce contact permission — admins/super-admins bypass inside canMessage
     const allowed = await canMessage(me.id, otherUserId);
     if (!allowed) return { ok: false, error: "You don't have permission to message this user. Request a contact via Messages → Contacts." };
@@ -38,12 +59,12 @@ export async function getOrCreateDirectRoom(otherUserId: string): Promise<Result
     // Find rooms where both users are members and type=direct
     const { data: mine } = await sb
       .from("chat_room_members")
-      .select("chat_room_id, chat_room:chat_rooms!chat_room_members_chat_room_id_fkey(type)")
+        .select("chat_room_id, chat_room:chat_rooms!chat_room_members_chat_room_id_fkey(type, org_id)")
       .eq("user_id", me.id);
     const myDirectRoomIds = (mine || [])
-      .filter((r: { chat_room: { type: string } | { type: string }[] | null }) => {
+      .filter((r: { chat_room: { type: string; org_id: string | null } | { type: string; org_id: string | null }[] | null }) => {
         const cr = Array.isArray(r.chat_room) ? r.chat_room[0] : r.chat_room;
-        return cr?.type === "direct";
+        return cr?.type === "direct" && (orgId ? cr.org_id === orgId : cr.org_id == null);
       })
       .map((r: { chat_room_id: string }) => r.chat_room_id);
 
@@ -60,7 +81,7 @@ export async function getOrCreateDirectRoom(otherUserId: string): Promise<Result
     // Create new direct room
     const { data: room, error: roomErr } = await sb
       .from("chat_rooms")
-      .insert({ name: "Direct", type: "direct", created_by: me.id })
+      .insert({ name: "Direct", type: "direct", created_by: me.id, org_id: orgId })
       .select("id")
       .single();
     if (roomErr || !room) return { ok: false, error: roomErr?.message || "Could not create room" };
@@ -81,17 +102,24 @@ export async function getOrCreateDirectRoom(otherUserId: string): Promise<Result
 export async function createGroupRoom(
   name: string,
   memberIds: string[],
-  avatarUrl: string | null = null
+  avatarUrl: string | null = null,
+  orgSlug?: string,
 ): Promise<Result<{ roomId: string }>> {
   try {
     const me = await requireMe();
+    const orgId = await resolveOrgScope(orgSlug, me.id);
     if (!name.trim()) return { ok: false, error: "Group name required" };
     if (memberIds.length === 0) return { ok: false, error: "Add at least one member" };
 
     const sb = supabaseAdmin();
+    if (orgId) {
+      const uniqueRequested = Array.from(new Set(memberIds));
+      const { data: members } = await sb.from("org_members").select("user_id").eq("org_id", orgId).eq("status", "active").in("user_id", uniqueRequested);
+      if ((members || []).length !== uniqueRequested.length) return { ok: false, error: "Every group member must belong to this organization" };
+    }
     const { data: room, error: roomErr } = await sb
       .from("chat_rooms")
-      .insert({ name: name.trim(), type: "group", created_by: me.id, avatar_url: avatarUrl })
+      .insert({ name: name.trim(), type: "group", created_by: me.id, avatar_url: avatarUrl, org_id: orgId })
       .select("id")
       .single();
     if (roomErr || !room) return { ok: false, error: roomErr?.message || "Could not create group" };

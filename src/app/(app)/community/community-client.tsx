@@ -23,13 +23,14 @@ interface Me { id: string; name: string; avatarUrl: string | null; role: string;
 interface TopContributor { id: string; name: string; avatar_url: string | null; role: string; reputation: number; }
 
 export function CommunityClient({
-  me, initialPosts, groups: initialGroups, topContributors, trending = [],
+  me, initialPosts, groups: initialGroups, topContributors, trending = [], orgSlug,
 }: {
   me: Me;
   initialPosts: FeedPost[];
   groups: CommunityRow[];
   topContributors: TopContributor[];
   trending?: Array<{ tag: string; count: number }>;
+  orgSlug?: string;
 }) {
   const [posts, setPosts] = useState<FeedPost[]>(initialPosts);
   const [groups, setGroups] = useState<CommunityRow[]>(initialGroups);
@@ -70,7 +71,7 @@ export function CommunityClient({
     let cancelled = false;
     setLoading(true);
     (async () => {
-      const res = await fetch(`/api/community/feed?sort=${tab}${groupFilter ? `&community=${groupFilter}` : ""}`);
+      const res = await fetch(`/api/community/feed?sort=${tab}${groupFilter ? `&community=${groupFilter}` : ""}${orgSlug ? `&org=${encodeURIComponent(orgSlug)}` : ""}`);
       if (cancelled) return;
       if (res.ok) { const data = await res.json(); setPosts(data.posts || []); }
       setLoading(false);
@@ -455,6 +456,7 @@ export function CommunityClient({
       )}
       {showCreateGroup && (
         <CreateGroupModal
+          orgSlug={orgSlug}
           onClose={() => setShowCreateGroup(false)}
           onCreated={(g) => { setGroups((list) => [{ ...g, joined: true }, ...list]); setShowCreateGroup(false); setGroupFilter(g.id); toast.success(`r/${g.name} created — you're the owner`); }}
         />
@@ -975,7 +977,7 @@ function ComposerModal({ me, groups, defaultGroupId, onClose, onCreated }: {
   );
 }
 
-function CreateGroupModal({ onClose, onCreated }: { onClose: () => void; onCreated: (g: CommunityRow) => void }) {
+function CreateGroupModal({ onClose, onCreated, orgSlug }: { onClose: () => void; onCreated: (g: CommunityRow) => void; orgSlug?: string }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
@@ -986,7 +988,7 @@ function CreateGroupModal({ onClose, onCreated }: { onClose: () => void; onCreat
     if (!name.trim()) { toast.error("Name required"); return; }
     setBusy(true);
     const tags = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
-    const r = await createCommunity({ name, description, isPrivate, tags });
+    const r = await createCommunity({ name, description, isPrivate, tags, orgSlug });
     setBusy(false);
     if (!r.ok) { toast.error(r.error); return; }
     onCreated({ id: r.data!.id, name, description, member_count: 1, is_private: isPrivate, tags, created_by: "", joined: true });

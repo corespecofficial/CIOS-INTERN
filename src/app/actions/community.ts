@@ -29,17 +29,26 @@ function recomputeScore(up: number, down: number): number {
 
 /* ─────────────── Community / Groups ─────────────── */
 
-export async function createCommunity(input: { name: string; description: string; category?: string; isPrivate?: boolean; tags?: string[] }): Promise<Result<{ id: string }>> {
+export async function createCommunity(input: { name: string; description: string; category?: string; isPrivate?: boolean; tags?: string[]; orgSlug?: string }): Promise<Result<{ id: string }>> {
   try {
     const me = await requireMe();
     if (!input.name.trim()) return { ok: false, error: "Name required" };
     const sb = supabaseAdmin();
+    let orgId: string | null = null;
+    if (input.orgSlug) {
+      const { data: org } = await sb.from("creative_orgs").select("id").eq("slug", input.orgSlug).maybeSingle();
+      if (!org) return { ok: false, error: "Organization not found" };
+      const { data: membership } = await sb.from("org_members").select("id").eq("org_id", org.id).eq("user_id", me.id).eq("status", "active").maybeSingle();
+      if (!membership) return { ok: false, error: "You are not an active member of this organization" };
+      orgId = org.id;
+    }
     const { data, error } = await sb.from("communities").insert({
       name: input.name.trim(),
       description: input.description || "",
       created_by: me.id,
       is_private: input.isPrivate || false,
       tags: input.tags || [],
+      org_id: orgId,
     }).select("id").single();
     if (error || !data) return { ok: false, error: error?.message || "Failed" };
     await sb.from("community_members").insert({ community_id: data.id, user_id: me.id, role: "owner" });

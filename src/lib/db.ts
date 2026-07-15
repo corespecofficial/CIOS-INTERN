@@ -500,15 +500,17 @@ export interface FeedPost {
 
 type FeedSort = "for-you" | "new" | "trending" | "top-today" | "top-week" | "questions" | "following" | "bookmarks";
 
-export async function listCommunities(): Promise<CommunityRow[]> {
+export async function listCommunities(orgId: string | null = null): Promise<CommunityRow[]> {
   const me = await getCurrentDbUser();
   // Use admin client so every signed-in user sees every group (public
   // directory). RLS on `communities` was hiding rows created by other users.
   const sb = supabaseAdmin();
-  const { data } = await sb
+  let communitiesQuery = sb
     .from("communities")
     .select("id, name, description, member_count, is_private, tags, created_by, suspended_at, suspend_reason")
     .order("member_count", { ascending: false });
+  communitiesQuery = orgId ? communitiesQuery.eq("org_id", orgId) : communitiesQuery.is("org_id", null);
+  const { data } = await communitiesQuery;
   if (!data) return [];
   const myMemberships = new Set<string>();
   if (me) {
@@ -518,7 +520,7 @@ export async function listCommunities(): Promise<CommunityRow[]> {
   return (data as CommunityRow[]).map((r) => ({ ...r, joined: myMemberships.has(r.id) }));
 }
 
-export async function listFeedPosts(sort: FeedSort = "new", communityId?: string | null): Promise<FeedPost[]> {
+export async function listFeedPosts(sort: FeedSort = "new", communityId?: string | null, orgId: string | null = null): Promise<FeedPost[]> {
   const me = await getCurrentDbUser();
   // Admin client — the feed is a shared public timeline; RLS was hiding
   // posts authored by other users from non-creators.
@@ -529,8 +531,9 @@ export async function listFeedPosts(sort: FeedSort = "new", communityId?: string
   // so we enforce this here.
   let visibleCommunityIds: string[] | null = null;
   {
-    const { data: all } = await sb.from("communities")
-      .select("id, is_private, suspended_at");
+    let visibleQuery = sb.from("communities").select("id, is_private, suspended_at");
+    visibleQuery = orgId ? visibleQuery.eq("org_id", orgId) : visibleQuery.is("org_id", null);
+    const { data: all } = await visibleQuery;
     const rows = (all || []) as { id: string; is_private: boolean; suspended_at: string | null }[];
     const memberships = new Set<string>();
     if (me) {
@@ -1456,16 +1459,24 @@ export interface StatusRow {
 }
 
 /** Returns non-expired statuses from all users visible to the current user, newest first. */
-export async function listActiveStatuses(): Promise<StatusRow[]> {
+export async function listActiveStatuses(orgId?: string): Promise<StatusRow[]> {
   const me = await getCurrentDbUser();
   if (!me) return [];
   const nowIso = new Date().toISOString();
 
-  const { data: statuses, error } = await supabase()
+  let allowedUserIds: string[] | null = null;
+  if (orgId) {
+    const { data: memberships } = await supabaseAdmin().from("org_members").select("user_id").eq("org_id", orgId).eq("status", "active");
+    allowedUserIds = (memberships || []).map((m: { user_id: string }) => m.user_id);
+    if (!allowedUserIds.includes(me.id)) return [];
+  }
+  let statusQuery = supabase()
     .from("statuses")
     .select("id, user_id, kind, content, media_url, background, text_color, reactions, created_at, expires_at, user:users!statuses_user_id_fkey(name, avatar_url)")
     .gt("expires_at", nowIso)
     .order("created_at", { ascending: false });
+  if (allowedUserIds) statusQuery = statusQuery.in("user_id", allowedUserIds);
+  const { data: statuses, error } = await statusQuery;
   if (error || !statuses) { console.error("[db] listActiveStatuses:", error); return []; }
 
   // View counts per status
@@ -1517,7 +1528,7 @@ export interface DirectoryUser {
   last_seen: string | null;
 }
 
-export async function listDirectoryUsers(): Promise<DirectoryUser[]> {
+export async function listDirectoryUsers(orgId?: string): Promise<DirectoryUser[]> {
   const me = await getCurrentDbUser();
   if (!me) return [];
   // Hide anyone I blocked (and anyone who blocked me — reciprocal hide)
@@ -1529,11 +1540,19 @@ export async function listDirectoryUsers(): Promise<DirectoryUser[]> {
   for (const b of (blocks || []) as { blocker_id: string; blocked_id: string }[]) {
     hiddenIds.add(b.blocker_id === me.id ? b.blocked_id : b.blocker_id);
   }
-  const { data } = await supabase()
+  let allowedUserIds: string[] | null = null;
+  if (orgId) {
+    const { data: memberships } = await supabaseAdmin().from("org_members").select("user_id").eq("org_id", orgId).eq("status", "active");
+    allowedUserIds = (memberships || []).map((m: { user_id: string }) => m.user_id).filter((id) => id !== me.id);
+    if (allowedUserIds.length === 0) return [];
+  }
+  let usersQuery = supabase()
     .from("users")
     .select("id, clerk_id, name, email, role, avatar_url, last_seen")
     .neq("id", me.id)
     .order("name", { ascending: true });
+  if (allowedUserIds) usersQuery = usersQuery.in("id", allowedUserIds);
+  const { data } = await usersQuery;
   return ((data || []) as DirectoryUser[]).filter((u) => !hiddenIds.has(u.id));
 }
 
@@ -1555,12 +1574,12 @@ export interface RoomListItem {
   is_archived: boolean;
 }
 
-export async function listMyRooms(): Promise<RoomListItem[]> {
+export async function listMyRooms(orgId: string | null = null): Promise<RoomListItem[]> {
   const me = await getCurrentDbUser();
   if (!me) return [];
   const { data: members, error } = await supabase()
     .from("chat_room_members")
-    .select("chat_room_id, last_read_at, is_muted, is_pinned, is_archived_for_user, chat_room:chat_rooms!chat_room_members_chat_room_id_fkey(id, name, type, avatar_url, is_archived)")
+    .select("chat_room_id, last_read_at, is_muted, is_pinned, is_archived_for_user, chat_room:chat_rooms!chat_room_members_chat_room_id_fkey(id, name, type, avatar_url, is_archived, org_id)")
     .eq("user_id", me.id);
   if (error || !members) return [];
 
@@ -1570,9 +1589,12 @@ export async function listMyRooms(): Promise<RoomListItem[]> {
     is_muted: boolean;
     is_pinned: boolean;
     is_archived_for_user: boolean;
-    chat_room: { id: string; name: string; type: string; avatar_url: string | null; is_archived: boolean } | { id: string; name: string; type: string; avatar_url: string | null; is_archived: boolean }[] | null;
+    chat_room: { id: string; name: string; type: string; avatar_url: string | null; is_archived: boolean; org_id: string | null } | { id: string; name: string; type: string; avatar_url: string | null; is_archived: boolean; org_id: string | null }[] | null;
   };
-  const mems = members as unknown as MemberRow[];
+  const mems = (members as unknown as MemberRow[]).filter((m) => {
+    const room = Array.isArray(m.chat_room) ? m.chat_room[0] : m.chat_room;
+    return orgId ? room?.org_id === orgId : room?.org_id == null;
+  });
   const roomIds = mems.map((m) => m.chat_room_id);
   if (roomIds.length === 0) return [];
 

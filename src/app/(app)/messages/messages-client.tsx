@@ -44,6 +44,7 @@ interface Props {
   directory: DirectoryUser[];
   initialStatuses: StatusRow[];
   me: MeInfo;
+  orgSlug?: string;
 }
 
 const REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🙏", "🔥"];
@@ -112,7 +113,8 @@ function formatLastSeen(iso: string | null, online: boolean): string {
   return `Last seen ${new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
 }
 
-export function MessagesClient({ initialRooms, directory, initialStatuses, me }: Props) {
+export function MessagesClient({ initialRooms, directory, initialStatuses, me, orgSlug }: Props) {
+  const messagesBase = orgSlug ? `/s/${orgSlug}/chat` : "/messages";
   const [rooms, setRooms] = useState<RoomListItem[]>(initialRooms);
   // Start on the room list — NEVER auto-open a chat. The user chooses what to view.
   // The deep-link (?to=USER_ID) effect is the only place that sets activeRoomId
@@ -159,13 +161,13 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
       if (existing) {
         if (!cancelled) setActiveRoomId(existing.id);
       } else {
-        const r = await saDirect(to);
+        const r = await saDirect(to, orgSlug);
         if (cancelled) return;
         if (!r.ok) {
           toast((t) => (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
               <span>{r.error}</span>
-              <a href="/messages/contacts" onClick={() => toast.dismiss(t.id)} style={{ color: "#1E88E5", fontWeight: 700, textDecoration: "underline" }}>Fix →</a>
+              <a href={`${messagesBase}/contacts`} onClick={() => toast.dismiss(t.id)} style={{ color: "#1E88E5", fontWeight: 700, textDecoration: "underline" }}>Fix →</a>
             </span>
           ), { duration: 6000, icon: "🔒" });
         } else {
@@ -556,14 +558,14 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
   }
 
   async function onStartDm(userId: string, userName: string) {
-    const r = await saDirect(userId);
+    const r = await saDirect(userId, orgSlug);
     if (!r.ok) {
       // Don't swallow — route the user to the right place to fix it.
       if (r.error.includes("permission") || r.error.includes("connected")) {
         toast((t) => (
           <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
             <span>{r.error}</span>
-            <a href="/messages/contacts" onClick={() => toast.dismiss(t.id)} style={{ color: "#1E88E5", fontWeight: 700, textDecoration: "underline" }}>Request contact →</a>
+            <a href={`${messagesBase}/contacts`} onClick={() => toast.dismiss(t.id)} style={{ color: "#1E88E5", fontWeight: 700, textDecoration: "underline" }}>Request contact →</a>
           </span>
         ), { duration: 6000, icon: "🔒" });
       } else {
@@ -712,8 +714,8 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, gap: 6 }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: "#E8EDF5", margin: 0 }}>Messages</h2>
             <div style={{ display: "flex", gap: 4 }}>
-              <a href="/messages/contacts" style={{ ...iconBtn, color: "#1E88E5", textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }} title="Contacts">🤝</a>
-              <a href="/messages/requests" style={{ ...iconBtn, color: "#AB47BC", textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }} title="Connect requests">📨</a>
+              <a href={`${messagesBase}/contacts`} style={{ ...iconBtn, color: "#1E88E5", textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }} title="Contacts">🤝</a>
+              <a href={`${messagesBase}/requests`} style={{ ...iconBtn, color: "#AB47BC", textDecoration: "none", display: "inline-flex", alignItems: "center", justifyContent: "center" }} title="Connect requests">📨</a>
               <button onClick={() => setShowNewChat(true)} style={iconBtn} title="New chat">✉️</button>
               <button onClick={() => setShowNewGroup(true)} style={iconBtn} title="New group">👥</button>
               <button onClick={() => setShowLockSettings(true)} style={iconBtn} title="Lock & privacy">{chatLock.config.enabled ? "🔒" : "🔓"}</button>
@@ -987,6 +989,7 @@ export function MessagesClient({ initialRooms, directory, initialStatuses, me }:
       {showNewGroup && (
         <NewGroupModal
           users={directory}
+          orgSlug={orgSlug}
           onClose={() => setShowNewGroup(false)}
           onCreated={(roomId, name) => {
             setShowNewGroup(false);
@@ -1331,7 +1334,7 @@ function NewChatModal({ users, onClose, onPick }: { users: DirectoryUser[]; onCl
   );
 }
 
-function NewGroupModal({ users, onClose, onCreated }: { users: DirectoryUser[]; onClose: () => void; onCreated: (roomId: string, name: string) => void }) {
+function NewGroupModal({ users, onClose, onCreated, orgSlug }: { users: DirectoryUser[]; onClose: () => void; onCreated: (roomId: string, name: string) => void; orgSlug?: string }) {
   const [name, setName] = useState("");
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -1342,7 +1345,7 @@ function NewGroupModal({ users, onClose, onCreated }: { users: DirectoryUser[]; 
     if (!name.trim()) { toast.error("Group name required"); return; }
     if (selected.size === 0) { toast.error("Pick at least one member"); return; }
     setBusy(true);
-    const r = await saCreateGroup(name.trim(), Array.from(selected));
+    const r = await saCreateGroup(name.trim(), Array.from(selected), null, orgSlug);
     setBusy(false);
     if (!r.ok) { toast.error(r.error); return; }
     toast.success("Group created");

@@ -62,8 +62,13 @@ export async function createFlutterwaveCheckout(input: FlutterwaveCheckoutInput)
       ...(input.paymentPlanId ? { payment_plan: input.paymentPlanId } : {}),
     }),
   });
-  if (!data.link.startsWith("https://checkout.flutterwave.com/")) throw new Error("Flutterwave returned an invalid checkout URL");
-  return data.link;
+  const checkoutUrl = data.link?.trim();
+  let parsed: URL;
+  try { parsed = new URL(checkoutUrl); } catch { throw new Error("Flutterwave returned an invalid checkout URL"); }
+  if (parsed.protocol !== "https:" || parsed.hostname.toLowerCase() !== "checkout.flutterwave.com") {
+    throw new Error("Flutterwave returned an invalid checkout URL");
+  }
+  return parsed.toString();
 }
 
 export type VerifiedFlutterwaveTransaction = {
