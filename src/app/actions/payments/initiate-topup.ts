@@ -92,3 +92,32 @@ export async function verifyPayment(reference: string): Promise<R<{ status: stri
     return { ok: false, error: error instanceof Error ? error.message : "Unable to verify payment" };
   }
 }
+
+/** Settle a hosted-checkout redirect without trusting redirect parameters. */
+export async function settleFlutterwaveReturn(reference: string, transactionId: string): Promise<R<{ status: string }>> {
+  try {
+    const me = await getCurrentDbUser();
+    if (!me) return { ok: false, error: "Not authenticated" };
+    if (!/^CIOS-[A-Z0-9-]{8,80}$/.test(reference) || !/^\d+$/.test(transactionId)) {
+      return { ok: false, error: "Invalid payment return" };
+    }
+    const sb = supabaseAdmin();
+    const { data: intent } = await sb.from("payment_intents").select("*")
+      .eq("reference", reference).eq("user_id", me.id).maybeSingle();
+    if (!intent) return { ok: false, error: "Payment not found" };
+    if (intent.status === "success") return { ok: true, data: { status: "success" } };
+    if (intent.status !== "pending") return { ok: true, data: { status: intent.status } };
+
+    const tx = await verifyFlutterwaveTransaction(transactionId);
+    const amountMatches = Number(tx.amount) + 0.001 >= Number(intent.amount_ngn);
+    const currencyMatches = String(tx.currency).toUpperCase() === String(intent.currency).toUpperCase();
+    if (tx.status !== "successful" || tx.tx_ref !== intent.reference || !currencyMatches || !amountMatches) {
+      return { ok: false, error: "Flutterwave could not verify this payment" };
+    }
+    await completeFlutterwavePayment(intent, tx);
+    revalidatePath("/wallet");
+    return { ok: true, data: { status: "success" } };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Unable to settle payment" };
+  }
+}

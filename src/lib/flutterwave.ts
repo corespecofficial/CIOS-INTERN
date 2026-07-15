@@ -3,8 +3,11 @@ import "server-only";
 const API_BASE = "https://api.flutterwave.com/v3";
 
 function secretKey(): string {
-  const key = process.env.FLW_SECRET_KEY;
+  const key = process.env.FLW_SECRET_KEY?.trim();
   if (!key) throw new Error("Flutterwave is not configured");
+  if (/\s/.test(key) || !/^FLWSECK_(?:TEST-)?[A-Za-z0-9]+-X$/.test(key)) {
+    throw new Error("Flutterwave secret key has an invalid format");
+  }
   return key;
 }
 
@@ -82,5 +85,7 @@ export function verifyFlutterwaveTransaction(transactionId: string | number) {
 }
 
 export function flutterwaveConfigured(): boolean {
-  return Boolean(process.env.FLW_SECRET_KEY && process.env.FLW_SECRET_HASH);
+  const key = process.env.FLW_SECRET_KEY?.trim() || "";
+  const hash = process.env.FLW_SECRET_HASH?.trim() || "";
+  return /^FLWSECK_(?:TEST-)?[A-Za-z0-9]+-X$/.test(key) && hash.length >= 12 && !/\s/.test(hash);
 }

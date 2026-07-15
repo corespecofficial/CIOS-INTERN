@@ -2,17 +2,24 @@ import { notFound } from "next/navigation";
 import { getActiveOrg } from "@/lib/active-org";
 import { listPublicEnrollmentCodes } from "@/app/actions/enrollment-codes";
 import { ClassCodesPanel } from "./class-codes-panel";
+import { settleFlutterwaveReturn } from "@/app/actions/payments/initiate-topup";
 
 export const dynamic = "force-dynamic";
 
 interface Props {
   params: Promise<{ orgSlug: string }>;
+  searchParams: Promise<{ subscription_ref?: string; tx_ref?: string; transaction_id?: string; status?: string }>;
 }
 
-export default async function SettingsPage({ params }: Props) {
+export default async function SettingsPage({ params, searchParams }: Props) {
   const { orgSlug } = await params;
   const ctx = await getActiveOrg(orgSlug);
   if (!ctx) notFound();
+  const query = await searchParams;
+  const reference = query.subscription_ref || query.tx_ref;
+  if (query.status === "successful" && reference && query.transaction_id) {
+    await settleFlutterwaveReturn(reference, query.transaction_id);
+  }
   const codesRes = await listPublicEnrollmentCodes(ctx.org.id);
   const codes = codesRes.ok ? codesRes.data! : [];
 

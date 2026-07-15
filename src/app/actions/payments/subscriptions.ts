@@ -30,7 +30,7 @@ export async function initiateSubscription(
       const { data: membership } = await sb.from("org_members").select("role, status")
         .eq("org_id", org.id).eq("user_id", me.id).eq("status", "active").maybeSingle();
       if (!membership) return { ok: false, error: "You are not an active member of this organization" };
-      if (scope === "organization_workspace" && !["owner", "admin"].includes(membership.role)) {
+      if (scope === "organization_workspace" && !["owner", "org_admin"].includes(membership.role)) {
         return { ok: false, error: "Only organization owners and admins can change workspace billing" };
       }
       orgId = org.id;

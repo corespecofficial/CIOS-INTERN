@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { flutterwaveConfigured } from "@/lib/flutterwave";
 import { supabaseAdmin } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -55,7 +56,7 @@ export async function GET() {
     },
     {
       name: "Payments (Flutterwave)",
-      status: !!process.env.FLW_SECRET_KEY && !!process.env.FLW_SECRET_HASH ? "operational" : "unknown",
+      status: flutterwaveConfigured() ? "operational" : "unknown",
     },
     {
       name: "AI Services",

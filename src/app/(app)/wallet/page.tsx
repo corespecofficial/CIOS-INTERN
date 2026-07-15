@@ -1,13 +1,23 @@
 import { getCurrentDbUser, supabaseAdmin } from "@/lib/db";
 import WalletClient, { type WalletTx, type UnpaidFine } from "./wallet-client";
+import { settleFlutterwaveReturn } from "@/app/actions/payments/initiate-topup";
 
 export const dynamic = "force-dynamic";
 
 const CREDIT_TYPES = new Set(["credit", "reward", "payment", "refund", "stipend", "bonus"]);
 function isCredit(type: string) { return CREDIT_TYPES.has(type); }
 
-export default async function WalletPage() {
+export default async function WalletPage({ searchParams }: { searchParams: Promise<{ ref?: string; tx_ref?: string; subscription_ref?: string; transaction_id?: string; status?: string }> }) {
+  const query = await searchParams;
   const dbUser = await getCurrentDbUser();
+  let paymentNotice: "success" | "failed" | null = null;
+  const reference = query.ref || query.subscription_ref || query.tx_ref;
+  if (dbUser && query.status === "successful" && reference && query.transaction_id) {
+    const settlement = await settleFlutterwaveReturn(reference, query.transaction_id);
+    paymentNotice = settlement.ok && settlement.data?.status === "success" ? "success" : "failed";
+  } else if (query.status === "cancelled" || query.status === "failed") {
+    paymentNotice = "failed";
+  }
   const balance = Number(dbUser?.wallet_balance ?? 0);
 
   let txs: WalletTx[] = [];
@@ -16,7 +26,6 @@ export default async function WalletPage() {
 
   if (dbUser) {
     const sb = supabaseAdmin();
-    const since = new Date(Date.now() - 30 * 86400 * 1000).toISOString();
 
     const [txRes, fineRes] = await Promise.all([
       sb.from("transactions")
@@ -44,7 +53,10 @@ export default async function WalletPage() {
     }));
 
     // 30-day stats
-    const recent = txs.filter((t) => new Date(t.created_at).getTime() >= Date.now() - 30 * 86400 * 1000);
+    // Dynamic server page: this timestamp is intentionally evaluated per request.
+    // eslint-disable-next-line react-hooks/purity
+    const monthStart = Date.now() - 30 * 86400 * 1000;
+    const recent = txs.filter((t) => new Date(t.created_at).getTime() >= monthStart);
     for (const t of recent) {
       if (t.type === "fine") monthFines += t.amount;
       else if (t.type === "reward") monthRewards += t.amount;
@@ -69,6 +81,7 @@ export default async function WalletPage() {
       monthFines={monthFines}
       monthRewards={monthRewards}
       unpaidFines={unpaidFines}
+      paymentNotice={paymentNotice}
     />
   );
 }

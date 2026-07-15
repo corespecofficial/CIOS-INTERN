@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import toast from "react-hot-toast";
 import { initiateTopup, verifyPayment } from "@/app/actions/payments/initiate-topup";
 import { requestWithdrawal } from "@/app/actions/payments/withdraw";
@@ -392,6 +392,7 @@ export default function WalletClient({
   monthFines,
   monthRewards,
   unpaidFines,
+  paymentNotice,
 }: {
   balance: number;
   txs: WalletTx[];
@@ -400,10 +401,16 @@ export default function WalletClient({
   monthFines: number;
   monthRewards: number;
   unpaidFines: UnpaidFine[];
+  paymentNotice?: "success" | "failed" | null;
 }) {
   const [filter, setFilter] = useState<"all" | "credit" | "debit">("all");
   const [modal, setModal] = useState<"topup" | "withdraw" | "fine" | null>(null);
   const [balance, setBalance] = useState(initialBalance);
+
+  useEffect(() => {
+    if (paymentNotice === "success") toast.success("Payment verified and wallet updated");
+    if (paymentNotice === "failed") toast.error("Payment was not completed or could not be verified");
+  }, [paymentNotice]);
 
   const filtered = useMemo(() => {
     if (filter === "all") return txs;
