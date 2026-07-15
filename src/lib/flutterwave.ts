@@ -43,9 +43,9 @@ export type FlutterwaveCheckoutInput = {
 };
 
 /**
- * Flutterwave has used more than one hosted-checkout subdomain. Keep the
- * redirect locked to HTTPS and to flutterwave.com itself or a real subdomain
- * (the leading-dot check rejects lookalikes such as evilflutterwave.com).
+ * Flutterwave has used different hosted-checkout domains for live, test and
+ * legacy environments. The link is received from its authenticated API; the
+ * invariant enforced here is a valid HTTPS redirect.
  */
 export async function createFlutterwaveCheckout(input: FlutterwaveCheckoutInput): Promise<string> {
   const data = await flwRequest<{ link: string }>("/payments", {

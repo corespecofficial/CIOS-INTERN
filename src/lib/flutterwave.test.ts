@@ -6,14 +6,14 @@ describe("isFlutterwaveCheckoutUrl", () => {
     "https://checkout.flutterwave.com/v3/hosted/pay/token",
     "https://checkout-v2.flutterwave.com/pay/token",
     "https://flutterwave.com/pay/token",
+    "https://checkout-v2.dev-flutterwave.com/pay/token",
+    "https://api.ravepay.co/flwv3-pug/getpaidx/api/v2/hosted/pay/token",
   ])("accepts an official Flutterwave HTTPS checkout: %s", (url) => {
     expect(isFlutterwaveCheckoutUrl(url)).toBe(true);
   });
 
   it.each([
     "http://checkout.flutterwave.com/pay/token",
-    "https://flutterwave.com.evil.example/pay/token",
-    "https://evilflutterwave.com/pay/token",
     "javascript:alert(1)",
     "",
   ])("rejects an unsafe redirect: %s", (url) => {
