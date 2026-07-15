@@ -82,7 +82,14 @@ async function activateSubscription(intent: PaymentIntent) {
 export async function completeFlutterwavePayment(intent: PaymentIntent, tx: VerifiedFlutterwaveTransaction): Promise<void> {
   const sb = supabaseAdmin();
   if (intent.status === "success") return;
-  const { data: claimed } = await sb.from("payment_intents").update({ status: "processing", updated_at: new Date().toISOString() })
+  // Persist gateway identity when claiming the intent. If the function dies
+  // after this point, the reconciler can safely re-verify and resume it.
+  const { data: claimed } = await sb.from("payment_intents").update({
+    status: "processing",
+    gateway_transaction_id: String(tx.id),
+    gateway_ref: tx.flw_ref,
+    updated_at: new Date().toISOString(),
+  })
     .eq("id", intent.id).eq("status", "pending").select("id").maybeSingle();
   if (!claimed) return;
 

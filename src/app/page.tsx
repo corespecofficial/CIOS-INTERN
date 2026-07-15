@@ -8,7 +8,7 @@ import { HackathonHeroCard } from "@/components/marketing/hackathon-hero-card";
 import { OrgPortalsSection } from "@/components/marketing/org-portals-section";
 import { getPlatformSettings, getLandingTestimonials } from "@/app/actions/landing-content";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 const LOGO = "https://res.cloudinary.com/detsk6uql/image/upload/v1775646964/Adobe_Express_-_file_lydnbc.png";
 

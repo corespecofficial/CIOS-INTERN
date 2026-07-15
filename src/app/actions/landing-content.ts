@@ -1,7 +1,7 @@
 "use server";
 
 import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag, unstable_cache } from "next/cache";
 
 type R<T = void> = { ok: true; data?: T } | { ok: false; error: string };
 
@@ -31,7 +31,7 @@ export interface PlatformSettings {
   demo_calendly_url: string;
 }
 
-export async function getPlatformSettings(): Promise<PlatformSettings> {
+const readPlatformSettings = unstable_cache(async (): Promise<PlatformSettings> => {
   const sb = supabaseAdmin();
   const { data } = await sb.from("platform_settings").select("key, value");
   const map: Record<string, string> = {};
@@ -55,7 +55,9 @@ export async function getPlatformSettings(): Promise<PlatformSettings> {
     homepage_screenshot_4_label:  map.homepage_screenshot_4_label  ?? "Recruiter Portal",
     demo_calendly_url:            map.demo_calendly_url            ?? "",
   };
-}
+}, ["landing-platform-settings"], { revalidate: 300, tags: ["landing-content"] });
+
+export async function getPlatformSettings(): Promise<PlatformSettings> { return readPlatformSettings(); }
 
 export async function updatePlatformSetting(key: string, value: string): Promise<R> {
   try {
@@ -65,6 +67,7 @@ export async function updatePlatformSetting(key: string, value: string): Promise
     revalidatePath("/");
     revalidatePath("/about");
     revalidatePath("/demo");
+    revalidateTag("landing-content", "max");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -82,6 +85,7 @@ export async function updatePlatformSettings(settings: Partial<PlatformSettings>
     revalidatePath("/");
     revalidatePath("/about");
     revalidatePath("/demo");
+    revalidateTag("landing-content", "max");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -103,7 +107,7 @@ export interface LandingTestimonial {
   sort_order: number;
 }
 
-export async function getLandingTestimonials(): Promise<LandingTestimonial[]> {
+const readLandingTestimonials = unstable_cache(async (): Promise<LandingTestimonial[]> => {
   const sb = supabaseAdmin();
   const { data } = await sb
     .from("landing_testimonials")
@@ -111,7 +115,9 @@ export async function getLandingTestimonials(): Promise<LandingTestimonial[]> {
     .eq("is_active", true)
     .order("sort_order", { ascending: true });
   return (data || []) as LandingTestimonial[];
-}
+}, ["landing-testimonials"], { revalidate: 300, tags: ["landing-content"] });
+
+export async function getLandingTestimonials(): Promise<LandingTestimonial[]> { return readLandingTestimonials(); }
 
 export async function getAllLandingTestimonials(): Promise<LandingTestimonial[]> {
   const sb = supabaseAdmin();
@@ -142,6 +148,7 @@ export async function saveLandingTestimonial(
       result = data;
     }
     revalidatePath("/");
+    revalidateTag("landing-content", "max");
     return { ok: true, data: result as LandingTestimonial };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -154,6 +161,7 @@ export async function deleteLandingTestimonial(id: string): Promise<R> {
     const sb = supabaseAdmin();
     await sb.from("landing_testimonials").delete().eq("id", id);
     revalidatePath("/");
+    revalidateTag("landing-content", "max");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };
@@ -166,6 +174,7 @@ export async function toggleTestimonialActive(id: string, is_active: boolean): P
     const sb = supabaseAdmin();
     await sb.from("landing_testimonials").update({ is_active, updated_at: new Date().toISOString() }).eq("id", id);
     revalidatePath("/");
+    revalidateTag("landing-content", "max");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) };

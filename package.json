@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test:org": "node --experimental-strip-types --test tests/org-programme-rules.test.mjs tests/org-tenant-isolation.test.mjs",
+    "assurance:tenants": "node scripts/assurance-tenants.mjs",
+    "assurance:load": "node scripts/assurance-load.mjs",
     "clean": "rm -rf .next node_modules/.cache .next-dev.log",
     "build:fresh": "npm run clean && npm run build"
   },

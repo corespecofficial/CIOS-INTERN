@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/db";
 import { verifyFlutterwaveTransaction } from "@/lib/flutterwave";
 import { completeFlutterwavePayment } from "@/lib/payment-service";
+import { operationalAlert } from "@/lib/operational-alerts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +41,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error("[flutterwave-webhook] settlement failed:", error instanceof Error ? error.message : String(error));
+    await operationalAlert("flutterwave_webhook_settlement_failed", "error", {
+      event: eventType,
+      transactionId: payload.data?.id ? String(payload.data.id) : null,
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json({ error: "Settlement failed" }, { status: 500 });
   }
 }
