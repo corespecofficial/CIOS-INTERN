@@ -174,6 +174,7 @@ export function HostNav({ orgSlug, orgName, memberRole, isSuperAdmin, operations
       { href: "/growth", label: "Growth Operations", icon: "📈", section: "OPERATIONS", roles: ["owner", "org_admin", "instructor"] },
       { href: "/accountability", label: "Performance & Discipline", icon: "⚖️", section: "OPERATIONS", roles: ["owner", "org_admin", "instructor"] },
       { href: "/finance", label: "Finance & Bookkeeping", icon: "💰", section: "OPERATIONS", roles: ["owner", "org_admin", "finance"] },
+      { href: "/reports", label: "Programme Reports", icon: "📊", section: "OPERATIONS", roles: ["owner", "org_admin", "instructor", "finance"] },
     ] : [];
     // Legacy parity links previously pointed at one repeated catch-all UI.
     // Keep the definitions only for bookmark compatibility; navigation now
