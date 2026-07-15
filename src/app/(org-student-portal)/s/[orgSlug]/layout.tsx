@@ -21,6 +21,9 @@ export default async function StudentOrgLayout({ children, params }: {
   }
 
   const ctx = status.ctx;
+  const operationsEnabled = ctx.org.module_flags?.org_operations === true;
+  const performanceEnabled = ctx.org.module_flags?.performance_discipline === true;
+  const growthEnabled = ctx.org.module_flags?.growth_operations === true;
   // /s/<slug> is open to anyone in the org — students, instructors, and
   // owners (so a host can preview what their students see). Super-admin
   // can preview too via the existing bypass.
@@ -28,7 +31,7 @@ export default async function StudentOrgLayout({ children, params }: {
 
   return (
     <>
-      <StudentNav orgSlug={ctx.org.slug} orgName={ctx.org.name} operationsEnabled={ctx.org.module_flags?.org_operations === true} />
+      <StudentNav orgSlug={ctx.org.slug} orgName={ctx.org.name} operationsEnabled={operationsEnabled} performanceEnabled={performanceEnabled} growthEnabled={growthEnabled} />
       <MobileDrawer />
       <div
         data-portal-main
@@ -46,7 +49,7 @@ export default async function StudentOrgLayout({ children, params }: {
         <main style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 20 }}>
           {children}
         </main>
-        <CommandPalette />
+        <CommandPalette tenantOperationsEnabled={operationsEnabled} tenantPerformanceEnabled={performanceEnabled} />
       </div>
     </>
   );

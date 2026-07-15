@@ -163,7 +163,7 @@ const COMMANDS: Cmd[] = [
   { id: "new-msg",   label: "New message",           emoji: "✉️", href: "/messages?new=1", group: "Quick action" },
 ];
 
-export function CommandPalette() {
+export function CommandPalette({ tenantOperationsEnabled = true, tenantPerformanceEnabled = true }: { tenantOperationsEnabled?: boolean; tenantPerformanceEnabled?: boolean } = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -179,8 +179,13 @@ export function CommandPalette() {
 
   // Role-filtered command list
   const visibleCommands = useMemo(
-    () => COMMANDS.filter((c) => !c.roles || c.roles.includes(effectiveRole ?? "")),
-    [effectiveRole],
+    () => COMMANDS.filter((c) => {
+      if (c.roles && !c.roles.includes(effectiveRole ?? "")) return false;
+      if (pathname?.startsWith("/s/") && c.href === "/performance" && !tenantPerformanceEnabled) return false;
+      if (pathname?.startsWith("/s/") && !tenantOperationsEnabled && ["/attendance", "/work-sessions"].includes(c.href)) return false;
+      return true;
+    }),
+    [effectiveRole, pathname, tenantOperationsEnabled, tenantPerformanceEnabled],
   );
 
   useEffect(() => { if (pathname && visibleCommands.some((c) => c.href === pathname)) pushRecent(pathname); }, [pathname, visibleCommands]);

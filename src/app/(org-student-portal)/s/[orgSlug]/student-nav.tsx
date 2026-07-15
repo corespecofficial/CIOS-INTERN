@@ -19,6 +19,8 @@ interface Props {
   orgSlug: string;
   orgName: string;
   operationsEnabled: boolean;
+  performanceEnabled: boolean;
+  growthEnabled: boolean;
 }
 
 type NavItem = {
@@ -68,7 +70,7 @@ function initials(name: string | null | undefined) {
   return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "I";
 }
 
-export function StudentNav({ orgSlug, orgName, operationsEnabled }: Props) {
+export function StudentNav({ orgSlug, orgName, operationsEnabled, performanceEnabled, growthEnabled }: Props) {
   const pathname = usePathname();
   const router = useRouter();
   const { user } = useUser();
@@ -97,14 +99,15 @@ export function StudentNav({ orgSlug, orgName, operationsEnabled }: Props) {
 
   const sections: Array<{ label: string; items: NavItem[] }> = [];
   const byLabel = new Map<string, { label: string; items: NavItem[] }>();
+  const baseItems = NAV_ITEMS.filter((item) => item.href !== "/performance" || performanceEnabled);
   const items: NavItem[] = operationsEnabled ? [
-    ...NAV_ITEMS.slice(0, 4),
+    ...baseItems.slice(0, 4),
     { href: "/my-day", label: "My Day", icon: "📅", section: "OPERATIONS" },
     { href: "/attendance", label: "Attendance", icon: "✅", section: "OPERATIONS" },
     { href: "/work-sessions", label: "Work Sessions", icon: "⏱", section: "OPERATIONS" },
     { href: "/growth", label: "Growth Workspace", icon: "📈", section: "OPERATIONS" },
-    ...NAV_ITEMS.slice(4),
-  ] : NAV_ITEMS;
+    ...baseItems.slice(4),
+  ].filter((item) => item.href !== "/growth" || growthEnabled) : baseItems;
   for (const item of items) {
     let section = byLabel.get(item.section);
     if (!section) {
