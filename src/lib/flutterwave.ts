@@ -1,4 +1,6 @@
 import "server-only";
+import { isFlutterwaveCheckoutUrl } from "@/lib/flutterwave-url";
+export { isFlutterwaveCheckoutUrl } from "@/lib/flutterwave-url";
 
 const API_BASE = "https://api.flutterwave.com/v3";
 
@@ -40,6 +42,11 @@ export type FlutterwaveCheckoutInput = {
   paymentPlanId?: string | null;
 };
 
+/**
+ * Flutterwave has used more than one hosted-checkout subdomain. Keep the
+ * redirect locked to HTTPS and to flutterwave.com itself or a real subdomain
+ * (the leading-dot check rejects lookalikes such as evilflutterwave.com).
+ */
 export async function createFlutterwaveCheckout(input: FlutterwaveCheckoutInput): Promise<string> {
   const data = await flwRequest<{ link: string }>("/payments", {
     method: "POST",
@@ -63,12 +70,13 @@ export async function createFlutterwaveCheckout(input: FlutterwaveCheckoutInput)
     }),
   });
   const checkoutUrl = data.link?.trim();
-  let parsed: URL;
-  try { parsed = new URL(checkoutUrl); } catch { throw new Error("Flutterwave returned an invalid checkout URL"); }
-  if (parsed.protocol !== "https:" || parsed.hostname.toLowerCase() !== "checkout.flutterwave.com") {
+  if (!checkoutUrl || !isFlutterwaveCheckoutUrl(checkoutUrl)) {
+    let returnedHost = "unparseable";
+    try { returnedHost = new URL(checkoutUrl || "").hostname || "missing"; } catch { /* sanitized below */ }
+    console.error("[flutterwave] rejected checkout redirect", { returnedHost, hasLink: Boolean(checkoutUrl) });
     throw new Error("Flutterwave returned an invalid checkout URL");
   }
-  return parsed.toString();
+  return new URL(checkoutUrl).toString();
 }
 
 export type VerifiedFlutterwaveTransaction = {
