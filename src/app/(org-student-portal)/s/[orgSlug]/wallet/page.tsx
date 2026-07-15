@@ -1,5 +1,11 @@
-import WalletPage from "@/app/(app)/wallet/page";
+import { notFound } from "next/navigation";
+import { getActiveOrg } from "@/lib/active-org";
+import { TenantDataUnavailable } from "@/components/org/tenant-data-unavailable";
 
 export const dynamic = "force-dynamic";
 
-export default WalletPage;
+export default async function OrgWalletPage({ params }: { params: Promise<{ orgSlug: string }> }) {
+  const { orgSlug } = await params;
+  if (!await getActiveOrg(orgSlug)) notFound();
+  return <TenantDataUnavailable orgSlug={orgSlug} title="Organization wallet" description="This organization has no tenant-specific member wallet records yet. Your personal platform wallet and any other organization's financial history are intentionally excluded." />;
+}

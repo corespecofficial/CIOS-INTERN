@@ -109,7 +109,12 @@ export async function getCurrentDbUser(): Promise<DbUser | null> {
     }
     return null;
   }
-  return data as DbUser | null;
+  const user = data as DbUser | null;
+  // Clerk session revocation can take a moment to propagate. The database
+  // status is the immediate server-side kill switch for every protected read
+  // and action that resolves the current application user.
+  if (!user || user.status !== "active") return null;
+  return user;
 }
 
 /** Ensure the current Clerk user has a matching Supabase row.

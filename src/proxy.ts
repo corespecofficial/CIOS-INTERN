@@ -257,21 +257,25 @@ async function lookupOrgMembership(
   slug: string,
 ): Promise<{ orgId: string; role: OrgMemberRole } | null> {
   const key = orgCacheKey.membership(clerkUserId, slug);
-  const hit = await cacheGet<{ orgId: string; role: OrgMemberRole } | null>(key);
-  if (hit !== null) return hit;
-
   const sb = getEdgeSupabase();
   if (!sb) return null;
 
   // Resolve clerk_id → users.id, then look up the membership joined to slug.
   // Two queries because the edge supabase REST client doesn't compose joins
   // through a non-FK lookup cleanly. Both are indexed.
-  const { data: u } = await sb.from("users").select("id").eq("clerk_id", clerkUserId).maybeSingle();
-  const userId = (u as { id?: string } | null)?.id;
-  if (!userId) {
+  const { data: u } = await sb.from("users").select("id, status").eq("clerk_id", clerkUserId).maybeSingle();
+  const appUser = u as { id?: string; status?: string } | null;
+  const userId = appUser?.id;
+  if (!userId || appUser?.status !== "active") {
+    await cacheDel(key);
     await cacheSet(key, null, 60);
     return null;
   }
+
+  // Membership can be cached, account status cannot: suspension is an
+  // immediate security boundary and must take effect on the next request.
+  const hit = await cacheGet<{ orgId: string; role: OrgMemberRole } | null>(key);
+  if (hit !== null) return hit;
 
   const { data } = await sb
     .from("org_members")

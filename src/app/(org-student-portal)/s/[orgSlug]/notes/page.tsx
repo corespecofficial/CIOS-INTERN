@@ -1,5 +1,11 @@
-import NotesPage from "@/app/(app)/notes/page";
+import { notFound } from "next/navigation";
+import { getActiveOrg } from "@/lib/active-org";
+import { TenantDataUnavailable } from "@/components/org/tenant-data-unavailable";
 
 export const dynamic = "force-dynamic";
 
-export default NotesPage;
+export default async function OrgNotesPage({ params }: { params: Promise<{ orgSlug: string }> }) {
+  const { orgSlug } = await params;
+  if (!await getActiveOrg(orgSlug)) notFound();
+  return <TenantDataUnavailable orgSlug={orgSlug} title="Organization notes" description="No tenant-specific notes exist in this organization. Private notes from your platform account or another workspace are never displayed here." />;
+}

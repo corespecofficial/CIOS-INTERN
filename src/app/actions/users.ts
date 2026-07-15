@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { supabaseAdmin, getCurrentDbUser } from "@/lib/db";
 import { logAudit } from "@/lib/audit";
 import { publishOrgQuotaWarnings, publishPlatformOrgEvent } from "@/lib/org-platform-events";
+import { cacheDel, orgCacheKey } from "@/lib/cache";
 
 export type Role =
   | "intern" | "team_lead" | "admin" | "super_admin"
@@ -27,6 +28,23 @@ async function requireSuperAdmin() {
   const freshRole = (user.publicMetadata?.role as string | undefined) || "intern";
   if (freshRole !== "super_admin") throw new Error("Forbidden — super admin only");
   return userId;
+}
+
+async function invalidateUserOrgAccess(clerkUserId: string): Promise<void> {
+  const sb = supabaseAdmin();
+  const { data: user } = await sb.from("users").select("id").eq("clerk_id", clerkUserId).maybeSingle();
+  const dbUserId = (user as { id?: string } | null)?.id;
+  if (!dbUserId) return;
+  const { data: memberships } = await sb
+    .from("org_members")
+    .select("creative_orgs!inner(slug)")
+    .eq("user_id", dbUserId);
+  const keys = (memberships || []).flatMap((row) => {
+    const joined = (row as unknown as { creative_orgs?: { slug?: string } | Array<{ slug?: string }> }).creative_orgs;
+    const org = Array.isArray(joined) ? joined[0] : joined;
+    return org?.slug ? [orgCacheKey.membership(clerkUserId, org.slug)] : [];
+  });
+  if (keys.length) await cacheDel(...keys);
 }
 
 export interface UserListItem {
@@ -146,6 +164,7 @@ export async function setUserBan(userId: string, banned: boolean): Promise<{ ok:
       .from("users")
       .update({ status: banned ? "suspended" : "active" })
       .eq("clerk_id", userId);
+    await invalidateUserOrgAccess(userId);
     const me = await getCurrentDbUser();
     await logAudit({
       actionCode: banned ? "admin.user_suspended" : "admin.user_restored",
@@ -192,6 +211,10 @@ export async function deleteUser(userId: string): Promise<{
     if (userId === meId) return { ok: false, error: "You cannot delete yourself" };
 
     const client = await clerkClient();
+
+    // Capture and invalidate tenant access before the application user row
+    // (and cascading memberships) disappears.
+    await invalidateUserOrgAccess(userId);
 
     // 1) Clerk delete — idempotent.
     let clerkDeleted = false;
